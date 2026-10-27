@@ -295,18 +295,6 @@ export function getAuditLog(limit = 100) {
   return stmts.latest.all(limit).map(parseRow)
 }
 
-/** Einträge zu einer Kennung (Bereich + ID), neueste zuerst – über den Index (resource, resource_id, timestamp). */
-export function getAuditLogForResource(resource, resourceId, limit = 50) {
-  return db.prepare(`
-    SELECT timestamp, action, resource, resource_id AS resourceId, changes_json,
-           admin_key_last4 AS adminKeyLast4, ip, status, error
-    FROM audit_log
-    WHERE resource = ? AND resource_id = ?
-    ORDER BY timestamp DESC, id DESC
-    LIMIT ?
-  `).all(String(resource).toLowerCase(), String(resourceId), limit).map(parseRow)
-}
-
 // ── Gefilterte Abfrage für das Änderungsprotokoll im Admin-Bereich ────────────
 
 /**

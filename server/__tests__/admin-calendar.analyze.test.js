@@ -5,7 +5,7 @@
 import express from 'express'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAdminCalendarRouter, leereLueckenfuellerCache } from '../routes/admin-calendar.js'
-import { validate, analyzeKollQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminLemmaIdParamsSchema } from '../middleware/validate.js'
+import { validate, analyzeKollQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema } from '../middleware/validate.js'
 
 const durchlass = (_req, _res, next) => next()
 const MIN = 10
@@ -20,7 +20,6 @@ function baueApp(deps) {
     analyzeKollQuerySchema,
     analyzeLueckenfuellerQuerySchema,
     lueckenfuellerGenerateSchema,
-    adminLemmaIdParamsSchema,
     stmts: { upsertLemma: { run: () => {} } },
     lemmaToRow: (l) => l,
     invalidateCache: () => {},
@@ -195,8 +194,6 @@ describe('Lückenfüller: gemeinsame Sperre, Zwischenspeicher für Erzeugen, Wor
       const erzeugen = await POST(basis, '/admin/lueckenfueller/generate', { lemmaName: 'Kritik' })
       expect(erzeugen.status).toBe(409)
       expect((await erzeugen.json()).error).toMatch(/^Es läuft schon eine Lückenfüller-Prüfung oder -Erzeugung/)
-      const fuerLemma = await POST(basis, '/admin/lemma/kritik/lueckenfueller')
-      expect(fuerLemma.status).toBe(409)
       expect(build.mock.calls.length).toBe(aufrufe)
 
       oeffne(runden)

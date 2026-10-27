@@ -151,14 +151,6 @@ export const registerLimiter = rateLimit({
   skipSuccessfulRequests: true,
 })
 
-export const uploadLimiter = rateLimit({
-  windowMs: 10_000, max: 100,
-  store: new CleanupStore(10_000),
-  keyGenerator: getClientIp,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Upload-Rate-Limit überschritten, bitte warten.' },
-})
-
 export const classroomJoinLimiter = rateLimit({
   windowMs: 5 * 60_000, max: 10,
   store: classroomJoinStore,

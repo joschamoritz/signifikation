@@ -51,7 +51,6 @@ export function createAdminCalendarRouter({
   adminLimiter,
   requireAuth,
   validate,
-  qQuerySchema,
   adminTagSchema,
   analyzeKollQuerySchema,
   analyzeWZQuerySchema,
@@ -60,8 +59,6 @@ export function createAdminCalendarRouter({
   lueckenfuellerGenerateSchema,
   adminBulkDeleteCalendarSchema,
   adminPreviewLemmaSchema,
-  adminPreviewDayParamsSchema,
-  adminLemmaIdParamsSchema,
   adminEntwurfIdParamsSchema,
   ladeOffeneEntwuerfe,
   ladeEntwurf,
@@ -192,76 +189,6 @@ export function createAdminCalendarRouter({
         ipa: wikt.ipa,
         definitionen: wikt.definitionen,
       })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
-  router.get('/admin/preview/day/:datum', adminLimiter, requireAuth, validate(adminPreviewDayParamsSchema, 'params'), (req, res) => {
-    const { datum } = req.params
-    try {
-      const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
-      const kalEintrag = kalender[datum]
-      if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag fuer dieses Datum' })
-      const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
-
-      const { byId } = getLemmataIndex()
-
-      const lemmata = ids.map((id) => {
-        const l = byId.get(id)
-        if (!l) return null
-        return {
-          id: l.id,
-          lemma: l.lemma,
-          pos: l.pos,
-          wortart: l.wortart,
-          notiz: l.notiz || '',
-          link: l.link || '',
-          definition: l.definition || '',
-          ipa: l.ipa || '',
-          definitionen: l.definitionen || [],
-        }
-      }).filter(Boolean)
-
-      const wortzwillingEntry = wortzwilling[datum] || null
-      const zeitenwendeEntry = zeitenwende[datum] || null
-      const modeGroups = buildModeGroups({
-        lemmata,
-        wortzwillingEntry,
-        zeitenwendeEntry,
-      })
-
-      res.json({
-        datum,
-        lemmata,
-        modeGroups,
-        modes: {
-          kollokationen: { enabled: lemmata.length > 0, count: lemmata.length },
-          wortzwilling: { enabled: !!wortzwillingEntry, data: wortzwillingEntry },
-          zeitenwende: { enabled: !!zeitenwendeEntry, data: zeitenwendeEntry },
-        },
-      })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
-  router.get('/admin/wiktionary-def', adminLimiter, requireAuth, validate(qQuerySchema, 'query'), async (req, res) => {
-    const { q } = req.query
-    try {
-      const url = `https://de.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(q)}`
-      const r = await fetch(url, {
-        signal: AbortSignal.timeout(5000),
-        headers: { 'User-Agent': 'Signifikation/1.0 (signifikation.de; Bildungsprojekt)' },
-      })
-      if (!r.ok) return res.json({ definition: null })
-      const data = await r.json()
-      const defs = data.de?.[0]?.definitions ?? []
-      if (!defs.length) return res.json({ definition: null })
-      const clean = defs
-        .map((d) => d.definition.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim())
-        .join(' ')
-      res.json({ definition: clean })
     } catch (err) {
       adminError(res, err)
     }
@@ -568,60 +495,6 @@ export function createAdminCalendarRouter({
       res.json({ ok: true, entwurfId: id })
     } catch (err) {
       serverError(res, err)
-    }
-  })
-
-  router.post('/admin/wiktionary-backfill', adminLimiter, requireAuth, async (_req, res) => {
-    try {
-      const { byId } = getLemmataIndex()
-      let updated = 0
-      let skipped = 0
-      
-      for (const entry of byId.values()) {
-        if (entry.ipa && entry.definitionen?.length) { 
-          skipped++
-          continue 
-        }
-        
-        logger.info(`Backfill: Lade Wiktionary-Daten für „${entry.lemma}“ …`)
-        const wikt = await fetchWiktionary(entry.lemma).catch(() => ({ ipa: '', definitionen: [] }))
-        entry.ipa = wikt.ipa
-        entry.definitionen = wikt.definitionen
-        
-        stmts.upsertLemma.run(lemmaToRow(entry))
-        updated++
-      }
-      
-      logger.info(`Wiktionary-Backfill: ${updated} aktualisiert, ${skipped} bereits vorhanden`)
-      res.json({ ok: true, updated, skipped })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
-  router.post('/admin/lemma/:id/lueckenfueller', adminLimiter, requireAuth, validate(adminLemmaIdParamsSchema, 'params'), async (req, res) => {
-    const { id } = req.params
-    let sperre = null
-    try {
-      const { byId } = getLemmataIndex()
-      const entry = byId.get(id)
-      if (!entry) return res.status(404).json({ error: 'Lemma nicht gefunden' })
-
-      sperre = nimmLueckenfuellerSperre(entry.lemma)
-      if (!sperre) return res.status(409).json({ error: LUECKENFUELLER_BESETZT })
-
-      const result = await buildLueckenfueller(entry.lemma, entry.pos)
-      if (!result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
-
-      stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: result }))
-      invalidateCache('lemmata.json')
-
-      logger.info(`Lückenfüller gespeichert für „${entry.lemma}“ (${id}): ${result.length} Runden`)
-      res.json({ ok: true, lemma: entry.lemma, rounds: result.length, data: result })
-    } catch (err) {
-      serverError(res, err)
-    } finally {
-      gibLueckenfuellerSperreFrei(sperre)
     }
   })
 

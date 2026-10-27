@@ -214,32 +214,7 @@ export function createAdminUsersRouter(deps) {
     }
   })
 
-  router.get('/admin/users/:id/stats', adminLimiter, requireAuth, validate(adminUserIdParamsSchema, 'params'), (req, res) => {
-    const userId = String(req.params.id || '').trim()
-    if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
-
-    try {
-      const user = getUserDetailsStmt.get(userId)
-      if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-      const stats = buildUserStatsPayload(
-        getUserStatsByGameStmt.all(userId),
-        getUserRecentStatsStmt.all(userId),
-      )
-
-      res.json({
-        userId,
-        totals: stats.totals,
-        byGame: stats.byGame,
-        recent: stats.recent,
-      })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
   router.patch('/admin/users/:id/role', adminLimiter, requireAuth, validate(adminSetUserRoleSchema), setUserRoleHandler)
-  router.post('/admin/users/:id/role', adminLimiter, requireAuth, validate(adminSetUserRoleSchema), setUserRoleHandler)
 
   router.delete('/admin/users/:id', adminLimiter, requireAuth, validate(adminUserIdParamsSchema, 'params'), (req, res) => {
     const userId = String(req.params.id || '').trim()

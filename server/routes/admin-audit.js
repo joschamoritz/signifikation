@@ -6,8 +6,6 @@ export function createAdminAuditRouter({
   requireAuth,
   validate,
   adminAuditLogQuerySchema,
-  adminAuditLogDetailParamsSchema,
-  getAuditLogForResource,
   queryAuditLog,
   adminError,
 }) {
@@ -29,26 +27,6 @@ export function createAdminAuditRouter({
         timestamp: new Date().toISOString()
       })
     } catch (err) { adminError(res, err) }
-  })
-
-  router.get('/admin/audit-log/:resource/:id', adminLimiter, requireAuth, validate(adminAuditLogDetailParamsSchema, 'params'), (req, res) => {
-    try {
-      const resource = String(req.params.resource || '').trim().toLowerCase()
-      const resourceId = String(req.params.id || '').trim()
-      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50))
-      // Über den Index (Bereich, Kennung, Zeit) statt die neuesten 2000 Zeilen zu laden und zu sieben
-      const entries = getAuditLogForResource(resource, resourceId, limit)
-
-      res.json({
-        resource,
-        resourceId,
-        entries,
-        count: entries.length,
-        timestamp: new Date().toISOString(),
-      })
-    } catch (err) {
-      adminError(res, err)
-    }
   })
 
   return router

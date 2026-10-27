@@ -33,14 +33,6 @@ export function createAdminBackupRouter({
   const router = express.Router()
   const wer = (req) => ({ adminKey: req.adminSessionId || 'unknown', ip: req.ip })
 
-  router.post('/admin/backup/gist', adminLimiter, requireAuth, async (req, res) => {
-    try {
-      const { runBackup } = await import('../backup.js')
-      const result = await runBackup()
-      res.json({ ok: true, ...result })
-    } catch (err) { adminError(res, err) }
-  })
-
   // „Jetzt sichern“: komplette Datenbank (signifikation.db → .db.gz) von Hand auslösen. Die Datei
   // trägt die Uhrzeit im Namen und überschreibt die tägliche Sicherung nie (jobs/sqliteBackup.js).
   // Läuft zusätzlich automatisch täglich. Ein laufender Vorgang (auch der tägliche) → 409.

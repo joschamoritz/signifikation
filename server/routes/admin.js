@@ -8,10 +8,10 @@ import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getAuswertungSpiele, getAuswertungZeilen, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
-import { adminLimiter, adminBildLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
+import { adminLimiter, adminBildLimiter, loginLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
-import { auditCreate, auditUpdate, auditDelete, getAuditLogForResource, queryAuditLog } from '../audit.js'
+import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminEntwurfIdParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
+import { auditCreate, auditUpdate, auditDelete, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
 import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus, ladePost as ladeSocialPost, ladePostsFuer as ladeSocialPostsFuer } from '../socialCards/store.js'
 import { webUrl as blueskyWebUrl, blueskyKonfiguriert } from '../socialCards/bluesky.js'
@@ -72,14 +72,10 @@ router.delete('/admin/debug-logs', requireAuth, (_req, res) => {
 router.use(createAdminCoreRouter({
   adminLimiter,
   loginLimiter,
-  uploadLimiter,
   requireAuth,
   adminAuth,
   adminLogout,
-  adminError,
-  logger,
   adminHtmlPath: join(__dirname, '../admin.html'),
-  dataDir: join(__dirname, '../data'),
 }))
 
 router.use(createAdminUsersRouter({
@@ -160,7 +156,6 @@ router.use(createAdminCalendarRouter({
   adminLimiter,
   requireAuth,
   validate,
-  qQuerySchema,
   adminTagSchema,
   analyzeKollQuerySchema,
   analyzeWZQuerySchema,
@@ -169,8 +164,6 @@ router.use(createAdminCalendarRouter({
   lueckenfuellerGenerateSchema,
   adminBulkDeleteCalendarSchema,
   adminPreviewLemmaSchema,
-  adminPreviewDayParamsSchema,
-  adminLemmaIdParamsSchema,
   adminEntwurfIdParamsSchema,
   ladeOffeneEntwuerfe,
   ladeEntwurf,
@@ -206,8 +199,6 @@ router.use(createAdminAuditRouter({
   requireAuth,
   validate,
   adminAuditLogQuerySchema,
-  adminAuditLogDetailParamsSchema,
-  getAuditLogForResource,
   queryAuditLog,
   adminError,
 }))

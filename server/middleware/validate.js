@@ -244,16 +244,6 @@ export const adminPreviewLemmaSchema = z.object({
   pos: POS.optional().default('Substantiv'),
 })
 
-/** GET /admin/preview/day/:datum */
-export const adminPreviewDayParamsSchema = z.object({
-  datum: DATUM_ISO,
-})
-
-/** POST /admin/lemma/:id/lueckenfueller */
-export const adminLemmaIdParamsSchema = z.object({
-  id: z.string().trim().min(1, 'id erforderlich').max(120, 'id zu lang'),
-})
-
 /** POST /admin/entwuerfe/:id/uebernehmen und /verwerfen */
 export const adminEntwurfIdParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
@@ -266,12 +256,6 @@ export const lemmaEntwurfPushSchema = z.object({
   (body) => new Set(body.tage.map((tag) => tag.datum)).size === body.tage.length,
   { message: 'Jedes Datum darf nur einmal vorkommen', path: ['tage'] },
 )
-
-/** GET /admin/audit-log/:resource/:id */
-export const adminAuditLogDetailParamsSchema = z.object({
-  resource: z.string().trim().min(1, 'resource erforderlich').max(80, 'resource zu lang'),
-  id: z.string().trim().min(1, 'id erforderlich').max(120, 'id zu lang'),
-})
 
 /** POST /admin/backup/restore */
 export const adminBackupRestoreSchema = z.object({

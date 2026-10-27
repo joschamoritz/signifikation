@@ -193,21 +193,6 @@ describe('admin routes integration', () => {
     expect(Array.isArray(payload.rundenInfo)).toBe(true)
   })
 
-  it('GET /admin/preview/day/:datum liefert Tagesdaten fuer vorhandenen Eintrag', async () => {
-    const datum = '2026-10-15'
-    await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: ['haus', 'baum', 'wort'] })
-
-    const response = await fetch(`${baseUrl}/admin/preview/day/${encodeURIComponent(datum)}`, {
-      headers: adminHeaders(token),
-    })
-    const payload = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(payload.datum).toBe(datum)
-    expect(Array.isArray(payload.lemmata)).toBe(true)
-    expect(typeof payload.modes).toBe('object')
-  })
-
   it('GET /admin/kalender liefert thema und thema_kurz als Strings je Tag', async () => {
     const vorher = loadReadOnly('kalender.json')
     const mitThema = '2027-02-03'
@@ -250,38 +235,6 @@ describe('admin routes integration', () => {
       expect(entry.action).toBe('CREATE')
       expect(entry.status).toBe('SUCCESS')
     }
-  })
-
-  it('GET /admin/audit-log/:resource/:id liefert Detailhistorie für eine Entität', async () => {
-    const datum = `2026-12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
-    await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: ['haus', 'baum', 'wort'] })
-
-    const seedResponse = await fetch(`${baseUrl}/admin/kalender/bulk-delete`, {
-      method: 'POST',
-      headers: adminHeaders(token),
-      body: JSON.stringify({ dates: [datum] }),
-    })
-
-    expect(seedResponse.status).toBe(200)
-
-    const overview = await fetch(`${baseUrl}/admin/audit-log?limit=5`, {
-      headers: adminHeaders(token),
-    })
-    const overviewPayload = await overview.json()
-
-    expect(overview.status).toBe(200)
-    const first = overviewPayload.entries?.[0]
-    expect(first).toBeTruthy()
-
-    const response = await fetch(`${baseUrl}/admin/audit-log/${encodeURIComponent(first.resource)}/${encodeURIComponent(first.resourceId)}?limit=5`, {
-      headers: adminHeaders(token),
-    })
-    const payload = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(payload.resource).toBe(first.resource)
-    expect(payload.resourceId).toBe(first.resourceId)
-    expect(Array.isArray(payload.entries)).toBe(true)
   })
 
   it('GET /admin/users blaettert ueber offset ohne Ueberschneidung', async () => {
@@ -347,22 +300,6 @@ describe('admin routes integration', () => {
     })
 
     expect(response.status).toBe(400)
-  })
-
-  it('GET /admin/users/:id/stats liefert nur Statistikdaten', async () => {
-    const userId = createTestUser({ role: 'premium' })
-    testUserIds.add(userId)
-
-    const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}/stats`, {
-      headers: adminHeaders(token),
-    })
-    const payload = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(payload.userId).toBe(userId)
-    expect(typeof payload.totals).toBe('object')
-    expect(Array.isArray(payload.byGame)).toBe(true)
-    expect(Array.isArray(payload.recent)).toBe(true)
   })
 
   it('POST /admin/backup/restore akzeptiert vorhandenes Backup-Format', async () => {
@@ -1123,23 +1060,21 @@ const NUTZER_IP = '198.51.100.61'
   const getRoleStmt = db.prepare(`SELECT role FROM user_profiles WHERE user_id = ?`)
   const userExists = (id) => !!db.prepare('SELECT 1 FROM user WHERE id = ?').get(id)
 
-  it('PATCH und POST /admin/users/:id/role lehnen Admin-Konten ab (auch das eigene)', async () => {
+  it('PATCH /admin/users/:id/role lehnt Admin-Konten ab (auch das eigene)', async () => {
     const otherAdmin = createTestUser({ role: 'admin' })
     testUserIds.add(otherAdmin)
     const ownAdmin = db.prepare('SELECT userId FROM session WHERE id = ?').get(testSessionId).userId
 
     for (const targetId of [otherAdmin, ownAdmin]) {
-      for (const method of ['PATCH', 'POST']) {
-        const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(targetId)}/role`, {
-          method,
-          headers: adminHeaders(token, NUTZER_IP),
-          body: JSON.stringify({ role: 'user' }),
-        })
-        const payload = await response.json()
-        expect(response.status).toBe(403)
-        expect(payload.error).toContain('Admin-Konten')
-        expect(getRoleStmt.get(targetId).role).toBe('admin')
-      }
+      const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(targetId)}/role`, {
+        method: 'PATCH',
+        headers: adminHeaders(token, NUTZER_IP),
+        body: JSON.stringify({ role: 'user' }),
+      })
+      const payload = await response.json()
+      expect(response.status).toBe(403)
+      expect(payload.error).toContain('Admin-Konten')
+      expect(getRoleStmt.get(targetId).role).toBe('admin')
     }
   })
 

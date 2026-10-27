@@ -625,15 +625,5 @@ describe('Werkzeuge › Betrieb (Server)', () => {
         expect(r.entries.some((e) => e.resourceId === `${marke}-u`), q).toBe(true)
       }
     })
-
-    it('Detail-Route liefert die Einträge einer Kennung über den Index', async () => {
-      const id = `${marke}-d`
-      for (const zeit of ['2026-09-01T10:00:00.000Z', '2026-09-02T10:00:00.000Z']) {
-        insertAuditStmt.run({ timestamp: zeit, action: 'UPDATE', resource: 'user', resource_id: id, status: 'SUCCESS', changes_json: '{}', entry_hash: randomUUID() })
-      }
-      const r = await (await get(`/admin/audit-log/USER/${id}?limit=1`)).json()
-      expect(r.count).toBe(1)
-      expect(r.entries[0].timestamp).toBe('2026-09-02T10:00:00.000Z')
-    })
   })
 })

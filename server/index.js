@@ -20,7 +20,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { randomUUID } from 'crypto'
 import { toNodeHandler } from 'better-auth/node'
-import { IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
+import { IS_PROD, csrfProtect } from './middleware/auth.js'
 import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter, lemmaApiLimiter } from './middleware/rateLimiter.js'
 import { requireLemmaApiKey } from './middleware/lemmaApiKey.js'
@@ -161,9 +161,7 @@ app.use((req, res, next) => {
 })
 
 // ── CSRF-Schutz ───────────────────────────────────────────────
-// Upload-Endpunkt erlaubt zusätzlich application/octet-stream
-app.use('/admin/upload-wortprofil', csrfProtectUpload)
-// Alle anderen Admin- und API-Endpoints: nur application/json
+// Admin- und API-Endpoints: nur application/json
 app.use('/admin', csrfProtect)
 app.use('/api', csrfProtect)
 

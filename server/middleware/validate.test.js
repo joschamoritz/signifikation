@@ -15,7 +15,6 @@ import {
   adminBulkDeleteCalendarSchema,
   analyzeKollQuerySchema,
   adminPreviewLemmaSchema,
-  adminPreviewDayParamsSchema,
 } from './validate.js'
 
 // ── validate()-Middleware ────────────────────────────────────
@@ -272,16 +271,6 @@ describe('analyzeKollQuerySchema', () => {
 
   it('akzeptiert q mit wortart', () => {
     expect(analyzeKollQuerySchema.safeParse({ q: 'haus', pos: 'Substantiv' }).success).toBe(true)
-  })
-})
-
-describe('adminPreviewDayParamsSchema', () => {
-  it('akzeptiert YYYY-MM-DD', () => {
-    expect(adminPreviewDayParamsSchema.safeParse({ datum: '2026-03-15' }).success).toBe(true)
-  })
-
-  it('lehnt MM-DD ohne Jahr ab', () => {
-    expect(adminPreviewDayParamsSchema.safeParse({ datum: '03-15' }).success).toBe(false)
   })
 })
 
