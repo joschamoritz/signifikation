@@ -86,7 +86,8 @@ async function zeichneBild(renderer, entwurf, bildDir, { nurKlein = false } = {}
 }
 
 /**
- * Zeichnet alle Bild-Entwürfe ab `abDatum`, denen das Bild fehlt (Textposts haben keins).
+ * Zeichnet alle Bild-Entwürfe ab `abDatum`, denen das Bild fehlt (Textposts haben keins): noch nie
+ * gezeichnet, nach „Neu erstellen“ oder mit verlorener Datei (bild gesetzt, Datei weg).
  * Entwürfe aus der Zeit vor der kleinen Vorschau bekommen sie in derselben Charge nachgezogen;
  * ihr volles Bild bleibt dabei unangetastet.
  * Jeder Entwurf wird einzeln gezeichnet: Ein Fehler bei einem Bild stoppt die übrigen nicht. Auch
@@ -94,9 +95,14 @@ async function zeichneBild(renderer, entwurf, bildDir, { nurKlein = false } = {}
  * @returns {Promise<{ gezeichnet:number, fehler:Array<{ id:number, meldung:string }> }>}
  */
 async function zeichneFehlende(abDatum, { createRenderer, bildDir, vorschauAb = abDatum }) {
+  const vollDa = (e) => !!e.bild && existsSync(join(bildDir, basename(e.bild)))
   const offen = entwuerfeOhneBild(abDatum).filter((e) => e.spec.format !== 'text')
+  const ohneId = new Set(offen.map((e) => e.id))
+  for (const e of ladeEntwuerfeAb(abDatum)) {
+    if (e.bild && e.status !== 'verworfen' && e.spec.format !== 'text' && !ohneId.has(e.id) && !vollDa(e)) offen.push(e)
+  }
   const ohneVorschau = ladeEntwuerfeAb(vorschauAb).filter((e) =>
-    e.bild && e.status !== 'verworfen' && e.spec.format !== 'text' &&
+    e.status !== 'verworfen' && e.spec.format !== 'text' && vollDa(e) &&
     !existsSync(join(bildDir, kleinDatei(basename(e.bild)))))
   const ergebnis = { gezeichnet: 0, fehler: [] }
   if (!offen.length && !ohneVorschau.length) return ergebnis
@@ -285,7 +291,8 @@ export function erneuereEntwurf(entwurf, {
 }
 
 /**
- * Pfad zum Bild eines Entwurfs; zeichnet es nach, falls die Datei fehlt.
+ * Pfad zum Bild eines Entwurfs; fehlt die Datei, zeichnet ein Browserlauf sie zusammen mit allen anderen
+ * fehlenden Bildern ab diesem Tag nach (zeichneFehlende).
  * `groesse: 'klein'` liefert die Vorschau; gibt es sie (noch) nicht, kommt die volle Fassung
  * zurück – nachgezeichnet wird die Vorschau dann beim nächsten Lauf des Jobs (zeichneFehlende),
  * nicht je Abruf.
@@ -306,6 +313,20 @@ export async function bildPfad(entwurf, { createRenderer = createCardRenderer, b
     if (!aktuell) return null
     const schon = vollPfad(aktuell)
     if (schon && existsSync(schon)) return mitKlein(schon)
+    // Fehlt ein Bild, fehlen meist mehrere (neue Charge, „Neu erstellen“, geleerter Ordner) und die Liste
+    // fragt sie gleich nacheinander ab: alle fehlenden ab diesem Tag in EINEM Browserlauf zeichnen statt
+    // eines Chromium-Starts je Abruf. Die wartenden Abrufe finden ihr Bild danach fertig vor.
+    if (aktuell.status !== 'verworfen') {
+      const abDatum = [aktuell.datum, berlinHeute()].sort()[0]
+      const { fehler } = await zeichneFehlende(abDatum, { createRenderer, bildDir })
+      const danach = ladeEntwurf(aktuell.id)
+      if (!danach) return null
+      const fertig = vollPfad(danach)
+      if (fertig && existsSync(fertig)) return mitKlein(fertig)
+      const eigener = fehler.find((f) => f.id === aktuell.id)
+      throw new Error(eigener?.meldung || 'Das Bild konnte nicht gezeichnet werden.')
+    }
+    // Verworfene Entwürfe zeichnet die Charge nicht: nur dieses eine Bild
     mkdirSync(bildDir, { recursive: true })
     const renderer = await createRenderer()
     let datei

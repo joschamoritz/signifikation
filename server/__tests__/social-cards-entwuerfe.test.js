@@ -468,6 +468,19 @@ describe('erzeugeEntwuerfe / erneuereEntwurf', () => {
     db.prepare('DELETE FROM social_card_entwurf WHERE id = ?').run(e.id)
     expect(await bildPfad({ ...e, bild: null }, { bildDir, createRenderer: verboten })).toBeNull()
   })
+
+  it('bildPfad: fehlen mehrere Bilder (Ordner geleert), zeichnet der erste Abruf alle in einem Browserlauf', async () => {
+    await erzeugeEntwuerfe({ heute: SO, tage: 7, deps: deps(), createRenderer: fakeRenderer, bildDir })
+    const mitBild = ladeEntwuerfe(SO, '2099-12-31').filter((e) => e.bild)
+    expect(mitBild.length).toBeGreaterThan(1)
+    for (const n of readdirSync(bildDir)) rmSync(join(bildDir, n))
+    let starts = 0
+    const zaehlend = () => { starts += 1; return fakeRenderer() }
+    for (const e of mitBild) {
+      expect(existsSync(await bildPfad(e, { bildDir, createRenderer: zaehlend, groesse: 'klein' }))).toBe(true)
+    }
+    expect(starts).toBe(1)
+  })
 })
 
 describe('mitZeitlimit', () => {
