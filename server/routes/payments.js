@@ -8,6 +8,7 @@ import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
 import { auditSecurity, auditSecurityGedrosselt, drosselSchluessel } from '../audit.js'
 import { lookupCountry } from '../geoip.js'
+import { erfasseErstattung } from '../kaufErstattung.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const MOLLIE_API_KEY = process.env.MOLLIE_API_KEY?.trim()
@@ -206,13 +207,6 @@ const deleteWebhookRetryStmt = db.prepare(`
 
 const getUserEmailStmt = db.prepare(`SELECT email FROM user WHERE id = ?`)
 
-// Erstattet: Der Kauf zählt nicht mehr (Kennzahlen, Ausnahme von der Inaktivitäts-Löschung, erneuter Kauf möglich).
-// Die Freischaltung bleibt; ob sie entzogen wird, entscheidet der Admin am Konto.
-const markiereErstattetStmt = db.prepare(`
-  UPDATE payments SET status = 'refunded' WHERE id = ? AND status = 'paid'
-  RETURNING user_id AS userId
-`)
-
 const centBetrag = (amount) => Math.round(Number(amount?.value) * 100)
 
 /**
@@ -284,10 +278,11 @@ router.post(
 
       const erstattungsart = payment.status === 'paid' ? mollieErstattungsart(payment) : null
       if (erstattungsart) {
-        const zeile = markiereErstattetStmt.get(paymentId)
+        // Kauf zählt nicht mehr (Kennzahlen, Inaktivitäts-Ausnahme, erneuter Kauf möglich); Gesamtausgabe wird entzogen
+        const zeile = erfasseErstattung(paymentId)
         if (zeile) {
-          logger.info({ paymentId, userId: zeile.userId, art: erstattungsart }, 'Mollie-Webhook: Zahlung als erstattet erfasst')
-          auditSecurity('PAYMENT_REFUNDED', { paymentId, userId: zeile.userId ?? undefined, quelle: 'mollie', art: erstattungsart }, { ip: req.ip })
+          logger.info({ paymentId, userId: zeile.userId, art: erstattungsart, entzogen: zeile.entzogen }, 'Mollie-Webhook: Zahlung als erstattet erfasst')
+          auditSecurity('PAYMENT_REFUNDED', { paymentId, userId: zeile.userId ?? undefined, quelle: 'mollie', art: erstattungsart, entzogen: zeile.entzogen }, { ip: req.ip })
         } else {
           logger.info({ paymentId, art: erstattungsart }, 'Mollie-Webhook: Erstattung ohne offenen Kauf (unbekannt oder schon erfasst)')
         }

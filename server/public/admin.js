@@ -2590,8 +2590,8 @@ function protokollSatz(e) {
     case 'security:CHECKOUT_REJECT_COUNTRY': return `Kauf abgelehnt: Aufruf aus dem Ausland${det.country ? ` (${det.country})` : ''}`
     case 'security:PAYMENT_REJECT': return 'Zahlung abgewiesen: Betrag oder Währung ungültig'
     case 'security:WEBHOOK_REJECT': return 'Zahlungsmeldung von unbekannter Adresse abgewiesen'
-    case 'security:PAYMENT_REFUNDED': return `Kauf ${det.art === 'rueckbuchung' ? 'zurückgebucht' : 'erstattet'} (${det.quelle === 'apple' ? 'App Store' : 'Mollie'})`
-    case 'security:PAYMENT_REFUND_REVERSED': return 'Erstattung zurückgenommen (App Store), Kauf zählt wieder'
+    case 'security:PAYMENT_REFUNDED': return `Kauf ${det.art === 'rueckbuchung' ? 'zurückgebucht' : 'erstattet'} (${det.quelle === 'apple' ? 'App Store' : 'Mollie'})${det.entzogen ? ', Gesamtausgabe entzogen' : ''}`
+    case 'security:PAYMENT_REFUND_REVERSED': return `Erstattung zurückgenommen (App Store), Kauf zählt wieder${det.freigeschaltet ? ', Gesamtausgabe wieder frei' : ''}`
     default: return `${PROTOKOLL_VORGAENGE[e.action] || e.action || 'Vorgang'} · ${PROTOKOLL_BEREICHE[e.resource] || e.resource || 'Bereich unbekannt'}`
   }
 }

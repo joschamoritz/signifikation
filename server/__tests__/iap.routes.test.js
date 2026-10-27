@@ -366,6 +366,7 @@ describe('App-Store-Benachrichtigungen (Erstattung)', () => {
   const origId = `orig-refund-${Date.now()}`
   const txId = `tx-refund-${Date.now()}`
   const statusVon = () => db.prepare('SELECT status FROM payments WHERE id = ?').get(origId)?.status
+  const rolleVon = () => db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(user)?.role
   // Die innere Signaturprüfung wird ersetzt: Getestet wird die Auswertung, nicht die Kryptografie
   const tx = (felder = {}) => () => ({ bundleId: 'de.signifikation.app', transactionId: txId, originalTransactionId: origId, ...felder })
   const meldung = (notificationType, data = {}) => ({
@@ -390,11 +391,14 @@ describe('App-Store-Benachrichtigungen (Erstattung)', () => {
     expect(statusVon()).toBe('paid')
     expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx({ revocationReason: 0 }))).toEqual({ status: 200, ergebnis: 'erstattet' })
     expect(statusVon()).toBe('refunded')
-    expect(isEntitlementActive(user)).toBe(true)
+    expect(isEntitlementActive(user)).toBe(false)
+    expect(rolleVon()).toBe('user')
     // Apple wiederholt: nichts mehr zu tun
     expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx()).ergebnis).toBe('kein passender Kauf')
     expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND_REVERSED'), tx())).toEqual({ status: 200, ergebnis: 'zurückgenommen' })
     expect(statusVon()).toBe('paid')
+    expect(isEntitlementActive(user)).toBe(true)
+    expect(rolleVon()).toBe('premium')
   })
 
   it('findet den Kauf auch über die transactionId, wenn die Original-ID fehlt', () => {

@@ -7,6 +7,7 @@ import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
 import { auditSecurity } from '../audit.js'
+import { erfasseErstattung, nimmErstattungZurueck } from '../kaufErstattung.js'
 
 const router = express.Router()
 
@@ -394,20 +395,13 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
 
 // ── POST /api/v1/iap/notifications ─────────────────────────────
 // App Store Server Notifications V2 (in App Store Connect › App-Informationen als Produktions-URL
-// eintragen). Ausgewertet werden nur Erstattungen: REFUND setzt den Kauf auf 'refunded',
-// REFUND_REVERSED wieder auf 'paid'. Alles andere wird bestätigt und ignoriert.
+// eintragen). Ausgewertet werden nur Erstattungen: REFUND setzt den Kauf auf 'refunded' und entzieht die
+// Gesamtausgabe, REFUND_REVERSED macht beides rückgängig (kaufErstattung.js). Alles andere wird bestätigt und ignoriert.
 // Antworten: 200 = verarbeitet oder bewusst ignoriert (Apple wiederholt dann nicht),
 // 400 = Signatur oder Inhalt ungültig.
 
 export const IAP_NOTIFICATIONS_PFAD = '/api/v1/iap/notifications'
 export const IAP_NOTIFICATIONS_BODY_LIMIT = '64kb'
-
-// Gespeichert ist die originalTransactionId (unlockForUser), ältere Zeilen ggf. die transactionId
-const setzeZahlungsstatusStmt = db.prepare(`
-  UPDATE payments SET status = @neu
-  WHERE id IN (@original, @transaktion) AND status = @alt
-  RETURNING id, user_id AS userId
-`)
 
 /**
  * Wertet eine verifizierte Benachrichtigung aus. Exportiert für Tests (ohne echtes Apple-JWS).
@@ -432,19 +426,19 @@ export function verarbeiteAppStoreBenachrichtigung(notification, pruefeJws = ver
   const original = String(tx.originalTransactionId ?? tx.transactionId ?? '')
   if (!transaktion) return { status: 400, ergebnis: 'Transaktions-ID fehlt' }
 
+  // Gespeichert ist die originalTransactionId (unlockForUser), ältere Zeilen ggf. die transactionId
   const erstattet = typ === 'REFUND'
-  const zeile = setzeZahlungsstatusStmt.get({
-    original, transaktion,
-    alt: erstattet ? 'paid' : 'refunded',
-    neu: erstattet ? 'refunded' : 'paid',
-  })
+  const zeile = erstattet
+    ? erfasseErstattung(original, { zweiteId: transaktion })
+    : nimmErstattungZurueck(original, { zweiteId: transaktion })
   if (!zeile) {
     logger.info({ typ, transactionId: transaktion }, 'App Store: Erstattungsmeldung ohne passenden Kauf (unbekannt oder schon erfasst)')
     return { status: 200, ergebnis: 'kein passender Kauf' }
   }
-  logger.info({ typ, paymentId: zeile.id, userId: zeile.userId }, erstattet ? 'App Store: Kauf als erstattet erfasst' : 'App Store: Erstattung zurückgenommen')
+  logger.info({ typ, ...zeile }, erstattet ? 'App Store: Kauf als erstattet erfasst' : 'App Store: Erstattung zurückgenommen')
   auditSecurity(erstattet ? 'PAYMENT_REFUNDED' : 'PAYMENT_REFUND_REVERSED', {
-    paymentId: zeile.id, userId: zeile.userId ?? undefined, quelle: 'apple',
+    paymentId: zeile.paymentId, userId: zeile.userId ?? undefined, quelle: 'apple',
+    ...(erstattet ? { entzogen: zeile.entzogen } : { freigeschaltet: zeile.freigeschaltet }),
     ...(erstattet && tx.revocationReason != null ? { grund: tx.revocationReason } : {}),
   })
   return { status: 200, ergebnis: erstattet ? 'erstattet' : 'zurückgenommen' }

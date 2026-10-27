@@ -354,14 +354,20 @@ describe('payments routes integration', () => {
     return { userId, paymentId, zahlung }
   }
 
-  it('Webhook: volle Erstattung setzt den Kauf auf refunded, die Freischaltung bleibt', async () => {
+  const freigeschaltet = (userId) => db.prepare('SELECT gesamtausgabe_unlocked AS u FROM user_entitlements WHERE user_id = ?').get(userId)?.u
+  const rolle = (userId) => db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(userId)?.role
+
+  it('Webhook: volle Erstattung setzt den Kauf auf refunded und entzieht die Gesamtausgabe', async () => {
     const { userId, paymentId, zahlung } = await kaufeUeberWebhook()
+    expect(freigeschaltet(userId)).toBe(1)
+    expect(rolle(userId)).toBe('premium')
     mollieMock.get.mockResolvedValue({ ...zahlung, amountRefunded: { value: '9.99', currency: 'EUR' }, amountRemaining: { value: '0.00', currency: 'EUR' } })
     expect((await webhook(paymentId)).status).toBe(200)
     expect(statusVon(paymentId)).toBe('refunded')
-    expect(db.prepare('SELECT gesamtausgabe_unlocked AS u FROM user_entitlements WHERE user_id = ?').get(userId).u).toBe(1)
+    expect(freigeschaltet(userId)).toBe(0)
+    expect(rolle(userId)).toBe('user')
     const eintrag = db.prepare(`SELECT changes_json FROM audit_log WHERE action = 'PAYMENT_REFUNDED' AND changes_json LIKE ? ORDER BY id DESC LIMIT 1`).get(`%${paymentId}%`)
-    expect(eintrag).toBeTruthy()
+    expect(JSON.parse(eintrag.changes_json).details).toMatchObject({ paymentId, quelle: 'mollie', entzogen: true })
     // Ein weiterer Aufruf (Mollie wiederholt) ändert nichts mehr
     expect((await webhook(paymentId)).status).toBe(200)
     expect(statusVon(paymentId)).toBe('refunded')
@@ -377,6 +383,25 @@ describe('payments routes integration', () => {
     mollieMock.get.mockResolvedValue({ ...rueck.zahlung, amountChargedBack: { value: '9.99', currency: 'EUR' } })
     expect((await webhook(rueck.paymentId)).status).toBe(200)
     expect(statusVon(rueck.paymentId)).toBe('refunded')
+  })
+
+  it('Webhook: Erstattung entzieht nichts bei einem weiteren bezahlten Kauf oder einem Admin-Konto', async () => {
+    const zwei = await kaufeUeberWebhook()
+    db.prepare(`INSERT INTO payments (id, user_id, amount, currency, status, product, processed_at) VALUES (?, ?, '6.99', 'EUR', 'paid', 'gesamtausgabe', ?)`)
+      .run(`2000${Date.now()}`, zwei.userId, Date.now())
+    mollieMock.get.mockResolvedValue({ ...zwei.zahlung, amountRefunded: { value: '9.99', currency: 'EUR' } })
+    await webhook(zwei.paymentId)
+    expect(statusVon(zwei.paymentId)).toBe('refunded')
+    expect(freigeschaltet(zwei.userId)).toBe(1)
+    expect(rolle(zwei.userId)).toBe('premium')
+
+    const admin = await kaufeUeberWebhook()
+    db.prepare(`UPDATE user_profiles SET role = 'admin' WHERE user_id = ?`).run(admin.userId)
+    mollieMock.get.mockResolvedValue({ ...admin.zahlung, amountChargedBack: { value: '9.99', currency: 'EUR' } })
+    await webhook(admin.paymentId)
+    expect(statusVon(admin.paymentId)).toBe('refunded')
+    expect(freigeschaltet(admin.userId)).toBe(1)
+    expect(rolle(admin.userId)).toBe('admin')
   })
 
   it('Webhook: eine schon erstattete Zahlung ohne Kaufzeile schaltet nichts frei', async () => {
