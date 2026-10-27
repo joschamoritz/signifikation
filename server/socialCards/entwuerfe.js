@@ -214,9 +214,14 @@ function entwurf(datum, slot, spec, captionState, captionVariante = 0) {
   }
 }
 
+// Kollokatoren auf dem Spielweg (Wortart des Kalender-Lemmas); ohne Eignung fürs Spiel gibt es keinen Entwurf
+async function kollokatorenFuer(lemma, deps) {
+  const analyse = await deps.analyzeKollokationen(lemma.lemma, lemma.pos || '')
+  return analyse?.usable ? analyse.kollokatoren : []
+}
+
 async function raetsel(datum, lemma, deps) {
-  const analyse = await deps.analyzeKollokationBest(lemma.lemma)
-  const [antwort, ...rest] = analyse.kollokatoren
+  const [antwort, ...rest] = await kollokatorenFuer(lemma, deps)
   if (!antwort || rest.length < 2) return []
   // Köder wie im Editor vorbelegt: Rang ~5 und ~10, sonst die nächsten
   const koeder1 = rest[3] ?? rest[0]
@@ -241,7 +246,7 @@ async function raetsel(datum, lemma, deps) {
 }
 
 async function lueckenbeleg(datum, lemma, deps) {
-  const { kollokatoren } = await deps.analyzeKollokationBest(lemma.lemma)
+  const kollokatoren = await kollokatorenFuer(lemma, deps)
   const beleg = findeBeleg(lemma.lemma, kollokatoren, { ...deps, luecke: true })
   if (!beleg) return []
   const data = { quoteText: beleg.text, quelle: beleg.quelle, collocate: beleg.wortform, showOptions: false, options: [] }
@@ -260,7 +265,7 @@ async function lueckenbeleg(datum, lemma, deps) {
 
 /** Textpost für Bluesky: echter Satz mit Lücke; Auflösung am Folgetag als Antwort. */
 async function textbeleg(datum, lemma, deps) {
-  const { kollokatoren } = await deps.analyzeKollokationBest(lemma.lemma)
+  const kollokatoren = await kollokatorenFuer(lemma, deps)
   const beleg = findeBeleg(lemma.lemma, kollokatoren, { ...deps, luecke: true, passt: (b) => passtInPost(mitTags(textbelegPost(b), TEXTBELEG_TAGS)) })
   if (!beleg) return []
   const spec = {
@@ -276,7 +281,7 @@ async function textbeleg(datum, lemma, deps) {
 }
 
 async function zitat(datum, lemma, deps) {
-  const { kollokatoren } = await deps.analyzeKollokationBest(lemma.lemma)
+  const kollokatoren = await kollokatorenFuer(lemma, deps)
   const beleg = findeBeleg(lemma.lemma, kollokatoren, { ...deps, luecke: false })
   if (!beleg) return []
   const data = { subtype: 'Zitat', xLemma: lemma.lemma, headline: beleg.quelle, body: beleg.text }
@@ -290,7 +295,7 @@ async function zitat(datum, lemma, deps) {
  * Tages selbst spielt keine Rolle.
  *
  * @param {string} datum 'YYYY-MM-DD'
- * @param {object} deps { loadKalender, getLemmataIndex, analyzeKollokationBest, fetchBelege, random? }
+ * @param {object} deps { loadKalender, getLemmataIndex, analyzeKollokationen, fetchBelege, random? }
  * @param {object} [opts]
  * @param {Set<string>} [opts.vorhanden] 'datum|slot' bereits angelegter Entwürfe – die werden
  *   nicht neu gebaut (spart die Korpusabfragen beim täglichen Lauf)

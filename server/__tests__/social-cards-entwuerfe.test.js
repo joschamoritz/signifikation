@@ -45,7 +45,7 @@ function deps(extra = {}) {
   return {
     loadKalender: () => KALENDER,
     getLemmataIndex: () => ({ byId: new Map(Object.entries(LEMMATA)) }),
-    analyzeKollokationBest: vi.fn(async () => ({ kollokatoren: KOLLOKATOREN })),
+    analyzeKollokationen: vi.fn(async () => ({ kollokatoren: KOLLOKATOREN, usable: true })),
     fetchBelege: vi.fn((_lemma, koll) => [
       { quelle: LEIPZIG, tokens: tok(`Ein Zeitungssatz mit ${koll} drin.`, koll) },
       { quelle: DTA, tokens: tok(`Das ${koll} Gedächtnis einer Zeit.`, koll) },
@@ -94,7 +94,7 @@ describe('baueEntwuerfe – Wochenplan', () => {
 
     const [raetsel, aufloesung] = liste
     // Vortag (Montag) beginnt mit Gedächtnis – nicht das heutige Lemma (Spoiler)
-    expect(d.analyzeKollokationBest).toHaveBeenCalledWith('Gedächtnis')
+    expect(d.analyzeKollokationen).toHaveBeenCalledWith('Gedächtnis', 'Substantiv')
     expect(raetsel.spec.data.lemma).toBe('Gedächtnis')
     const opts = raetsel.spec.data.options
     expect(opts).toHaveLength(3)
@@ -126,7 +126,7 @@ describe('baueEntwuerfe – Wochenplan', () => {
     // Dienstag 10.03.: Für Montag 09.03. steht nichts im Kalender → nichts, ohne Korpusabfrage
     const d = deps()
     expect(await baueEntwuerfe('2099-03-10', d)).toEqual([])
-    expect(d.analyzeKollokationBest).not.toHaveBeenCalled()
+    expect(d.analyzeKollokationen).not.toHaveBeenCalled()
     // Tag ohne Plan-Slot (Montag, Sonntag): nichts, obwohl der Kalender belegt ist
     expect(await baueEntwuerfe(MO, deps())).toEqual([])
     expect(await baueEntwuerfe(SO, deps())).toEqual([])
@@ -136,7 +136,7 @@ describe('baueEntwuerfe – Wochenplan', () => {
     const d = deps()
     const liste = await baueEntwuerfe(DO, d)
     expect(liste.map((e) => `${e.datum}|${e.slot}`)).toEqual([`${DO}|TB`, `${FR}|TB-aufloesung`])
-    expect(d.analyzeKollokationBest).toHaveBeenCalledWith('Tisch') // Vortags-Lemma (Mittwoch)
+    expect(d.analyzeKollokationen).toHaveBeenCalledWith('Tisch', 'Substantiv') // Vortags-Lemma (Mittwoch)
 
     const [post, antwort] = liste
     expect(post.spec.format).toBe('text')
@@ -172,13 +172,13 @@ describe('baueEntwuerfe – Wochenplan', () => {
     const d = deps()
     const liste = await baueEntwuerfe(DI, d, { vorhanden: new Set([`${DI}|A`]) })
     expect(liste).toEqual([])
-    expect(d.analyzeKollokationBest).not.toHaveBeenCalled()
+    expect(d.analyzeKollokationen).not.toHaveBeenCalled()
   })
 
   it('Samstag (gerade KW): Beleg mit Lücke aus erlaubter Quelle (keine Leipziger Zeitungssätze)', async () => {
     const d = deps()
     const liste = await baueEntwuerfe(SA, d)
-    expect(d.analyzeKollokationBest).toHaveBeenCalledWith('Brücke') // Vortags-Lemma (Freitag)
+    expect(d.analyzeKollokationen).toHaveBeenCalledWith('Brücke', 'Substantiv') // Vortags-Lemma (Freitag)
     const beleg = liste.find((e) => e.slot === 'B')
     expect(beleg.spec.data.quelle).toBe(DTA)
     expect(beleg.spec.data.quoteText).toBe('Das ______ Gedächtnis einer Zeit.')
@@ -208,13 +208,19 @@ describe('baueEntwuerfe – Wochenplan', () => {
     expect(belegLueckenwort(tokens, 'weiß')).toBe('Weißen')
 
     const d = deps({
-      analyzeKollokationBest: async () => ({ kollokatoren: [{ wort: 'weiß', logDice: 10 }] }),
+      analyzeKollokationen: async () => ({ kollokatoren: [{ wort: 'weiß', logDice: 10 }], usable: true }),
       fetchBelege: () => [{ quelle: DTA, tokens }],
     })
     const liste = await baueEntwuerfe(DO, d)
     expect(liste.find((e) => e.slot === 'TB-aufloesung').caption).toMatch(/^Gesucht war „Weißen“/)
     const bildBeleg = (await baueEntwuerfe(SA, d)).find((e) => e.slot === 'B-aufloesung')
     expect(bildBeleg.spec.data.collocate).toBe('Weißen')
+  })
+
+  it('ohne Eignung fürs Spiel (Pool unter MIN_KOLLOKATOREN) entsteht kein Entwurf', async () => {
+    const d = deps({ analyzeKollokationen: vi.fn(async () => ({ kollokatoren: KOLLOKATOREN, usable: false })) })
+    expect(await baueEntwuerfe(DI, d)).toEqual([])
+    expect(await baueEntwuerfe(DO, d)).toEqual([])
   })
 
   it('verschiebeDatum rechnet über Monatsgrenzen', () => {
