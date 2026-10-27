@@ -15,7 +15,6 @@ export default [
       'ios/**',
       'coverage/**',
       'dev-dist/**',
-      'server/public/**', // Admin-Skript und -Stile (klassisches Skript, kein Modul)
       'playwright-report/**',
       'test-results/**',
       'wortprofil/**', // Python-Pipeline + venv – kein Projekt-JS
@@ -27,6 +26,7 @@ export default [
   // Serverseitiger Code + Build-/Ops-Skripte (Node ESM)
   {
     files: ['server/**/*.{js,mjs}', 'shared/**/*.js', 'scripts/**/*.{js,mjs}', '*.js', '*.cjs', 'e2e/**/*.js'],
+    ignores: ['server/public/**'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -42,6 +42,19 @@ export default [
   {
     files: ['**/*.cjs'],
     languageOptions: { sourceType: 'commonjs' },
+  },
+  // Admin-Oberfläche: klassisches Browser-Skript (kein Modul, keine Bundler-Stufe), geladen von server/admin.html
+  {
+    files: ['server/public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'script',
+      globals: { ...globals.browser },
+    },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
   },
   // Frontend (Browser + React)
   {
