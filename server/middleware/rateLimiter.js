@@ -86,6 +86,7 @@ const classroomReadStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
 const pushSubscribeStore = new CleanupStore(60_000)
 const iapVerifyStore = new CleanupStore(60_000)
+const iapNotificationStore = new CleanupStore(60_000)
 const debugLogStore = new CleanupStore(60_000)
 const customLemmaStore = new CleanupStore(60_000)
 const lemmaApiStore = new CleanupStore(15 * 60_000)
@@ -202,6 +203,16 @@ export const iapVerifyLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Verifikations-Anfragen. Bitte kurz warten.' },
+})
+
+// App-Store-Server-Benachrichtigungen: Apple meldet einzeln (Erstattungen sind selten). Großzügig genug für
+// Apples Wiederholungen, eng genug, dass fremde Aufrufer die Signaturprüfung nicht als Last missbrauchen.
+export const iapNotificationLimiter = rateLimit({
+  windowMs: 60_000, max: 60,
+  store: iapNotificationStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Benachrichtigungen. Bitte kurz warten.' },
 })
 
 // Debug-Log-Endpoint: 60 Posts / Minute pro IP. Reicht, um den Bootstrap einer

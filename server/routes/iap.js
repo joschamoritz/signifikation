@@ -2,10 +2,11 @@ import express from 'express'
 import { X509Certificate, createVerify, createHash } from 'node:crypto'
 import { requireAuthUser } from '../middleware/userAuth.js'
 import { iapVerifyLimiter } from '../middleware/rateLimiter.js'
-import { validate, iapVerifySchema, iapRestoreSchema } from '../middleware/validate.js'
+import { validate, iapVerifySchema, iapRestoreSchema, iapNotificationSchema } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
+import { auditSecurity } from '../audit.js'
 
 const router = express.Router()
 
@@ -389,6 +390,83 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
   const unlocked = anyUnlocked || isEntitlementActive(userId)
 
   res.json({ success: true, unlocked })
+})
+
+// ── POST /api/v1/iap/notifications ─────────────────────────────
+// App Store Server Notifications V2 (in App Store Connect › App-Informationen als Produktions-URL
+// eintragen). Ausgewertet werden nur Erstattungen: REFUND setzt den Kauf auf 'refunded',
+// REFUND_REVERSED wieder auf 'paid'. Alles andere wird bestätigt und ignoriert.
+// Antworten: 200 = verarbeitet oder bewusst ignoriert (Apple wiederholt dann nicht),
+// 400 = Signatur oder Inhalt ungültig.
+
+export const IAP_NOTIFICATIONS_PFAD = '/api/v1/iap/notifications'
+export const IAP_NOTIFICATIONS_BODY_LIMIT = '64kb'
+
+// Gespeichert ist die originalTransactionId (unlockForUser), ältere Zeilen ggf. die transactionId
+const setzeZahlungsstatusStmt = db.prepare(`
+  UPDATE payments SET status = @neu
+  WHERE id IN (@original, @transaktion) AND status = @alt
+  RETURNING id, user_id AS userId
+`)
+
+/**
+ * Wertet eine verifizierte Benachrichtigung aus. Exportiert für Tests (ohne echtes Apple-JWS).
+ * @param {object} notification  Payload des äußeren JWS
+ * @param {(jws: string) => object} pruefeJws  verifiziert signedTransactionInfo
+ * @returns {{ status: number, ergebnis: string }}
+ */
+export function verarbeiteAppStoreBenachrichtigung(notification, pruefeJws = verifyAppleJWS) {
+  const typ = notification?.notificationType
+  if (typ !== 'REFUND' && typ !== 'REFUND_REVERSED') return { status: 200, ergebnis: 'ignoriert' }
+
+  const daten = notification.data || {}
+  if (daten.bundleId !== APP_BUNDLE_ID) return { status: 400, ergebnis: 'fremde App' }
+  if (daten.environment !== 'Production' && !(daten.environment === 'Sandbox' && sandboxAllowed())) {
+    return { status: 200, ergebnis: `Umgebung ${daten.environment} ignoriert` }
+  }
+  if (typeof daten.signedTransactionInfo !== 'string') return { status: 400, ergebnis: 'Transaktion fehlt' }
+
+  const tx = pruefeJws(daten.signedTransactionInfo)
+  if (tx.bundleId !== APP_BUNDLE_ID) return { status: 400, ergebnis: 'Transaktion einer fremden App' }
+  const transaktion = String(tx.transactionId ?? tx.originalTransactionId ?? '')
+  const original = String(tx.originalTransactionId ?? tx.transactionId ?? '')
+  if (!transaktion) return { status: 400, ergebnis: 'Transaktions-ID fehlt' }
+
+  const erstattet = typ === 'REFUND'
+  const zeile = setzeZahlungsstatusStmt.get({
+    original, transaktion,
+    alt: erstattet ? 'paid' : 'refunded',
+    neu: erstattet ? 'refunded' : 'paid',
+  })
+  if (!zeile) {
+    logger.info({ typ, transactionId: transaktion }, 'App Store: Erstattungsmeldung ohne passenden Kauf (unbekannt oder schon erfasst)')
+    return { status: 200, ergebnis: 'kein passender Kauf' }
+  }
+  logger.info({ typ, paymentId: zeile.id, userId: zeile.userId }, erstattet ? 'App Store: Kauf als erstattet erfasst' : 'App Store: Erstattung zurückgenommen')
+  auditSecurity(erstattet ? 'PAYMENT_REFUNDED' : 'PAYMENT_REFUND_REVERSED', {
+    paymentId: zeile.id, userId: zeile.userId ?? undefined, quelle: 'apple',
+    ...(erstattet && tx.revocationReason != null ? { grund: tx.revocationReason } : {}),
+  })
+  return { status: 200, ergebnis: erstattet ? 'erstattet' : 'zurückgenommen' }
+}
+
+router.post(IAP_NOTIFICATIONS_PFAD, validate(iapNotificationSchema), (req, res) => {
+  let notification
+  try {
+    notification = verifyAppleJWS(req.body.signedPayload)
+  } catch (err) {
+    logger.warn({ err: err.message, ip: req.ip }, 'App Store: Benachrichtigung mit ungültiger Signatur')
+    return res.status(400).json({ error: 'Signatur ungültig' })
+  }
+  try {
+    const { status, ergebnis } = verarbeiteAppStoreBenachrichtigung(notification)
+    if (status !== 200) logger.warn({ typ: notification.notificationType, ergebnis }, 'App Store: Benachrichtigung abgelehnt')
+    return status === 200 ? res.json({ ok: true }) : res.status(status).json({ error: ergebnis })
+  } catch (err) {
+    // Innere Signatur ungültig (verifyAppleJWS wirft) oder DB-Fehler: 500 → Apple wiederholt
+    logger.error({ err, typ: notification?.notificationType }, 'App Store: Benachrichtigung nicht verarbeitet')
+    return res.status(500).json({ error: 'Benachrichtigung nicht verarbeitet' })
+  }
 })
 
 // ── GET /api/v1/iap/app-account-token ──────────────────────────

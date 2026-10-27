@@ -17,6 +17,7 @@ const {
   rejectReasonForPayload,
   unlockForUser,
   isEntitlementActive,
+  verarbeiteAppStoreBenachrichtigung,
 } = await import('../routes/iap.js')
 const { default: db } = await import('../db.js')
 
@@ -357,5 +358,59 @@ describe('deriveAppAccountToken', () => {
   it('erzeugt gültige UUIDv5 (Version + Variante)', () => {
     const token = deriveAppAccountToken('irgendein-user')
     expect(token).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  })
+})
+
+describe('App-Store-Benachrichtigungen (Erstattung)', () => {
+  const user = `iap-refund-${Date.now()}`
+  const origId = `orig-refund-${Date.now()}`
+  const txId = `tx-refund-${Date.now()}`
+  const statusVon = () => db.prepare('SELECT status FROM payments WHERE id = ?').get(origId)?.status
+  // Die innere Signaturprüfung wird ersetzt: Getestet wird die Auswertung, nicht die Kryptografie
+  const tx = (felder = {}) => () => ({ bundleId: 'de.signifikation.app', transactionId: txId, originalTransactionId: origId, ...felder })
+  const meldung = (notificationType, data = {}) => ({
+    notificationType,
+    data: { bundleId: 'de.signifikation.app', environment: 'Production', signedTransactionInfo: 'a.b.c', ...data },
+  })
+
+  beforeAll(() => {
+    db.prepare(`INSERT OR IGNORE INTO user (id, email, name, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, 1, ?, ?)`)
+      .run(user, `${user}@test.local`, user, Date.now(), Date.now())
+    unlockForUser(user, txId, origId, VALID_PRODUCT_ID)
+  })
+
+  afterAll(() => {
+    db.prepare('DELETE FROM payments WHERE id = ?').run(origId)
+    db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(user)
+    db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(user)
+    db.prepare('DELETE FROM user WHERE id = ?').run(user)
+  })
+
+  it('REFUND setzt den Kauf auf refunded, REFUND_REVERSED wieder auf paid', () => {
+    expect(statusVon()).toBe('paid')
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx({ revocationReason: 0 }))).toEqual({ status: 200, ergebnis: 'erstattet' })
+    expect(statusVon()).toBe('refunded')
+    expect(isEntitlementActive(user)).toBe(true)
+    // Apple wiederholt: nichts mehr zu tun
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx()).ergebnis).toBe('kein passender Kauf')
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND_REVERSED'), tx())).toEqual({ status: 200, ergebnis: 'zurückgenommen' })
+    expect(statusVon()).toBe('paid')
+  })
+
+  it('findet den Kauf auch über die transactionId, wenn die Original-ID fehlt', () => {
+    const nurTx = () => ({ bundleId: 'de.signifikation.app', transactionId: origId })
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), nurTx).ergebnis).toBe('erstattet')
+    verarbeiteAppStoreBenachrichtigung(meldung('REFUND_REVERSED'), nurTx)
+    expect(statusVon()).toBe('paid')
+  })
+
+  it('ignoriert andere Typen und Sandbox ohne Freigabe, lehnt fremde Apps ab', () => {
+    const pruefe = vi.fn(tx())
+    expect(verarbeiteAppStoreBenachrichtigung({ notificationType: 'TEST', data: {} }, pruefe)).toEqual({ status: 200, ergebnis: 'ignoriert' })
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND', { environment: 'Sandbox' }), pruefe).status).toBe(200)
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND', { bundleId: 'com.fremd.app' }), pruefe).status).toBe(400)
+    expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx({ bundleId: 'com.fremd.app' })).status).toBe(400)
+    expect(pruefe).not.toHaveBeenCalled()
+    expect(statusVon()).toBe('paid')
   })
 })

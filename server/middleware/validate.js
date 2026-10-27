@@ -379,7 +379,7 @@ function istKalendertag(text) {
 export const AUDIT_ACTIONS = [
   'CREATE', 'UPDATE', 'DELETE',
   'LOGIN_SUCCESS', 'LOGIN_FAIL', 'LOGOUT', 'SESSIONS_INVALIDATED',
-  'CHECKOUT_REJECT_COUNTRY', 'PAYMENT_REJECT', 'WEBHOOK_REJECT',
+  'CHECKOUT_REJECT_COUNTRY', 'PAYMENT_REJECT', 'WEBHOOK_REJECT', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_REVERSED',
 ]
 
 /** GET /admin/audit-log (query) */
@@ -444,6 +444,15 @@ const IAP_JWS = z.string().min(50).max(16_000)
 export const iapVerifySchema = z.object({
   jwsRepresentation: IAP_JWS,
   productId: z.enum(VALID_IAP_PRODUCT_IDS),
+})
+
+/**
+ * POST /api/v1/iap/notifications (App Store Server Notifications V2). Die äußere Signatur trägt die Zertifikatskette
+ * und dazu die signierte Transaktion samt eigener Kette – deutlich größer als ein einzelnes Transaktions-JWS.
+ */
+export const iapNotificationSchema = z.object({
+  signedPayload: z.string().min(50).max(60_000)
+    .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/, 'signedPayload muss Base64URL-JWS sein'),
 })
 
 /** POST /api/v1/iap/restore */

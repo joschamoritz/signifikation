@@ -206,6 +206,28 @@ const deleteWebhookRetryStmt = db.prepare(`
 
 const getUserEmailStmt = db.prepare(`SELECT email FROM user WHERE id = ?`)
 
+// Erstattet: Der Kauf zählt nicht mehr (Kennzahlen, Ausnahme von der Inaktivitäts-Löschung, erneuter Kauf möglich).
+// Die Freischaltung bleibt; ob sie entzogen wird, entscheidet der Admin am Konto.
+const markiereErstattetStmt = db.prepare(`
+  UPDATE payments SET status = 'refunded' WHERE id = ? AND status = 'paid'
+  RETURNING user_id AS userId
+`)
+
+const centBetrag = (amount) => Math.round(Number(amount?.value) * 100)
+
+/**
+ * Mollie ruft bei Erstattung und Rückbuchung denselben Webhook auf; die Zahlung behält dabei den Status
+ * 'paid'. Als erstattet gilt eine volle Erstattung oder jede Rückbuchung (Teil-Erstattungen nicht).
+ * @returns {'erstattung'|'rueckbuchung'|null}
+ */
+export function mollieErstattungsart(payment) {
+  if (centBetrag(payment?.amountChargedBack) > 0) return 'rueckbuchung'
+  const erstattet = centBetrag(payment?.amountRefunded)
+  const betrag = centBetrag(payment?.amount)
+  if (Number.isFinite(erstattet) && Number.isFinite(betrag) && betrag > 0 && erstattet >= betrag) return 'erstattung'
+  return null
+}
+
 // Zahlungs-IDs von Mollie haben die Form tr_ + Buchstaben/Ziffern. Alles andere (Eingaben von fremden
 // Aufrufern) kommt weder ins Protokoll noch ins Log.
 const MOLLIE_ID_RE = /^tr_[A-Za-z0-9]{1,40}$/
@@ -259,6 +281,19 @@ router.post(
       // ── Security: Payment-ID via Mollie-API verifizieren ──────
       // Schlägt bei gefälschten IDs fehl (404)
       const payment = await client.payments.get(paymentId)
+
+      const erstattungsart = payment.status === 'paid' ? mollieErstattungsart(payment) : null
+      if (erstattungsart) {
+        const zeile = markiereErstattetStmt.get(paymentId)
+        if (zeile) {
+          logger.info({ paymentId, userId: zeile.userId, art: erstattungsart }, 'Mollie-Webhook: Zahlung als erstattet erfasst')
+          auditSecurity('PAYMENT_REFUNDED', { paymentId, userId: zeile.userId ?? undefined, quelle: 'mollie', art: erstattungsart }, { ip: req.ip })
+        } else {
+          logger.info({ paymentId, art: erstattungsart }, 'Mollie-Webhook: Erstattung ohne offenen Kauf (unbekannt oder schon erfasst)')
+        }
+        deleteWebhookRetryStmt.run(paymentId)
+        return res.status(200).end()
+      }
 
       if (payment.status !== 'paid') {
         // Ausstehend, fehlgeschlagen, storniert – kein Handlungsbedarf

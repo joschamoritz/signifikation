@@ -22,7 +22,7 @@ import { randomUUID } from 'crypto'
 import { toNodeHandler } from 'better-auth/node'
 import { IS_PROD, csrfProtect } from './middleware/auth.js'
 import { auth } from './auth/index.js'
-import { loginLimiter, registerLimiter, lemmaApiLimiter } from './middleware/rateLimiter.js'
+import { loginLimiter, registerLimiter, lemmaApiLimiter, iapNotificationLimiter } from './middleware/rateLimiter.js'
 import { requireLemmaApiKey } from './middleware/lemmaApiKey.js'
 import { backupRestoreVorschaltung } from './middleware/backupRestoreVorschaltung.js'
 import { initializeIndices } from './store.js'
@@ -36,7 +36,7 @@ import classroomRouter from './routes/classroom.js'
 import courseRouter from './routes/course.js'
 import { seedCourseContent } from './course/seed.js'
 import paymentsRouter from './routes/payments.js'
-import iapRouter from './routes/iap.js'
+import iapRouter, { IAP_NOTIFICATIONS_PFAD, IAP_NOTIFICATIONS_BODY_LIMIT } from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import archiveRouter from './routes/archive.js'
 import lemmaApiRouter, { LEMMA_API_PFAD, LEMMA_API_BODY_LIMIT } from './routes/lemma-api.js'
@@ -128,6 +128,8 @@ app.use('/admin/backup/restore', ...backupRestoreVorschaltung)
 // Vorschlags-API: Eine Woche JSON (~14 KB) passt nicht ins globale Limit.
 // Rate-Limit und Schlüssel werden geprüft, bevor der größere Body geparst wird.
 app.use(LEMMA_API_PFAD, lemmaApiLimiter, requireLemmaApiKey, express.json({ limit: LEMMA_API_BODY_LIMIT }))
+// App-Store-Server-Benachrichtigungen: zwei verschachtelte JWS mit Zertifikatsketten, größer als 16 KB
+app.use(IAP_NOTIFICATIONS_PFAD, iapNotificationLimiter, express.json({ limit: IAP_NOTIFICATIONS_BODY_LIMIT }))
 app.use(express.json({ limit: '16kb' }))
 
 // ── Correlation-ID ────────────────────────────────────────────

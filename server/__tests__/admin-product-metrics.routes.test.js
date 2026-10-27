@@ -153,6 +153,11 @@ describe('Auswertung › Kennzahlen', () => {
       expect(lang.tage).toHaveLength(30)
     })
 
+    it('weist erstattete Käufe getrennt aus (ohne Admin-Käufe)', async () => {
+      const { json: d } = await hole('/admin/payments/summary?days=7')
+      expect(d.erstattet).toEqual({ kaeufe: 1, betrag: 9.99 })
+    })
+
     it('enthält keine Konto-IDs oder E-Mail-Adressen und prüft den Zeitraum', async () => {
       const { text } = await hole('/admin/payments/summary?days=30')
       expect(text).not.toContain(PREFIX + '-u-')

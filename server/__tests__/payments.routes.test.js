@@ -334,4 +334,58 @@ describe('payments routes integration', () => {
     ).get(userId)
     expect(entitlement).toBeUndefined()
   })
+
+  // ── Erstattungen ──────────────────────────────────────────────
+  const webhook = (paymentId) => fetch(`${baseUrl}/api/v1/payments/webhook`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: `id=${encodeURIComponent(paymentId)}`,
+  })
+  const statusVon = (paymentId) => db.prepare('SELECT status FROM payments WHERE id = ?').get(paymentId)?.status
+
+  async function kaufeUeberWebhook() {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const paymentId = `tr_erst${Math.random().toString(16).slice(2, 10)}`
+    const zahlung = { id: paymentId, status: 'paid', amount: { value: '9.99', currency: 'EUR' }, metadata: { userId, product: 'gesamtausgabe' } }
+    mollieMock.get.mockResolvedValue(zahlung)
+    expect((await webhook(paymentId)).status).toBe(200)
+    expect(statusVon(paymentId)).toBe('paid')
+    return { userId, paymentId, zahlung }
+  }
+
+  it('Webhook: volle Erstattung setzt den Kauf auf refunded, die Freischaltung bleibt', async () => {
+    const { userId, paymentId, zahlung } = await kaufeUeberWebhook()
+    mollieMock.get.mockResolvedValue({ ...zahlung, amountRefunded: { value: '9.99', currency: 'EUR' }, amountRemaining: { value: '0.00', currency: 'EUR' } })
+    expect((await webhook(paymentId)).status).toBe(200)
+    expect(statusVon(paymentId)).toBe('refunded')
+    expect(db.prepare('SELECT gesamtausgabe_unlocked AS u FROM user_entitlements WHERE user_id = ?').get(userId).u).toBe(1)
+    const eintrag = db.prepare(`SELECT changes_json FROM audit_log WHERE action = 'PAYMENT_REFUNDED' AND changes_json LIKE ? ORDER BY id DESC LIMIT 1`).get(`%${paymentId}%`)
+    expect(eintrag).toBeTruthy()
+    // Ein weiterer Aufruf (Mollie wiederholt) ändert nichts mehr
+    expect((await webhook(paymentId)).status).toBe(200)
+    expect(statusVon(paymentId)).toBe('refunded')
+  })
+
+  it('Webhook: Rückbuchung zählt als erstattet, Teil-Erstattung nicht', async () => {
+    const teil = await kaufeUeberWebhook()
+    mollieMock.get.mockResolvedValue({ ...teil.zahlung, amountRefunded: { value: '5.00', currency: 'EUR' } })
+    expect((await webhook(teil.paymentId)).status).toBe(200)
+    expect(statusVon(teil.paymentId)).toBe('paid')
+
+    const rueck = await kaufeUeberWebhook()
+    mollieMock.get.mockResolvedValue({ ...rueck.zahlung, amountChargedBack: { value: '9.99', currency: 'EUR' } })
+    expect((await webhook(rueck.paymentId)).status).toBe(200)
+    expect(statusVon(rueck.paymentId)).toBe('refunded')
+  })
+
+  it('Webhook: eine schon erstattete Zahlung ohne Kaufzeile schaltet nichts frei', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const paymentId = `tr_spaet${Math.random().toString(16).slice(2, 10)}`
+    mollieMock.get.mockResolvedValue({ id: paymentId, status: 'paid', amount: { value: '9.99', currency: 'EUR' }, amountRefunded: { value: '9.99', currency: 'EUR' }, metadata: { userId, product: 'gesamtausgabe' } })
+    expect((await webhook(paymentId)).status).toBe(200)
+    expect(statusVon(paymentId)).toBeUndefined()
+    expect(db.prepare('SELECT 1 FROM user_entitlements WHERE user_id = ?').get(userId)).toBeUndefined()
+  })
 })

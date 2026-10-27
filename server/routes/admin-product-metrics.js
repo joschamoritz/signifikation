@@ -41,13 +41,16 @@ const round2 = (n) => Math.round(n * 100) / 100
 
 // ── Zahlungen (payments) ─────────────────────────────────────────
 // Spalten: id, user_id, amount (TEXT, z. B. "9.99"), currency, status, product, processed_at (Unix-ms).
-// Eingefügt wird nur bei status='paid'. Mollie-Zahlungen haben IDs "tr_…", App-Store-Käufe die Transaktions-ID.
+// Eingefügt wird bei status='paid'; Erstattungen und Rückbuchungen setzen den Kauf später auf 'refunded'
+// (Mollie-Webhook, App-Store-Benachrichtigung REFUND, erfasst seit 2026-10-27). Erstattete Käufe zählen nicht
+// mit, sondern stehen einzeln daneben (am Tag des Kaufs, ein Erstattungsdatum wird nicht gespeichert).
+// Mollie-Zahlungen haben IDs "tr_…", App-Store-Käufe die Transaktions-ID.
 // Das Produkt ist immer 'gesamtausgabe' (deshalb keine Aufteilung danach).
 const zahlungenStmt = db.prepare(`
-  SELECT p.id, p.amount, p.processed_at AS ms
+  SELECT p.id, p.amount, p.status, p.processed_at AS ms
   FROM payments p
   LEFT JOIN user_profiles up ON up.user_id = p.user_id
-  WHERE p.status = 'paid' AND p.processed_at >= @since AND COALESCE(up.role, 'user') <> 'admin'
+  WHERE p.status IN ('paid', 'refunded') AND p.processed_at >= @since AND COALESCE(up.role, 'user') <> 'admin'
 `)
 
 // ── Eigenes Lemma (custom_lemma_usage JOIN user_profiles.role) ───
@@ -114,10 +117,16 @@ function ladeZahlungen(days) {
   const wege = { mollie: new Map(), apple: new Map() }
   let kaeufe = 0
   let betrag = 0
+  const erstattet = { kaeufe: 0, betrag: 0 }
   for (const r of rows) {
     const wert = Number(r.amount)
     const tag = nachTag.get(berlinTag(Number(r.ms)))
     if (!tag || !Number.isFinite(wert)) continue // Zeitpunkte nach heute gibt es nicht; kaputte Beträge nicht mitzählen
+    if (r.status === 'refunded') {
+      erstattet.kaeufe += 1
+      erstattet.betrag += wert
+      continue
+    }
     tag.kaeufe += 1
     tag.betrag += wert
     kaeufe += 1
@@ -130,6 +139,7 @@ function ladeZahlungen(days) {
     zeitraum,
     kaeufe,
     betrag: round2(betrag),
+    erstattet: { kaeufe: erstattet.kaeufe, betrag: round2(erstattet.betrag) },
     tage: [...nachTag.values()].map((t) => ({ ...t, betrag: round2(t.betrag) })),
     nachWeg: Object.entries(wege).map(([weg, stufen]) => ({
       weg,

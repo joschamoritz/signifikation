@@ -2537,6 +2537,7 @@ const PROTOKOLL_BEREICHE = { kalender: 'Tage', lemma_entwurf: 'Vorschläge', use
 const PROTOKOLL_VORGAENGE = {
   CREATE: 'angelegt oder gespeichert', UPDATE: 'geändert', DELETE: 'gelöscht', LOGIN_SUCCESS: 'angemeldet', LOGIN_FAIL: 'Anmeldung fehlgeschlagen',
   LOGOUT: 'abgemeldet', SESSIONS_INVALIDATED: 'Sitzungen beendet', CHECKOUT_REJECT_COUNTRY: 'Kauf abgelehnt (Land)', PAYMENT_REJECT: 'Zahlung abgewiesen', WEBHOOK_REJECT: 'Zahlungsmeldung abgewiesen',
+  PAYMENT_REFUNDED: 'Kauf erstattet', PAYMENT_REFUND_REVERSED: 'Erstattung zurückgenommen',
 }
 const ANMELDE_GRUENDE = { 'User nicht gefunden': 'unbekannte Adresse', 'keine Admin-Role': 'Konto ohne Admin-Rechte', 'kein Passwort': 'Konto ohne Passwort', 'Passwort falsch': 'falsches Passwort' }
 const PROTOKOLL_FILTER_IDS = ['audit-search', 'audit-resource', 'audit-action', 'audit-status', 'audit-from', 'audit-to']
@@ -2588,6 +2589,8 @@ function protokollSatz(e) {
     case 'security:CHECKOUT_REJECT_COUNTRY': return `Kauf abgelehnt: Aufruf aus dem Ausland${det.country ? ` (${det.country})` : ''}`
     case 'security:PAYMENT_REJECT': return 'Zahlung abgewiesen: Betrag oder Währung ungültig'
     case 'security:WEBHOOK_REJECT': return 'Zahlungsmeldung von unbekannter Adresse abgewiesen'
+    case 'security:PAYMENT_REFUNDED': return `Kauf ${det.art === 'rueckbuchung' ? 'zurückgebucht' : 'erstattet'} (${det.quelle === 'apple' ? 'App Store' : 'Mollie'})`
+    case 'security:PAYMENT_REFUND_REVERSED': return 'Erstattung zurückgenommen (App Store), Kauf zählt wieder'
     default: return `${PROTOKOLL_VORGAENGE[e.action] || e.action || 'Vorgang'} · ${PROTOKOLL_BEREICHE[e.resource] || e.resource || 'Bereich unbekannt'}`
   }
 }
@@ -5337,7 +5340,11 @@ function kaufHinweisHtml({ user, kauf }) {
   if (kauf.gesamtausgabe && user.role === 'user') {
     return '<p class="li-meldung" data-tone="warn">Gekauft, aber Rolle Basiszugang: Klassenraum und unbegrenzte eigene Wörter sind gesperrt. Rolle auf Gesamtausgabe setzen, um das zu beheben.</p>'
   }
-  if (!kauf.gesamtausgabe && kauf.zahlungen.length) {
+  const bezahlt = kauf.zahlungen.some((z) => z.status === 'paid')
+  if (kauf.gesamtausgabe && kauf.zahlungen.length && !bezahlt && user.role !== 'admin') {
+    return '<p class="li-meldung" data-tone="warn">Kauf erstattet, die Gesamtausgabe ist aber noch freigeschaltet. Bei Bedarf die Rolle auf Basiszugang setzen.</p>'
+  }
+  if (!kauf.gesamtausgabe && bezahlt) {
     return '<p class="li-meldung" data-tone="warn">Zahlung erfasst, aber die Gesamtausgabe ist nicht freigeschaltet.</p>'
   }
   if (kauf.gesamtausgabe && !kauf.zahlungen.length && user.role !== 'admin') {
@@ -5346,12 +5353,14 @@ function kaufHinweisHtml({ user, kauf }) {
   return ''
 }
 
+const ZAHLUNG_STATUS_TEXT = { paid: 'bezahlt', refunded: 'erstattet' }
+
 function zahlungHtml(z) {
   const quelle = QUELLE_ZAHLUNG_TEXT[z.quelle] || QUELLE_ZAHLUNG_TEXT.unbekannt
   return '<li class="nu-zahlung">'
     + `<span class="nu-zahlung-datum">${esc(datumDe(z.zeitpunkt))}</span>`
     + `<span class="nu-zahlung-betrag">${esc(betragDe(z.betrag, z.waehrung))}</span>`
-    + `<span class="nu-zahlung-quelle">${esc(quelle)} · ${z.status === 'paid' ? 'bezahlt' : esc(z.status)}</span>`
+    + `<span class="nu-zahlung-quelle">${esc(quelle)} · ${esc(ZAHLUNG_STATUS_TEXT[z.status] || z.status)}</span>`
     + `<span class="nu-beleg"><span class="adm-visually-hidden">Beleg </span>${esc(z.beleg)}</span>`
     + '</li>'
 }
@@ -5477,7 +5486,7 @@ function renderKonto(data) {
       ? `<h3 class="nu-unterlabel">Zahlungen</h3><ul class="nu-zahlungen">${kauf.zahlungen.map(zahlungHtml).join('')}</ul>`
       : '')
     // Der Hinweis erklärt, was die Zahlungsliste nicht zeigt: ohne Zahlungen gibt es nichts zu erklären.
-    + (kauf.zahlungen.length ? '<p class="tag-abschnitt-text">Erstattungen und Widerrufe (Mollie, App Store) werden hier nicht erfasst.</p>' : '')
+    + (kauf.zahlungen.length ? '<p class="tag-abschnitt-text">Erstattungen und Rückbuchungen (Mollie, App Store) werden seit dem 27.10.2026 erfasst und als „erstattet“ markiert.</p>' : '')
     + '</section>'
 
   const exportTeil = '<section class="tag-abschnitt" aria-labelledby="nu-export-titel">'
@@ -8386,7 +8395,7 @@ function renderAuswertungKennzahlen(r, tage) {
           },
         }) + `<ul class="au-zeilen">${wegZeilen}</ul>`
         : '<p class="tag-abschnitt-text">Im Zeitraum wurde nichts gekauft.</p>')
-      + '<p class="au-hinweis">Bruttobeträge, wie bezahlt – vor Mollie-Gebühren und Apple-Provision. Rückerstattungen werden bisher nicht erfasst und sind nicht abgezogen.</p>')
+      + `<p class="au-hinweis">Bruttobeträge, wie bezahlt – vor Mollie-Gebühren und Apple-Provision. Erstattete Käufe sind nicht mitgezählt${z.erstattet?.kaeufe ? ` (im Zeitraum ${esc(auAnzahl(z.erstattet.kaeufe, 'Kauf', 'Käufe'))}, ${esc(auBetrag(z.erstattet.betrag))})` : ''}; erfasst werden Erstattungen seit dem 27.10.2026.</p>`)
   }
 
   // Eigenes Lemma

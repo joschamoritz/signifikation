@@ -168,6 +168,11 @@ export function csrfProtect(req, res, next) {
   if (req.originalUrl?.startsWith('/api/v1/payments/webhook')) {
     return next()
   }
+  // App-Store-Server-Benachrichtigungen (Apple → Server, JSON ohne eigenen Header); die Echtheit
+  // sichert Apples Signatur, nicht der CSRF-Header
+  if (req.originalUrl?.startsWith('/api/v1/iap/notifications')) {
+    return next()
+  }
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const contentType = req.headers['content-type'] || ''
     if (!contentType.includes('application/json')) {
