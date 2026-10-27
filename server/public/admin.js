@@ -1590,8 +1590,9 @@ async function doLogin() {
 
   if (!email || !password) return
 
+  const btnText = document.getElementById('login-btn-text')
   btn.disabled = true
-  btn.textContent = '…'
+  btnText.textContent = 'Wird geprüft …'
   errEl.style.display = 'none'
   beendeStartPruefung()
 
@@ -1618,7 +1619,7 @@ async function doLogin() {
     errEl.style.display = 'block'
   }
   btn.disabled = false
-  btn.textContent = 'Anmelden'
+  btnText.textContent = 'Anmelden'
 }
 
 async function doLogout() {
