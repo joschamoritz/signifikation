@@ -40,3 +40,27 @@ export async function hapticSuccess() {
   }
   navigator.vibrate?.([6, 20, 6])
 }
+
+// Auswahl-Ticks (wie UISelectionFeedbackGenerator): beim Überstreichen der
+// Tab-Leiste je neu erreichtem Tab. Das Plugin tickt nur zwischen
+// selectionStart und selectionEnd – deshalb die Klammer um die Geste.
+export async function hapticSelectionStart() {
+  if (!IS_NATIVE) return
+  const mod = await loadPlugin()
+  if (mod) await mod.Haptics.selectionStart().catch(() => {})
+}
+
+export async function hapticSelection() {
+  if (IS_NATIVE) {
+    const mod = await loadPlugin()
+    if (mod) await mod.Haptics.selectionChanged().catch(() => {})
+    return
+  }
+  navigator.vibrate?.(6)
+}
+
+export async function hapticSelectionEnd() {
+  if (!IS_NATIVE) return
+  const mod = await loadPlugin()
+  if (mod) await mod.Haptics.selectionEnd().catch(() => {})
+}

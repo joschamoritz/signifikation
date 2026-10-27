@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { hapticLight } from '../utils/haptics'
+import { hapticLight, hapticSelection, hapticSelectionStart, hapticSelectionEnd } from '../utils/haptics'
 import '../styles/tabbar.css'
 
 // Outline-Icons (WhatsApp-/SF-Symbols-Linienstil) – schlanke, klare Striche.
@@ -96,6 +96,72 @@ function useScrollEdge() {
   return flat
 }
 
+// Ab dieser Strecke (px) wird aus einem Tipp ein Ziehen über die Leiste
+const DRAG_THRESHOLD = 6
+
+// Linse unter dem Finger (iOS 26/27): Drücken hebt die Glas-Linse an und lässt
+// sie über die Leiste hinauswachsen; Ziehen führt sie mit dem Finger, jeder neu
+// erreichte Tab tickt haptisch, Loslassen wählt den Tab darunter. Ein einfacher
+// Tipp bleibt ein normaler Button-Klick (Tastatur und VoiceOver unverändert);
+// erst ab DRAG_THRESHOLD übernimmt die Leiste den Zeiger.
+function useLensDrag({ innerRef, count, onSelect }) {
+  const drag = useRef(null)
+  const [lens, setLens] = useState(null) // { x, index, dragging } | null
+
+  const geometry = (clientX) => {
+    const rect = innerRef.current.getBoundingClientRect()
+    const slot = rect.width / count
+    const x = Math.min(Math.max(clientX - rect.left, slot / 2), rect.width - slot / 2)
+    return { x, index: Math.min(count - 1, Math.max(0, Math.floor((clientX - rect.left) / slot))), slot }
+  }
+
+  const onPointerDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    if (!innerRef.current) return
+    const g = geometry(e.clientX)
+    drag.current = { id: e.pointerId, startX: e.clientX, index: g.index, active: false }
+    // Linse springt auf den berührten Tab und hebt sich an
+    setLens({ x: (g.index + 0.5) * g.slot, index: g.index, dragging: false })
+  }
+
+  const onPointerMove = (e) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    if (!d.active) {
+      if (Math.abs(e.clientX - d.startX) < DRAG_THRESHOLD) return
+      d.active = true
+      innerRef.current.setPointerCapture?.(e.pointerId)
+      hapticSelectionStart()
+    }
+    const g = geometry(e.clientX)
+    setLens({ x: g.x, index: g.index, dragging: true })
+    if (g.index !== d.index) {
+      d.index = g.index
+      hapticSelection()
+    }
+  }
+
+  const end = (e, commit) => {
+    const d = drag.current
+    if (!d || d.id !== e.pointerId) return
+    drag.current = null
+    setLens(null)
+    if (!d.active) return // einfacher Tipp: der Button-Klick übernimmt
+    hapticSelectionEnd()
+    if (commit) onSelect(d.index)
+  }
+
+  return {
+    lens,
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp: (e) => end(e, true),
+      onPointerCancel: (e) => end(e, false),
+    },
+  }
+}
+
 export default function TabBar({ activeTab, onTabChange, showClassroomTab = false }) {
   const visibleTabs = TABS.filter((t) => !t.teacherOnly || showClassroomTab)
   const activeIndex = visibleTabs.findIndex((t) => t.id === activeTab)
@@ -117,23 +183,34 @@ export default function TabBar({ activeTab, onTabChange, showClassroomTab = fals
     onTabChange(id)
   }
 
+  const innerRef = useRef(null)
+  const { lens, handlers } = useLensDrag({
+    innerRef,
+    count: visibleTabs.length,
+    // Beim Ziehen hat jeder Tab schon getickt – kein zusätzlicher Impuls
+    onSelect: (index) => onTabChange(visibleTabs[index].id),
+  })
+
   return (
-    <nav className={`tab-bar${flat ? ' tab-bar--flat' : ''}`} aria-label="Hauptnavigation">
-      <div className="tab-bar-inner" style={{ '--tab-count': visibleTabs.length }}>
+    <nav className={`tab-bar${flat ? ' tab-bar--flat' : ''}${lens ? ' tab-bar--pressed' : ''}`} aria-label="Hauptnavigation">
+      <div className="tab-bar-inner" ref={innerRef} style={{ '--tab-count': visibleTabs.length }} {...handlers}>
         {/* Gleitende Glas-Kapsel hinter dem aktiven Tab (iOS-26-Stil, rein dekorativ) */}
         <span
-          className="tab-bar-indicator"
+          className={`tab-bar-indicator${lens ? ' tab-bar-indicator--lens' : ''}${lens?.dragging ? ' tab-bar-indicator--dragging' : ''}`}
           aria-hidden="true"
           style={{
             '--active-index': activeIndex < 0 ? 0 : activeIndex,
-            opacity: activeIndex < 0 ? 0 : undefined,
-            animationName: morphTick === 0 ? 'none' : (morphTick % 2 ? 'tabMorphA' : 'tabMorphB'),
+            ...(lens ? { '--lens-x': `${lens.x}px` } : {}),
+            opacity: activeIndex < 0 && !lens ? 0 : undefined,
+            animationName: morphTick === 0 || lens ? 'none' : (morphTick % 2 ? 'tabMorphA' : 'tabMorphB'),
           }}
         />
-        {visibleTabs.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }, index) => (
           <button
             key={id}
-            className={`tab-bar-btn${activeTab === id ? ' tab-bar-btn--active' : ''}`}
+            // Beim Ziehen wandert die Hervorhebung mit der Linse; aria-current
+            // bleibt beim tatsächlich aktiven Tab, bis losgelassen wird.
+            className={`tab-bar-btn${(lens?.dragging ? lens.index === index : activeTab === id) ? ' tab-bar-btn--active' : ''}${lens?.index === index ? ' tab-bar-btn--lensed' : ''}`}
             onClick={() => handleTabClick(id)}
             aria-label={label}
             aria-current={activeTab === id ? 'page' : undefined}
