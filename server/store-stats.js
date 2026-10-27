@@ -184,24 +184,19 @@ export function createStatsStore({ db, stmts, logger }) {
   // Admin-Konten zählen nicht mit. Die Antwort kennt keine Konten, nur Summen. Das Ergebnis liegt 5 Minuten im
   // Speicher (ein Prozess, daher als Modulzustand), gemerkt je Zeitraum UND Berliner Tag, damit nach
   // Mitternacht nichts Altes stehen bleibt.
-  // Gemessen (589 240 Zeilen): json_group_array + Zusammenzählen in JS ≈ 0,55 s für 12 Monate; json_each in SQL
-  // war zehnmal langsamer (≈ 5,4 s). Backlog: Tagessummen-Tabelle statt Aggregation über alle Zeilen.
-  const ohneAdmin = "user_id NOT IN (SELECT user_id FROM user_profiles WHERE role = 'admin')"
+  // Gelesen wird aus der Tagessummen-Tabelle stats_tag (Migration 0031, gepflegt per Trigger auf stats, Admin-Konten
+  // schon herausgerechnet). Vorher: Aggregation über alle stats-Zeilen, ≈ 0,55 s für 12 Monate bei 589 240 Zeilen.
+  // Tage, deren Spiele vollständig gelöscht wurden, bleiben als Nullzeile stehen und werden hier übergangen.
+  const VERTEILUNG = Array.from({ length: 11 }, (_, i) => `d${i}`)
   const tageSpielStmt = db.prepare(`
-    SELECT datum, spiel,
-           SUM(plays)    AS spiele,
-           SUM(scoreSum) AS punkte,
-           SUM(maxSum)   AS max,
-           SUM(CASE WHEN user_id != '' THEN plays ELSE 0 END) AS mitKonto,
-           json_group_array(dist) AS dist_list
-    FROM stats
-    WHERE datum >= @von AND datum <= @bis AND ${ohneAdmin}
-    GROUP BY datum, spiel
+    SELECT datum, spiel, spiele, punkte, max, mit_konto AS mitKonto, ${VERTEILUNG.join(', ')}
+    FROM stats_tag
+    WHERE datum >= @von AND datum <= @bis AND (spiele <> 0 OR punkte <> 0 OR max <> 0)
   `)
   const vorzeitraumStmt = db.prepare(`
-    SELECT spiel, SUM(plays) AS spiele, SUM(scoreSum) AS punkte, SUM(maxSum) AS max
-    FROM stats
-    WHERE datum >= @von AND datum <= @bis AND ${ohneAdmin}
+    SELECT spiel, SUM(spiele) AS spiele, SUM(punkte) AS punkte, SUM(max) AS max
+    FROM stats_tag
+    WHERE datum >= @von AND datum <= @bis
     GROUP BY spiel
   `)
 
@@ -236,11 +231,7 @@ export function createStatsStore({ db, stmts, logger }) {
           summe.kontoBasis += werte.spiele
         }
         // Punkteverteilung nur der Tagesmodi (Wort der Woche ist eine eigene Gruppe)
-        const dists = parseJson(r.dist_list || '[]', [], logger, { datum: r.datum, field: 'stats.dist_list' })
-        for (const roh of dists) {
-          const dist = normalizeDistribution(roh)
-          for (let i = 0; i < 11; i += 1) verteilung[r.spiel][i] += Number(dist[i] || 0)
-        }
+        VERTEILUNG.forEach((spalte, i) => { verteilung[r.spiel][i] += Number(r[spalte] || 0) })
       } else if (WOCHE_SPIELE.includes(r.spiel)) {
         for (const k of Object.keys(werte)) woche[k] += werte[k]
       } else {
