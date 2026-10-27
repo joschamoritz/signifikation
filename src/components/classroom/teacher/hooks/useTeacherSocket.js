@@ -1,7 +1,6 @@
 // T-4.8 — Realtime-Hook fuer den Teacher-Tab.
 //
 // Verbindung zum Namespace /classroom (siehe server/realtime/classroomSocket.js).
-// (Server bedient zusaetzlich den Legacy-Alias /cr2 fuer alte Clients, W4-S2.)
 // Auth laeuft ueber den bestehenden Cookie/Dev-Header-Pfad, plus der
 // Session-ID im handshake.auth. socket.io-client wird LAZY geladen, damit
 // der Tab-Bundle-Footprint klein bleibt (~32 KB).

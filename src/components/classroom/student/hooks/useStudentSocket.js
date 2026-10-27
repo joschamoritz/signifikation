@@ -1,7 +1,6 @@
 // T-5.9 — Schueler-Socket-Hook.
 //
 // Verbindung zum /classroom-Namespace mit Bearer-Token in handshake.auth.
-// (Server bedient zusaetzlich den Legacy-Alias /cr2 fuer alte Clients, W4-S2.)
 // Hört die fuer Schueler relevanten Events (siehe Plan §6):
 //   - session:started   → SET_SESSION_STATUS('running') + refreshView
 //   - session:finished  → refreshView (Status/Reveal leitet SET_VIEW ab, P4)

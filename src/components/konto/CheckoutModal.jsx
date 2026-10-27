@@ -105,15 +105,25 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
       setCheckoutError('Kauf wartet auf Bestätigung (z. B. Familienfreigabe). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')
       return
     }
-    const res = await apiFetch(`${API}/iap/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        jwsRepresentation: result.jwsRepresentation,
-        productId: result.productId,
-      }),
-    })
+    // Apple hat hier bereits abgebucht. Reißt jetzt das Netz ab, bleibt die
+    // Transaktion unfinished und kommt beim nächsten Start über den globalen
+    // Listener (iapTransactionListener.js) erneut — das muss der Nutzer wissen,
+    // statt nur „Load failed“ zu lesen.
+    let res
+    try {
+      res = await apiFetch(`${API}/iap/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          jwsRepresentation: result.jwsRepresentation,
+          productId: result.productId,
+        }),
+      })
+    } catch {
+      throw new Error('Der Kauf ist bei Apple abgeschlossen, die Freischaltung konnte aber gerade nicht bestätigt werden. '
+        + 'Sie wird automatisch nachgeholt, sobald du wieder online bist – oder tippe auf „Kauf wiederherstellen“.')
+    }
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Freischaltung fehlgeschlagen.')
     // 200 heißt „verstanden“, nicht „freigeschaltet“: Gehört die Transaktion

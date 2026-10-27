@@ -10,6 +10,7 @@ import { useAppTabScreens } from './useAppTabScreens'
 import { useKollokationenGame } from './useKollokationenGame'
 import { useSecondaryGameResults } from './useSecondaryGameResults'
 import { useSpezialwocheResults } from './useSpezialwocheResults'
+import { useDayRollover } from './useDayRollover'
 import { useGameScreenProps } from './useGameScreenProps'
 import { makeDailyKeys } from '../utils/dailyProgress'
 import { startVT } from '../utils/viewTransition'
@@ -129,6 +130,14 @@ export function useAppModel() {
     handleSwZeitenwendeFinish,
     handleSwLFFinish,
   } = useSpezialwocheResults({ spezialwoche, serverDatum, setSwWzPlayed, setSwZwPlayed, setSwLfPlayed })
+
+  // App lag über Mitternacht im Hintergrund → Tagesinhalt neu laden (nur auf der Startseite)
+  const reloadForNewDay = useCallback(() => {
+    retryDailyContent()
+    retryWortzwilling()
+    retryZeitenwende()
+  }, [retryDailyContent, retryWortzwilling, retryZeitenwende])
+  useDayRollover({ serverDatum, phase, onNewDay: reloadForNewDay })
 
   const { playedGames, playedIds, allPlayed } = useAppDailyState({
     todayKey: keys.todayKey,

@@ -385,10 +385,10 @@ router.get('/api/v1/spezialwoche', belegeLimiter, validate(spezialwocheDatumQuer
   }
 })
 
-// ── Debug-Log-Endpoint (Remote-Logging für TestFlight) ───────────────────────
-// Temporär: Die TestFlight-App startet aktuell nicht und wir haben ohne Safari
-// Web Inspector keinen Zugriff auf die Console. Dieser Endpoint empfängt
-// Bootstrap-Errors und Plugin-Warnings.
+// ── Debug-Log-Endpoint (Fehlerberichte aus App und Web) ──────────────────────
+// Ohne Safari Web Inspector gibt es in der App keinen Zugriff auf die Console.
+// Dieser Endpoint empfängt Startfehler und Plugin-Warnungen (public/boot-debug.js,
+// seit 1.6.0 nur warn/error).
 //
 // Logs landen in zwei Senken:
 //   1. pino-Stream (Server-Log via PM2) – für SSH-Zugang
@@ -420,7 +420,7 @@ router.post('/api/v1/debug/log', debugLogLimiter, validate(debugLogSchema), (req
     url:    url   || undefined,
     ua:     ua    || req.headers['user-agent'],
     ts:     ts    || Date.now(),
-    ip:     req.ip,
+    // keine IP: für die Fehlersuche unnötig (Datenschutzerklärung „Fehlerberichte“)
     receivedAt: Date.now(),
   }
   // Ring-Buffer

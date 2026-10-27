@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications as _PushNotificationsPlugin } from '@capacitor/push-notifications';
 import { API } from '../config';
@@ -19,6 +19,55 @@ function getPushNotifications() {
   return _PushNotificationsPlugin;
 }
 
+// Gerät bei APNs registrieren und das Token an den Server melden. Wird beim
+// Einschalten UND bei jedem Öffnen der Einstellungen (still) aufgerufen: Nach
+// einer Neuinstallation oder wenn Apple das Token erneuert, kennt der Server
+// sonst nur das alte Token — der Schalter stünde auf „an", es käme aber keine
+// Erinnerung mehr an. Der Server legt bekannte Tokens nicht doppelt an.
+function registerDevice(PushNotifications) {
+  return new Promise((resolve, reject) => {
+    let regHandle;
+    let errHandle;
+    const timeout = setTimeout(() => reject(new Error('timeout')), 15000);
+
+    async function cleanup() {
+      clearTimeout(timeout);
+      if (regHandle) await regHandle.remove();
+      if (errHandle) await errHandle.remove();
+    }
+
+    PushNotifications.addListener('registration', async (token) => {
+      await cleanup();
+      try {
+        const res = await apiFetch(`${API}/push/subscribe`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform: 'ios', apns_token: token.value }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          reject(new Error(err.error || 'subscribe-failed'));
+          return;
+        }
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    }).then((h) => { regHandle = h; });
+
+    PushNotifications.addListener('registrationError', async (err) => {
+      await cleanup();
+      reject(new Error('registrationError: ' + (err.error?.message || JSON.stringify(err.error))));
+    }).then((h) => { errHandle = h; });
+
+    PushNotifications.register();
+  });
+}
+
+const DENIED_TEXT = 'Mitteilungen sind für Signifikation ausgeschaltet. Du kannst sie in den iOS-Einstellungen unter Signifikation › Mitteilungen erlauben.';
+const FAILED_TEXT = 'Die Erinnerung ließ sich gerade nicht einschalten. Bitte versuche es später noch einmal.';
+
 export function usePushNotifications() {
   const supported = isNative();
 
@@ -33,7 +82,6 @@ export function usePushNotifications() {
   const [error, setError] = useState(null);
   const [permStatus, setPermStatus] = useState(null);
 
-  const listenerRefs = useRef([]);
 
   // Permission-Status beim Mount abfragen
   useEffect(() => {
@@ -53,57 +101,48 @@ export function usePushNotifications() {
     })();
   }, [supported]);
 
-  // Serverseitigen Status beim Mount abgleichen (nur auf Native)
+  // Status beim Mount abgleichen (nur auf Native). Gilt als eingeschaltet, wenn
+  // das Gerät es sich gemerkt hat ODER der Server ein Abo zum Konto kennt (nach
+  // einer Neuinstallation ist der lokale Wert weg). Dann das Token still
+  // auffrischen — aber nur mit erteilter Berechtigung; hat jemand Mitteilungen
+  // in den iOS-Einstellungen abgeschaltet, zeigt der Schalter das ehrlich an.
   useEffect(() => {
     if (!supported) return;
 
     let cancelled = false;
 
-    async function fetchStatus() {
+    async function syncStatus() {
+      let wanted = false;
+      try { wanted = localStorage.getItem(STORAGE_KEY) === 'true'; } catch { /* ignore */ }
       try {
         const res = await apiFetch(`${API}/push/status`, { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        const serverSubscribed = Boolean(data.subscribed);
-        setSubscribed(serverSubscribed);
-        try {
-          localStorage.setItem(STORAGE_KEY, String(serverSubscribed));
-        } catch { /* ignore */ }
-      } catch { /* Netzwerkfehler – lokalen Cache-Wert behalten */ }
+        if (res.ok) wanted = wanted || Boolean((await res.json()).subscribed);
+      } catch { /* Netzwerkfehler – lokalen Wert behalten */ }
+      if (cancelled || !wanted) return;
+
+      const PushNotifications = getPushNotifications();
+      if (!PushNotifications) return;
+      let perm = null;
+      try { perm = (await PushNotifications.checkPermissions()).receive; } catch { /* Bridge-Fehler */ }
+      if (cancelled) return;
+      if (perm && perm !== 'granted') {
+        setSubscribed(false);
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+        return;
+      }
+      setSubscribed(true);
+      try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+      if (perm === 'granted') registerDevice(PushNotifications).catch(() => {});
     }
 
-    fetchStatus();
+    syncStatus();
     return () => { cancelled = true; };
   }, [supported]);
 
-  // Push-Tap-Listener: öffnet Root wenn App aus Hintergrund geöffnet wird
-  useEffect(() => {
-    if (!supported) return;
-
-    let cleanedUp = false;
-
-    async function registerTapListener() {
-      const PushNotifications = getPushNotifications();
-      if (!PushNotifications || cleanedUp) return;
-
-      const handle = await PushNotifications.addListener(
-        'pushNotificationActionPerformed',
-        () => {
-          window.location.href = '/';
-        },
-      );
-      listenerRefs.current.push(handle);
-    }
-
-    registerTapListener();
-
-    return () => {
-      cleanedUp = true;
-      listenerRefs.current.forEach((h) => h.remove());
-      listenerRefs.current = [];
-    };
-  }, [supported]);
+  // Kein eigener Tap-Listener: Ein Tipp auf die Erinnerung öffnet die App
+  // ohnehin. Bis 1.5.0 lud er die Seite neu (`location.href = '/'`), aber nur,
+  // solange dieser Block gerade gemountet war; den neuen Tag lädt seitdem
+  // useDayRollover nach.
 
   const subscribe = useCallback(async () => {
     if (!supported || requesting) return;
@@ -111,7 +150,7 @@ export function usePushNotifications() {
 
     const PushNotifications = getPushNotifications();
     if (!PushNotifications) {
-      setError('Plugin nicht verfügbar');
+      setError(FAILED_TEXT);
       return;
     }
 
@@ -126,54 +165,15 @@ export function usePushNotifications() {
       }
 
       if (permStatus.receive !== 'granted') {
-        setError(`Berechtigung verweigert (${permStatus.receive})`);
-        setRequesting(false);
+        setError(DENIED_TEXT);
         return;
       }
 
-      // Token-Empfang via einmaliger Listener (mit 15s Timeout)
-      await new Promise((resolve, reject) => {
-        let regHandle;
-        let errHandle;
-        const timeout = setTimeout(() => reject(new Error('Timeout: kein Token erhalten (15s)')), 15000);
-
-        async function cleanup() {
-          clearTimeout(timeout);
-          if (regHandle) await regHandle.remove();
-          if (errHandle) await errHandle.remove();
-        }
-
-        PushNotifications.addListener('registration', async (token) => {
-          await cleanup();
-          try {
-            const res = await apiFetch(`${API}/push/subscribe`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ platform: 'ios', apns_token: token.value }),
-            });
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              reject(new Error(err.error || 'Subscription failed'));
-              return;
-            }
-            setSubscribed(true);
-            try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
-            resolve();
-          } catch (e) {
-            reject(e);
-          }
-        }).then((h) => { regHandle = h; });
-
-        PushNotifications.addListener('registrationError', async (err) => {
-          await cleanup();
-          reject(new Error('registrationError: ' + (err.error?.message || JSON.stringify(err.error))));
-        }).then((h) => { errHandle = h; });
-
-        PushNotifications.register();
-      });
-    } catch (e) {
-      setError(String(e?.message ?? e));
+      await registerDevice(PushNotifications);
+      setSubscribed(true);
+      try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+    } catch {
+      setError(FAILED_TEXT);
     } finally {
       setRequesting(false);
     }

@@ -140,7 +140,14 @@ function renderApp() {
 if (typeof window !== 'undefined' && window.__sigDebugPost) {
   window.__sigDebugPost('info', 'main.jsx', 'calling initNativeBearerToken')
 }
-initNativeBearerToken().then(renderApp, (err) => {
+// Zeitlimit: Hängt das Keychain-Plugin (kein resolve, kein reject), bliebe die
+// App sonst dauerhaft weiß. Nach 3 s wird trotzdem gerendert; kommt das Token
+// später, steht es ab dann im Cache, die erste Sitzungsabfrage lief nur ohne.
+const KEYCHAIN_TIMEOUT_MS = 3000
+const keychainTimeout = new Promise((_, reject) => {
+  setTimeout(() => reject(new Error(`Keychain antwortet nicht nach ${KEYCHAIN_TIMEOUT_MS} ms`)), KEYCHAIN_TIMEOUT_MS)
+})
+Promise.race([initNativeBearerToken(), keychainTimeout]).then(renderApp, (err) => {
   if (typeof window !== 'undefined' && window.__sigDebugPost) {
     window.__sigDebugPost('error', 'main.jsx', 'initNativeBearerToken rejected: ' + (err?.message || err), err?.stack)
   }
