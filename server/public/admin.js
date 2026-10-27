@@ -2936,7 +2936,7 @@ function updateModeIndicators() {
     if (!btn) return
     const w = wert(`w${n}`)
     const text = btn.querySelector('.tag-vorschau-text') || btn
-    text.textContent = w || `Wort ${n}`
+    text.textContent = w || `Basis ${n}`
     if (w) btn.removeAttribute('aria-disabled')
     else btn.setAttribute('aria-disabled', 'true')
   })
@@ -3391,7 +3391,7 @@ async function saveTag() {
   const lfId      = document.getElementById('lf-id').value.trim()
 
   // Pflichtfelder: fehlende benennen, rot unterstreichen und das erste fokussieren
-  const fehlend = [['datum', 'Datum'], ['w1', 'Wort 1'], ['w2', 'Wort 2'], ['w3', 'Wort 3']]
+  const fehlend = [['datum', 'Datum'], ['w1', 'Basis 1'], ['w2', 'Basis 2'], ['w3', 'Basis 3']]
     .filter(([id]) => !normalizeText(document.getElementById(id)?.value || ''))
   loescheAlleFeldFehler()
   if (fehlend.length) {
@@ -4544,7 +4544,7 @@ async function previewCurrentLemma(index = 1) {
   if (!out) return
 
   if (!lemma) {
-    out.innerHTML = ergebnisMeldung(`Erst Wort ${n} eintragen.`)
+    out.innerHTML = ergebnisMeldung(`Erst Basis ${n} eintragen.`)
     return
   }
 
