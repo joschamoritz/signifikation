@@ -1593,6 +1593,7 @@ async function doLogin() {
   btn.disabled = true
   btn.textContent = '…'
   errEl.style.display = 'none'
+  beendeStartPruefung()
 
   try {
     const r = await fetch('/admin/auth', {
@@ -1642,15 +1643,64 @@ async function doLogout() {
 }
 
 // ── Beim Laden: Cookie prüfen (Browser sendet ihn automatisch) ──
-fetch('/admin/kalender').then(r => {
+// Nur 401/403 heißt „nicht angemeldet“. Bei 429 (Admin-Limit), Serverfehler oder Netzausfall
+// ist die Sitzung womöglich gültig: Dann steht ein Hinweis unter der Anmeldung und die Prüfung
+// läuft nach der Wartezeit von selbst noch einmal (eine Anmeldung von Hand bleibt möglich).
+let startPruefungTimer = null
+let startPruefungTakt = null
+
+function startHinweis(text) {
+  const errEl = document.getElementById('login-error')
+  if (!errEl) return
+  errEl.textContent = text
+  errEl.style.display = text ? 'block' : 'none'
+}
+
+function beendeStartPruefung() {
+  window.clearTimeout(startPruefungTimer)
+  window.clearInterval(startPruefungTakt)
+  startPruefungTimer = startPruefungTakt = null
+}
+
+function planeStartPruefung(grund, sekunden) {
+  beendeStartPruefung()
+  let rest = sekunden
+  const zeige = () => startHinweis(`${grund} Neuer Versuch in ${rest} s.`)
+  zeige()
+  startPruefungTakt = window.setInterval(() => { rest = Math.max(1, rest - 1); zeige() }, 1000)
+  startPruefungTimer = window.setTimeout(() => {
+    beendeStartPruefung()
+    startHinweis('Sitzung wird geprüft …')
+    void pruefeSitzungBeimStart()
+  }, sekunden * 1000)
+}
+
+async function pruefeSitzungBeimStart() {
+  let r
+  try {
+    r = await fetch('/admin/kalender')
+  } catch {
+    return planeStartPruefung('Der Server ist gerade nicht erreichbar.', 15)
+  }
+  // Inzwischen von Hand angemeldet: nichts mehr tun
+  if (document.getElementById('login-overlay')?.classList.contains('hidden')) return
   if (r.ok) {
+    startHinweis('')
     document.getElementById('login-overlay').classList.add('hidden')
     showMainContainer()
     scheduleSessionRefresh()
     initDashboard()
+    return
   }
-  // Kein Cookie oder abgelaufen → Login-Overlay bleibt sichtbar
-}).catch(() => {})
+  if (r.status === 429) {
+    const warten = Number.parseInt(r.headers.get('Retry-After') || '', 10)
+    return planeStartPruefung('Zu viele Admin-Anfragen in der letzten Minute.', Number.isFinite(warten) && warten > 0 ? Math.min(warten, 120) : 60)
+  }
+  if (r.status >= 500) return planeStartPruefung(`Der Server antwortet gerade nicht (HTTP ${r.status}).`, 15)
+  // 401/403: Kein Cookie oder abgelaufen → Anmeldung bleibt sichtbar, ohne Hinweis
+  startHinweis('')
+}
+void pruefeSitzungBeimStart()
 
 function initDashboard() {
   // Vor dem Router: Er bietet den Entwurf des geöffneten Tages an, dafür muss ein
