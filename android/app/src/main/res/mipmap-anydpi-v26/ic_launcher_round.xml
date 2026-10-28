@@ -6,4 +6,8 @@
     <foreground>
         <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.7%" />
     </foreground>
+    <!-- Designsymbole (Android 13+): einfarbiges Netz, das System färbt es ein -->
+    <monochrome>
+        <inset android:drawable="@drawable/ic_stat_signifikation" android:inset="22%" />
+    </monochrome>
 </adaptive-icon>

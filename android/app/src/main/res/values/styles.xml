@@ -19,5 +19,8 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <!-- Android 12+: System-Startbildschirm (App-Symbol mittig) auf
+             Pergament bzw. Dunkel statt auf dem Standard-Hintergrund -->
+        <item name="windowSplashScreenBackground">@color/signifikation_bg</item>
     </style>
 </resources>
