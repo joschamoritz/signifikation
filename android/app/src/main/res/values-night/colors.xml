@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Token bg aus [data-theme="dark"] in src/styles/globals.css. Folgt dem
+         System-Dark-Mode; wer in der App ein anderes Design wählt als im
+         System, sieht auf alten WebViews die Systemfarbe. -->
+    <color name="signifikation_bg">#1A1510</color>
+</resources>

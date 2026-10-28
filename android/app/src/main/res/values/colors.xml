@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pergament wie der Token bg in src/styles/globals.css. Fensterhintergrund
+         hinter Status- und Navigationsleiste, solange die WebView nicht
+         randlos zeichnet (System-WebView unter Version 140). -->
+    <color name="signifikation_bg">#FAF9F7</color>
+</resources>

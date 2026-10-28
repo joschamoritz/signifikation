@@ -18,6 +18,18 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- App Links: Klassenraum-Beitritt (QR-Code) öffnet die App statt
+                 des Browsers. autoVerify prüft /.well-known/assetlinks.json
+                 (server/appLinks.js); ohne gültige Datei bleibt es beim Browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="signifikation.de" />
+                <data android:pathPrefix="/c/" />
+            </intent-filter>
         </activity>
 
         <provider

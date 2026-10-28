@@ -52,6 +52,7 @@ import { startZeitenwendePrefetch } from './jobs/zeitenwendePrefetch.js'
 import { startSocialCardDrafts } from './jobs/socialCardDrafts.js'
 import { startSocialPosting } from './jobs/socialPosting.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
+import { buildAssetLinks } from './appLinks.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
 import { track5xx } from './metrics.js'
@@ -208,6 +209,17 @@ app.get(
     })
   },
 )
+
+// ── Android App Links (Classroom-QR öffnet die Android-App) ──
+// Gleiches Muster wie die AASA: Fingerabdrücke aus der Server-.env
+// (ANDROID_CERT_SHA256), ohne Konfiguration 404 → Browser-Kiosk.
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  const links = buildAssetLinks(process.env.ANDROID_CERT_SHA256)
+  if (!links) return res.status(404).json({ error: 'Not configured' })
+  res.type('application/json')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  return res.json(links)
+})
 
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', publicRouter)
