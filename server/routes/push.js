@@ -51,9 +51,17 @@ const iosSubscribeSchema = z.object({
   apns_token: z.string().min(32, 'apns_token zu kurz').max(256),
 })
 
+// FCM-Registrierungstoken sind derzeit ~160 Zeichen; Google garantiert keine
+// feste Länge, daher großzügige Obergrenze.
+const androidSubscribeSchema = z.object({
+  platform:  z.literal('android'),
+  fcm_token: z.string().min(32, 'fcm_token zu kurz').max(1024),
+})
+
 const subscribeSchema = z.discriminatedUnion('platform', [
   webSubscribeSchema,
   iosSubscribeSchema,
+  androidSubscribeSchema,
 ])
 
 const webUnsubscribeSchema = z.object({
@@ -65,7 +73,11 @@ const iosUnsubscribeSchema = z.object({
   apns_token: z.string().min(32, 'apns_token zu kurz').max(256),
 })
 
-const unsubscribeSchema = z.union([webUnsubscribeSchema, iosUnsubscribeSchema])
+const androidUnsubscribeSchema = z.object({
+  fcm_token: z.string().min(32, 'fcm_token zu kurz').max(1024),
+})
+
+const unsubscribeSchema = z.union([webUnsubscribeSchema, iosUnsubscribeSchema, androidUnsubscribeSchema])
 
 // ── Prepared Statements ───────────────────────────────────────────────────────
 
@@ -87,6 +99,15 @@ const updateIosSubStmt = db.prepare(`
   UPDATE push_subscriptions SET user_id=?, updated_at=? WHERE apns_token=?
 `)
 
+const findByFcmTokenStmt = db.prepare(`SELECT id, user_id FROM push_subscriptions WHERE fcm_token = ?`)
+const insertAndroidSubStmt = db.prepare(`
+  INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, fcm_token, created_at, updated_at)
+  VALUES (?, ?, 'android', NULL, NULL, NULL, NULL, ?, ?, ?)
+`)
+const updateAndroidSubStmt = db.prepare(`
+  UPDATE push_subscriptions SET user_id=?, updated_at=? WHERE fcm_token=?
+`)
+
 // Lösch-Statements mit Owner-Filter: entweder anonym (user_id IS NULL) ODER
 // passend zum Aufrufer. Verhindert, dass beliebige bekannte Endpoints/Tokens
 // fremde Subscriptions entfernen.
@@ -106,6 +127,15 @@ const deleteByApnsTokenAnonStmt = db.prepare(`
 const deleteByApnsTokenOwnerStmt = db.prepare(`
   DELETE FROM push_subscriptions
   WHERE apns_token = ? AND (user_id = ? OR user_id IS NULL)
+`)
+
+const deleteByFcmTokenAnonStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE fcm_token = ? AND user_id IS NULL
+`)
+const deleteByFcmTokenOwnerStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE fcm_token = ? AND (user_id = ? OR user_id IS NULL)
 `)
 
 // Löscht alle Subscriptions eines Users – Pfad für den Native-Client, der den
@@ -193,6 +223,22 @@ router.post(
           insertWebSubStmt.run(randomUUID(), userId, endpoint, p256dh, auth, now, now)
         }
         logger.info({ userId, platform: 'web' }, 'Push-Subscription gespeichert (web)')
+      } else if (req.body.platform === 'android') {
+        const { fcm_token } = req.body
+        const existing = findByFcmTokenStmt.get(fcm_token)
+        if (existing) {
+          if (existing.user_id && existing.user_id !== userId) {
+            logger.warn(
+              { existingUserId: existing.user_id, callerUserId: userId },
+              'Push-Subscribe abgelehnt: FCM-Token gehört anderem Nutzer'
+            )
+            return res.status(403).json({ error: 'FCM-Token gehört einem anderen Nutzer.' })
+          }
+          updateAndroidSubStmt.run(userId, now, fcm_token)
+        } else {
+          insertAndroidSubStmt.run(randomUUID(), userId, fcm_token, now, now)
+        }
+        logger.info({ userId, platform: 'android' }, 'Push-Subscription gespeichert (android)')
       } else {
         const { apns_token } = req.body
         const existing = findByApnsTokenStmt.get(apns_token)
@@ -228,7 +274,7 @@ router.delete(
   optionalAuthUser,
   (req, res) => {
     const userId = req.user?.id ?? null
-    const hasIdentifier = req.body && (req.body.endpoint || req.body.apns_token)
+    const hasIdentifier = req.body && (req.body.endpoint || req.body.apns_token || req.body.fcm_token)
 
     try {
       if (hasIdentifier) {
@@ -243,6 +289,11 @@ router.delete(
             ? deleteByEndpointOwnerStmt.run(req.body.endpoint, userId)
             : deleteByEndpointAnonStmt.run(req.body.endpoint)
           logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (web)')
+        } else if (req.body.fcm_token) {
+          const result = userId
+            ? deleteByFcmTokenOwnerStmt.run(req.body.fcm_token, userId)
+            : deleteByFcmTokenAnonStmt.run(req.body.fcm_token)
+          logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (android)')
         } else {
           const result = userId
             ? deleteByApnsTokenOwnerStmt.run(req.body.apns_token, userId)
@@ -253,7 +304,7 @@ router.delete(
         const result = deleteByUserStmt.run(userId)
         logger.info({ userId, changes: result.changes }, 'Push-Subscriptions per User gelöscht')
       } else {
-        return res.status(400).json({ error: 'endpoint oder apns_token erforderlich (oder Login)' })
+        return res.status(400).json({ error: 'endpoint, apns_token oder fcm_token erforderlich (oder Login)' })
       }
 
       return res.json({ ok: true })

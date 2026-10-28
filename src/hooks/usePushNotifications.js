@@ -6,12 +6,32 @@ import { apiFetch } from '../utils/apiFetch';
 
 const STORAGE_KEY = 'sig-push-subscribed';
 
+// Kanal für Android 8+ (Nutzer sieht ihn unter App-Info › Benachrichtigungen).
+// Die ID muss zu ANDROID_CHANNEL_ID in server/notifications/fcm.js passen.
+const ANDROID_CHANNEL = {
+  id: 'erinnerungen',
+  name: 'Erinnerungen',
+  description: 'Tägliche Erinnerung zum Spielen',
+  importance: 3,
+};
+
+function platform() {
+  return Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'web';
+}
+
 function isNative() {
-  // Bewusst iOS-only: der Server kennt nur platform 'web'|'ios'
-  // (routes/push.js, APNs). Ein Android-Geraet wuerde sonst sein
-  // FCM-Token als apns_token registrieren — kaputte Subscription.
-  // Bei Android-Support: Server-Schema + FCM-Sender zuerst.
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+  // iOS über APNs, Android über FCM (server/notifications/fcm.js). Android
+  // setzt android/app/google-services.json im Build voraus – ohne die Datei
+  // stürzt register() ab.
+  const p = platform();
+  return p === 'ios' || p === 'android';
+}
+
+// Der Server unterscheidet die Token-Art am Feldnamen (routes/push.js).
+function subscribeBody(tokenValue) {
+  return platform() === 'android'
+    ? { platform: 'android', fcm_token: tokenValue }
+    : { platform: 'ios', apns_token: tokenValue };
 }
 
 function getPushNotifications() {
@@ -19,7 +39,7 @@ function getPushNotifications() {
   return _PushNotificationsPlugin;
 }
 
-// Gerät bei APNs registrieren und das Token an den Server melden. Wird beim
+// Gerät bei APNs bzw. FCM registrieren und das Token an den Server melden. Wird beim
 // Einschalten UND bei jedem Öffnen der Einstellungen (still) aufgerufen: Nach
 // einer Neuinstallation oder wenn Apple das Token erneuert, kennt der Server
 // sonst nur das alte Token — der Schalter stünde auf „an", es käme aber keine
@@ -43,7 +63,7 @@ function registerDevice(PushNotifications) {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ platform: 'ios', apns_token: token.value }),
+          body: JSON.stringify(subscribeBody(token.value)),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -61,11 +81,18 @@ function registerDevice(PushNotifications) {
       reject(new Error('registrationError: ' + (err.error?.message || JSON.stringify(err.error))));
     }).then((h) => { errHandle = h; });
 
-    PushNotifications.register();
+    // Android: Kanal vor der ersten Erinnerung anlegen (idempotent), sonst
+    // landet sie im Sammelkanal „Sonstiges“.
+    const ready = platform() === 'android'
+      ? PushNotifications.createChannel(ANDROID_CHANNEL).catch(() => {})
+      : Promise.resolve();
+    ready.then(() => PushNotifications.register());
   });
 }
 
-const DENIED_TEXT = 'Mitteilungen sind für Signifikation ausgeschaltet. Du kannst sie in den iOS-Einstellungen unter Signifikation › Mitteilungen erlauben.';
+const DENIED_TEXT_IOS = 'Mitteilungen sind für Signifikation ausgeschaltet. Du kannst sie in den iOS-Einstellungen unter Signifikation › Mitteilungen erlauben.';
+const DENIED_TEXT_ANDROID = 'Benachrichtigungen sind für Signifikation ausgeschaltet. Du kannst sie in den Android-Einstellungen unter Apps › Signifikation › Benachrichtigungen erlauben.';
+const deniedText = () => (platform() === 'android' ? DENIED_TEXT_ANDROID : DENIED_TEXT_IOS);
 const FAILED_TEXT = 'Die Erinnerung ließ sich gerade nicht einschalten. Bitte versuche es später noch einmal.';
 
 export function usePushNotifications() {
@@ -105,7 +132,7 @@ export function usePushNotifications() {
   // das Gerät es sich gemerkt hat ODER der Server ein Abo zum Konto kennt (nach
   // einer Neuinstallation ist der lokale Wert weg). Dann das Token still
   // auffrischen — aber nur mit erteilter Berechtigung; hat jemand Mitteilungen
-  // in den iOS-Einstellungen abgeschaltet, zeigt der Schalter das ehrlich an.
+  // in den System-Einstellungen abgeschaltet, zeigt der Schalter das ehrlich an.
   useEffect(() => {
     if (!supported) return;
 
@@ -165,7 +192,7 @@ export function usePushNotifications() {
       }
 
       if (permStatus.receive !== 'granted') {
-        setError(DENIED_TEXT);
+        setError(deniedText());
         return;
       }
 

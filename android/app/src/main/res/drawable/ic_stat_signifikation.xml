@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Benachrichtigungssymbol: das Kollokationsnetz aus dem App-Symbol, einfarbig.
+     Android färbt Statusleisten-Symbole selbst ein und wertet nur die Alpha-Maske
+     aus; ein farbiges Symbol erschiene als weißes Quadrat. Koordinaten wie im
+     App-Symbol (300er Raster). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="300"
+    android:viewportHeight="300">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="14"
+        android:strokeLineCap="round"
+        android:pathData="M160,123 L195,75 M160,123 L93,195 M160,123 L225,183 M93,195 L225,183 M93,195 L160,234 M225,183 L160,234 M63,141 L93,195 M260,129 L225,183" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M160,101a22,22 0,1 1,0 44a22,22 0,1 1,0 -44z M93,175a20,20 0,1 1,0 40a20,20 0,1 1,0 -40z M225,165a18,18 0,1 1,0 36a18,18 0,1 1,0 -36z M160,218a16,16 0,1 1,0 32a16,16 0,1 1,0 -32z M195,61a14,14 0,1 1,0 28a14,14 0,1 1,0 -28z M63,127a14,14 0,1 1,0 28a14,14 0,1 1,0 -28z M260,116a13,13 0,1 1,0 26a13,13 0,1 1,0 -26z" />
+</vector>

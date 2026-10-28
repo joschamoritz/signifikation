@@ -195,7 +195,7 @@ describe('Werkzeuge › Betrieb (Server)', () => {
       expect(h.status).toBe('ok')
       expect(h.appDb).toBe('ok')
       expect(typeof h.wortprofilDb).toBe('string')
-      expect(h.push).toEqual({ web: expect.any(Boolean), ios: expect.any(Boolean), geraete: expect.any(Number) })
+      expect(h.push).toEqual({ web: expect.any(Boolean), ios: expect.any(Boolean), android: expect.any(Boolean), geraete: expect.any(Number) })
       expect(h.mail).toEqual({ eingerichtet: expect.any(Boolean) })
       expect(h.sicherung).toMatchObject({ anzahl: expect.any(Number) })
       expect(h.kursmaterial).toMatchObject({ laeuft: false })

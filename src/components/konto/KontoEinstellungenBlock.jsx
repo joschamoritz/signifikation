@@ -43,7 +43,8 @@ export default function KontoEinstellungenBlock() {
   const [pushSupported]               = useState(isWebPushSupported)
   const [pushError, setPushError]     = useState(null)
 
-  // ── iOS Push (Capacitor/Native) ───────────────────────────────────
+  // ── Nativer Push (Capacitor: iOS über APNs, Android über FCM) ──────
+  // Variablennamen historisch „ios…“ – gilt für beide Apps.
   const { supported: iosPushSupported, subscribed: iosPushSubscribed,
           requesting: iosPushRequesting, error: iosPushError,
           subscribe: iosPushSubscribe,

@@ -32,6 +32,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Push über FCM: Symbol, Farbe und Kanal für Erinnerungen, die Android
+             selbst anzeigt (App im Hintergrund). Kanal-ID wie in
+             server/notifications/fcm.js und src/hooks/usePushNotifications.js. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_signifikation" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/signifikation_accent" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="erinnerungen" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

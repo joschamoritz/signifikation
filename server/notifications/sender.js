@@ -1,7 +1,8 @@
 /**
  * sender.js – Push-Benachrichtigungen versenden
  *
- * Unterstützt Web Push (via web-push) und iOS APNs (via @parse/node-apn).
+ * Unterstützt Web Push (via web-push), iOS APNs (via @parse/node-apn) und
+ * Android über Firebase Cloud Messaging (./fcm.js).
  * VAPID- und APNs-Konfiguration werden beim Modul-Load aus den Env-Variablen initialisiert.
  */
 import webpush from 'web-push'
@@ -13,6 +14,7 @@ import webpush from 'web-push'
 import apn from '@parse/node-apn'
 import db from '../db.js'
 import logger from '../logger.js'
+import { createFcmSender, loadServiceAccount } from './fcm.js'
 
 // ── VAPID-Initialisierung ─────────────────────────────────────────────────────
 
@@ -40,13 +42,13 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_MAILTO) {
 // ── Prepared Statements ───────────────────────────────────────────────────────
 
 const getSubscriptionsStmt = db.prepare(`
-  SELECT id, platform, endpoint, p256dh, auth, apns_token
+  SELECT id, platform, endpoint, p256dh, auth, apns_token, fcm_token
   FROM push_subscriptions
   WHERE user_id = ?
 `)
 
 const getAllSubscriptionsStmt = db.prepare(`
-  SELECT id, platform, endpoint, p256dh, auth, apns_token
+  SELECT id, platform, endpoint, p256dh, auth, apns_token, fcm_token
   FROM push_subscriptions
 `)
 
@@ -174,6 +176,49 @@ async function sendApnsPush(sub, payload) {
   }
 }
 
+// ── FCM (Android) ─────────────────────────────────────────────────────────────
+
+const fcm = createFcmSender(loadServiceAccount(process.env.FCM_SERVICE_ACCOUNT_PATH?.trim(), logger), {
+  timeoutMs: SEND_TIMEOUT_MS,
+})
+
+if (fcm.enabled) {
+  logger.info('FCM-Dienstkonto geladen – Android-Push aktiv')
+} else {
+  logger.warn('FCM_SERVICE_ACCOUNT_PATH nicht gesetzt oder unlesbar – Android-Push deaktiviert')
+}
+
+/**
+ * Sendet eine FCM-Notification an ein Android-Gerät.
+ * Bei UNREGISTERED (App deinstalliert, Token erneuert) wird die Subscription gelöscht.
+ *
+ * @param {{ id: string, fcm_token: string }} sub
+ * @param {object} payload
+ * @returns {Promise<boolean>}
+ */
+async function sendFcmPush(sub, payload) {
+  if (!fcm.enabled) {
+    logger.warn({ subId: sub.id }, 'FCM nicht konfiguriert – Nachricht übersprungen')
+    return false
+  }
+  try {
+    const result = await fcm.send(sub.fcm_token, payload)
+    if (result.ok) {
+      logger.debug({ subId: sub.id }, 'FCM-Push gesendet')
+      return true
+    }
+    logger.warn({ subId: sub.id, status: result.status }, 'FCM-Push fehlgeschlagen')
+    if (result.unregistered) {
+      try { deleteSubscriptionByIdStmt.run(sub.id) } catch { /* ignore */ }
+      logger.info({ subId: sub.id }, 'FCM-Subscription gelöscht (UNREGISTERED)')
+    }
+    return false
+  } catch (err) {
+    logger.warn({ err, subId: sub.id }, 'FCM-Push Ausnahme')
+    return false
+  }
+}
+
 // ── Versand-Helfer ────────────────────────────────────────────────────────────
 
 const SEND_CONCURRENCY = 10
@@ -185,6 +230,9 @@ async function sendToSubscription(sub, payload) {
   }
   if (sub.platform === 'ios' && sub.apns_token) {
     return sendApnsPush(sub, payload)
+  }
+  if (sub.platform === 'android' && sub.fcm_token) {
+    return sendFcmPush(sub, payload)
   }
   logger.warn({ subId: sub.id, platform: sub.platform }, 'Unbekannte Plattform oder fehlende Daten')
   return false
@@ -233,10 +281,10 @@ export async function sendPushToUser(userId, payload) {
 /**
  * Was ist für Benachrichtigungen eingerichtet? Nur Ja/Nein und die Gerätezahl – nie Schlüssel oder Tokens.
  *
- * @returns {{ web: boolean, ios: boolean, geraete: number }}
+ * @returns {{ web: boolean, ios: boolean, android: boolean, geraete: number }}
  */
 export function pushStatus() {
-  return { web: vapidConfigured, ios: !!apnsProvider, geraete: getSubscriberCount() }
+  return { web: vapidConfigured, ios: !!apnsProvider, android: fcm.enabled, geraete: getSubscriberCount() }
 }
 
 /**

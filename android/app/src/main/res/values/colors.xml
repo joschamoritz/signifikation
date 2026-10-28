@@ -4,4 +4,6 @@
          hinter Status- und Navigationsleiste, solange die WebView nicht
          randlos zeichnet (System-WebView unter Version 140). -->
     <color name="signifikation_bg">#FAF9F7</color>
+    <!-- Akzentrot aus dem Corporate Design: Farbe des Benachrichtigungssymbols -->
+    <color name="signifikation_accent">#9B1C1C</color>
 </resources>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "640942983577",
+    "project_id": "signifikation-bb04d",
+    "storage_bucket": "signifikation-bb04d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:640942983577:android:d5b9fec5db3a0224f66b08",
+        "android_client_info": {
+          "package_name": "de.signifikation.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB66UsTvA4CvKbH3-tcimfhyxqjUuJOiOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1973,14 +1973,14 @@ function renderSystem(h, perf) {
     return betriebWert(text, 'err') + (String(status).startsWith('error') ? ` <span class="be-zusatz">${esc(String(status).replace(/^error:\s*/, ''))}</span>` : '')
   }
   const push = h.push || {}
-  const pushText = push.web && push.ios ? 'eingerichtet für Web und iOS' : push.web ? 'nur für Web eingerichtet' : push.ios ? 'nur für iOS eingerichtet' : 'nicht eingerichtet'
+  const pushText = pushAktiv(push) ? `eingerichtet für ${pushWege(push)}` : 'nicht eingerichtet'
   const mailDa = !!h.mail?.eingerichtet
   const alter = sicherungAlterStunden(h)
   dienste.innerHTML = [
     `<div><dt>Spieldaten</dt><dd>${datenbank(h.appDb, 'Konten, Kalender, Statistik')}</dd></div>`,
     `<div><dt>Wortprofil</dt><dd>${datenbank(h.wortprofilDb, 'Kollokationen, Wort prüfen')}</dd></div>`,
     `<div><dt>Belegsätze</dt><dd>${h.belegeDb === 'ok' ? datenbank('ok', 'Beispielsätze aus dem Korpus') : betriebWert('nicht verfügbar', 'warn')}</dd></div>`,
-    betriebZeile('Benachrichtigungen', betriebWert(pushText, push.web || push.ios ? '' : 'warn'), esc(anzahlText(push.geraete || 0, 'Gerät angemeldet', 'Geräte angemeldet'))),
+    betriebZeile('Benachrichtigungen', betriebWert(pushText, pushAktiv(push) ? '' : 'warn'), esc(anzahlText(push.geraete || 0, 'Gerät angemeldet', 'Geräte angemeldet'))),
     betriebZeile('E-Mail-Versand', betriebWert(mailDa ? 'eingerichtet' : 'nicht eingerichtet', mailDa ? '' : 'warn'), mailDa ? '' : 'Willkommens-Mails werden nicht verschickt'),
     betriebZeile('Letzte Sicherung', alter === null ? betriebWert('keine gefunden', 'warn') : alter > SICHERUNG_MAX_STUNDEN ? betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr · zu alt`, 'warn') : betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr`), '<a class="adm-link" href="#werkzeuge/sicherung">Sicherung ansehen</a>'),
     betriebZeile('Letzter geplanter Tag', betriebWert(h.lastEntry && /^\d{4}-\d{2}-\d{2}$/.test(h.lastEntry) ? tagText(h.lastEntry) : '–')),
@@ -6040,7 +6040,7 @@ function renderInhalteStand() {
   }
 
   if (!h?.push) setzeStand('wz-stand-push', '')
-  else if (!h.push.web && !h.push.ios) setzeStand('wz-stand-push', 'Nicht eingerichtet', 'warn')
+  else if (!pushAktiv(h.push)) setzeStand('wz-stand-push', 'Nicht eingerichtet', 'warn')
   else setzeStand('wz-stand-push', anzahlText(h.push.geraete, 'Gerät', 'Geräte'))
 
   socialStandAktualisieren()
@@ -6963,7 +6963,14 @@ function setzeSperre(id, an) {
   else el.removeAttribute('aria-disabled')
 }
 
-const pushAus = () => !!pushDaten && !pushDaten.push?.web && !pushDaten.push?.ios
+// Eingerichtete Versandwege (Web Push, APNs, FCM) als Text: „Web, iOS und Android“
+function pushWege(p = {}) {
+  const wege = [p.web && 'Web', p.ios && 'iOS', p.android && 'Android'].filter(Boolean)
+  return wege.length > 1 ? `${wege.slice(0, -1).join(', ')} und ${wege.at(-1)}` : (wege[0] || '')
+}
+function pushAktiv(p = {}) { return !!(p.web || p.ios || p.android) }
+
+const pushAus = () => !!pushDaten && !pushAktiv(pushDaten.push)
 
 function renderPushStand() {
   const el = getEl('push-stand')
@@ -6976,7 +6983,7 @@ function renderPushStand() {
     return
   }
   const p = pushDaten.push || {}
-  const wege = p.web && p.ios ? 'Web und iOS' : p.web ? 'nur Web' : 'nur iOS'
+  const wege = pushWege(p)
   el.textContent = `${geraeteText(pushDaten.subscriberCount)} angemeldet (${wege}) · auf deinem Konto: ${geraeteText(pushDaten.eigeneGeraete)}`
 }
 
@@ -7123,7 +7130,7 @@ function oeffnePushDialog() {
   getEl('push-dialog-text').textContent = 'Die Nachricht geht sofort hinaus und lässt sich nicht zurückholen.'
   getEl('push-dialog-vorschau').innerHTML = vorschauHtml(titel, text)
   getEl('push-dialog-fakten').innerHTML = [
-    betriebZeile('Empfänger', betriebWert(geraeteText(n)), p.web && p.ios ? 'Web und iOS' : ''),
+    betriebZeile('Empfänger', betriebWert(geraeteText(n)), pushWege(p)),
     testGleich
       ? betriebZeile('Test', betriebWert(`an deine Geräte gesendet um ${uhrText(berlinTeile(pushGetestet.zeit))} Uhr`))
       : betriebZeile('Test', betriebWert('Diese Fassung ging noch nicht an deine Geräte.', 'warn')),
