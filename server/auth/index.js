@@ -24,6 +24,9 @@ const SESSION_UPDATE_AGE = readPositiveInt(process.env.AUTH_SESSION_UPDATE_AGE, 
 
 const GOOGLE_CLIENT_ID = process.env.BETTER_AUTH_GOOGLE_CLIENT_ID?.trim()
 const GOOGLE_CLIENT_SECRET = process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET?.trim()
+// Nativer Google-Login auf iOS: dessen ID-Token hat den iOS-Client als
+// Empfänger (aud), Android-Tokens dagegen den Web-Client. Optional.
+const GOOGLE_IOS_CLIENT_ID = process.env.BETTER_AUTH_GOOGLE_IOS_CLIENT_ID?.trim()
 const APPLE_CLIENT_ID = process.env.BETTER_AUTH_APPLE_CLIENT_ID?.trim()
 const APPLE_CLIENT_SECRET_STATIC = process.env.BETTER_AUTH_APPLE_CLIENT_SECRET?.trim()
 const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_IDENTIFIER?.trim() || 'de.signifikation.app'
@@ -45,7 +48,10 @@ if (!appleClientSecret && APPLE_CLIENT_SECRET_STATIC) {
 const socialProviders = {}
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   socialProviders.google = {
-    clientId: GOOGLE_CLIENT_ID,
+    // Liste: Eintrag 0 = Web-Client (gehört zum Secret, Redirect-Login im
+    // Browser, Empfänger der Android-Tokens); weitere Einträge gelten bei der
+    // ID-Token-Prüfung zusätzlich als Empfänger (better-auth getPrimaryClientId).
+    clientId: GOOGLE_IOS_CLIENT_ID ? [GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID] : GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
   }
 }
@@ -176,6 +182,10 @@ export const authFeatureFlags = {
   appleEnabled: !!socialProviders.apple,
   passwordResetEnabled: PASSWORD_RESET_ENABLED,
 }
+
+// Web-Client-ID für den nativen Google-Login (das Plugin braucht sie auf
+// Android und iOS als „server client ID“). Öffentlich, kein Geheimnis.
+export const googleWebClientId = socialProviders.google ? GOOGLE_CLIENT_ID : null
 
 export const auth = betterAuth({
   appName: 'Signifikation',

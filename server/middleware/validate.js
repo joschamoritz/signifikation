@@ -724,3 +724,12 @@ export const courseResetQuerySchema = z.object({ stationId: COURSE_ID.optional()
 export const appleTokenSchema = z.object({
   authorizationCode: z.string().min(10).max(2000).regex(/^[A-Za-z0-9._-]+$/, 'authorizationCode enthält ungültige Zeichen'),
 })
+
+/**
+ * GET /api/v1/account/auth-options (query) – nativeGoogle=1 schicken nur
+ * App-Versionen, die den nativen Google-Login eingebaut haben. Ältere Apps
+ * bekämen sonst den Web-Redirect im WebView, den Google blockt.
+ */
+export const authOptionsQuerySchema = z.object({
+  nativeGoogle: z.literal('1').optional(),
+})

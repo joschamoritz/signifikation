@@ -1,10 +1,11 @@
 import express from 'express'
 import { requireAuthUser, optionalAuthUser, isPremiumRole } from '../middleware/userAuth.js'
-import { authFeatureFlags } from '../auth/index.js'
+import { authFeatureFlags, googleWebClientId } from '../auth/index.js'
+import { CAPACITOR_ORIGINS } from '../config/origins.js'
 import { IS_PROD, serverError } from '../middleware/auth.js'
 import { deleteUser, ADMIN_DELETE_BLOCKED } from './admin-users-data.js'
 import { storeAppleRefreshToken } from '../auth/apple-revoke.js'
-import { validate, appleTokenSchema } from '../middleware/validate.js'
+import { validate, appleTokenSchema, authOptionsQuerySchema } from '../middleware/validate.js'
 import { getQuota } from '../customLemmaQuota.js'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -105,8 +106,18 @@ router.get('/api/v1/account/me', requireAuthUser, (req, res) => {
   })
 })
 
-router.get('/api/v1/account/auth-options', (_req, res) => {
-  res.json(authFeatureFlags)
+// Google an die Apps nur melden, wenn die App den nativen Login kann
+// (?nativeGoogle=1). Die iOS-App 1.6.0 aus dem Store kennt den Parameter
+// nicht und würde Google sonst als Web-Redirect im WebView anbieten – den
+// blockt Google (disallowed_useragent). Erkennung der App an der Origin.
+router.get('/api/v1/account/auth-options', validate(authOptionsQuerySchema, 'query'), (req, res) => {
+  const ausApp = CAPACITOR_ORIGINS.includes(req.get('origin'))
+  const googleEnabled = authFeatureFlags.googleEnabled && (!ausApp || req.query.nativeGoogle === '1')
+  res.json({
+    ...authFeatureFlags,
+    googleEnabled,
+    googleClientId: googleEnabled ? googleWebClientId : null,
+  })
 })
 
 router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {

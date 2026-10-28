@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { API, WEB_ORIGIN } from '../config'
 import { apiFetch, setNativeBearerToken } from '../utils/apiFetch'
 import { isAppleNativeAvailable, signInWithAppleNative } from '../utils/appleSignIn'
+import { isGoogleNativeAvailable, signInWithGoogleNative } from '../utils/googleSignIn'
 
 const EMPTY_FIELD_ERRORS = { name: '', email: '', password: '' }
 const EMPTY_RESET_ERRORS = { email: '', token: '', password: '', confirm: '' }
@@ -35,6 +36,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   const [showPassword, setShowPassword] = useState(false)
   const [authOptions, setAuthOptions] = useState({
     googleEnabled: false,
+    googleClientId: null,
     appleEnabled: false,
     passwordResetEnabled: false,
   })
@@ -185,18 +187,20 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   useEffect(() => {
     let active = true
 
-    fetch(`${API}/account/auth-options`)
+    // ?nativeGoogle=1: Nur dann meldet der Server Google an eine App – ältere
+    // App-Versionen würden sonst den Web-Redirect im WebView anbieten.
+    const query = isGoogleNativeAvailable() ? '?nativeGoogle=1' : ''
+    fetch(`${API}/account/auth-options${query}`)
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
         if (!active || !payload) return
-        // Android: Social Login liefe als Web-Redirect im WebView – Google
-        // blockt OAuth dort (disallowed_useragent), und der Rücksprung nach
-        // https://localhost kommt nie an. Bis zu einem nativen Login nur
-        // E-Mail/Passwort.
-        const socialAllowed = Capacitor.getPlatform() !== 'android'
+        // Android: Apple bleibt aus – der liefe als Web-Redirect im WebView,
+        // und der Rücksprung nach https://localhost kommt nie an.
+        const appleAllowed = Capacitor.getPlatform() !== 'android'
         setAuthOptions({
-          googleEnabled: socialAllowed && !!payload.googleEnabled,
-          appleEnabled: socialAllowed && !!payload.appleEnabled,
+          googleEnabled: !!payload.googleEnabled,
+          googleClientId: payload.googleClientId || null,
+          appleEnabled: appleAllowed && !!payload.appleEnabled,
           passwordResetEnabled: !!payload.passwordResetEnabled,
         })
       })
@@ -485,6 +489,31 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         return
       }
 
+      // Native Android: Google über den Credential Manager statt Web-Redirect
+      // (Google blockt OAuth im WebView). Gleicher idToken-Weg wie Apple oben.
+      if (provider === 'google' && isGoogleNativeAvailable()) {
+        const { idToken } = await signInWithGoogleNative(authOptions.googleClientId)
+        const response = await apiFetch(`${API}/auth/sign-in/social`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ provider: 'google', idToken }),
+        })
+
+        if (!response.ok) {
+          setNotice({ type: 'error', text: 'Google-Anmeldung fehlgeschlagen.' })
+          return
+        }
+
+        const bearerToken = response.headers.get('set-auth-token')
+        if (bearerToken) setNativeBearerToken(bearerToken)
+
+        setNotice({ type: 'success', text: 'Erfolgreich angemeldet.' })
+        await loadSession()
+        onAuthStateChange()
+        return
+      }
+
       const callbackURL = `${window.location.origin}${window.location.pathname}`
       const response = await apiFetch(`${API}/auth/sign-in/social`, {
         method: 'POST',
@@ -506,22 +535,31 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
       window.location.assign(payload.url)
     } catch (err) {
-      // Apple Plugin (Capawesome) wirft bei User-Cancel ErrorCode SIGN_IN_CANCELED
+      // Apple- und Google-Plugin (Capawesome) werfen bei User-Cancel ErrorCode SIGN_IN_CANCELED
       const code = String(err?.code || '').toUpperCase()
       const message = String(err?.message || '').toLowerCase()
+      // Google meldet einen fehlenden/falschen Android-OAuth-Client (SHA-1) als
+      // Abbruch mit „Account reauth failed“ – das ist ein Fehler, kein Abbruch.
+      const reauthFailed = message.includes('reauth')
       if (
-        code === 'SIGN_IN_CANCELED' ||
-        message.includes('canceled') ||
-        message.includes('cancelled')
+        !reauthFailed && (
+          code === 'SIGN_IN_CANCELED' ||
+          message.includes('canceled') ||
+          message.includes('cancelled')
+        )
       ) {
         // Stille Behandlung – User hat aktiv abgebrochen
+        return
+      }
+      if (provider === 'google' && (reauthFailed || code === 'NO_CREDENTIAL_AVAILABLE' || code === 'PROVIDER_CONFIGURATION_ERROR')) {
+        setNotice({ type: 'error', text: 'Google-Anmeldung fehlgeschlagen.' })
         return
       }
       setNotice({ type: 'error', text: 'Netzwerkfehler. Bitte erneut versuchen.' })
     } finally {
       setIsBusy(false)
     }
-  }, [isBusy, loadSession, onAuthStateChange, readJsonSafe])
+  }, [isBusy, loadSession, onAuthStateChange, readJsonSafe, authOptions.googleClientId])
 
   const handleSignOut = useCallback(async () => {
     if (isBusy) return
