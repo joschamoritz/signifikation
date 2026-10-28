@@ -9,7 +9,27 @@ def packageJson = new groovy.json.JsonSlurper().parseText(
 )
 def appVersionName = packageJson.version
 def (vMajor, vMinor, vPatch) = appVersionName.tokenize('.').collect { it.toInteger() }
-def appVersionCode = vMajor * 10000 + vMinor * 100 + vPatch
+// Play lehnt einen zweiten Upload mit demselben versionCode ab – die Formel
+// erlaubt also nur EINEN Build pro Version. Der Play-Workflow
+// (.github/workflows/android-play.yml) setzt den Code deshalb per
+// -PversionCode aus der Laufnummer; die Formel bleibt für lokale Builds.
+// Nur CI-Builds gehen nach Play, sonst geraet die Reihenfolge durcheinander.
+def appVersionCode = project.hasProperty('versionCode')
+    ? project.property('versionCode').toInteger()
+    : vMajor * 10000 + vMinor * 100 + vPatch
+
+// Upload-Key für Release-Builds. Quelle: Umgebungsvariablen (CI-Secrets) oder
+// android/keystore.properties (lokal, gitignored). Ohne beides bleibt der
+// Release-Build unsigniert – Debug-Builds brauchen nichts davon.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def signingValue = { String envName, String propName ->
+    System.getenv(envName) ?: keystoreProps.getProperty(propName)
+}
+def uploadStoreFile = signingValue('ANDROID_KEYSTORE_PATH', 'storeFile')
 
 android {
     namespace = "de.signifikation.app"
@@ -27,8 +47,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (uploadStoreFile) {
+            upload {
+                storeFile file(uploadStoreFile)
+                storePassword signingValue('ANDROID_KEYSTORE_PASSWORD', 'storePassword')
+                keyAlias signingValue('ANDROID_KEY_ALIAS', 'keyAlias')
+                keyPassword signingValue('ANDROID_KEY_PASSWORD', 'keyPassword')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (uploadStoreFile) {
+                signingConfig signingConfigs.upload
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -1,0 +1,109 @@
+name: Android Play Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to_play:
+        description: 'Direkt in die Spur "Interner Test" hochladen (braucht PLAY_SERVICE_ACCOUNT_JSON)'
+        type: boolean
+        default: false
+      release_status:
+        description: 'Release-Status in Play (draft, solange die App noch nie veroeffentlicht war)'
+        type: choice
+        options:
+          - draft
+          - completed
+        default: draft
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        env:
+          VITE_API_BASE: https://signifikation.de
+        run: npm run build
+
+      - name: Sync Android
+        run: npx cap sync android
+
+      - name: Install upload key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 fehlt – ohne Upload-Key nimmt Play das AAB nicht an."
+            exit 1
+          fi
+          echo -n "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+
+      - name: Set version code
+        run: |
+          # versionCode muss bei Play mit jedem Upload steigen. run_number zaehlt
+          # pro Workflow ab 1; der Offset haelt die CI-Codes ueber der lokalen
+          # Formel aus app/build.gradle (1.6.0 -> 10600), damit ein versehentlich
+          # lokal gebautes AAB nie vor die CI-Builds rutscht. Bei Umbenennen des
+          # Workflows (run_number faengt neu an) ANDROID_VERSION_CODE_OFFSET als
+          # Repository-Variable hochsetzen.
+          OFFSET="${{ vars.ANDROID_VERSION_CODE_OFFSET || '100000' }}"
+          VERSION_CODE=$(( ${{ github.run_number }} + OFFSET ))
+          echo "Version name: $(node -p "require('./package.json').version")"
+          echo "Version code: $VERSION_CODE (run_number=${{ github.run_number }}, offset=$OFFSET)"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+
+      - name: Build release bundle
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: ./gradlew bundleRelease -PversionCode="$VERSION_CODE" --no-daemon
+
+      - name: Verify signature
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$AAB" | tail -1
+          jarsigner -verify "$AAB" | grep -q "jar verified"
+
+      - name: Keep bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signifikation-${{ env.VERSION_CODE }}.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      # Der allererste Upload einer neuen App muss von Hand in der Play Console
+      # passieren (Artefakt von oben). Danach kann der Workflow selbst hochladen.
+      - name: Upload to Play (internal track)
+        if: inputs.upload_to_play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: de.signifikation.app
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: ${{ inputs.release_status }}
+
+      - name: Clean up upload key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"
