@@ -12,6 +12,8 @@ import { installCsrfFetch } from './utils/installCsrfFetch.js'
 import { initNativeBearerToken } from './utils/apiFetch.js'
 import { applyStoredThemeEarly } from './hooks/useTheme.js'
 import App from './App.jsx'
+// Statisch: App.jsx importiert das Modul ohnehin (setBackHandler)
+import { initAndroidBackButton } from './utils/androidBackButton.js'
 
 // Direkt nach den Imports, noch vor jedem Render: sonst blitzt bei
 // Dark-Mode-Nutzern das helle Pergament auf, bis useTheme() im Effect greift.
@@ -125,7 +127,7 @@ function renderApp() {
     // Universal Links (Classroom-QR öffnet die App) — fire-and-forget, nativ-only.
     import('./utils/initDeepLinks.js').then((m) => m.initDeepLinks()).catch(() => {})
     // Android-Zurück-Taste — ohne Listener schließt sie die App sofort.
-    import('./utils/androidBackButton.js').then((m) => m.initAndroidBackButton()).catch(() => {})
+    initAndroidBackButton().catch(() => {})
     // StoreKit-Transaktionen (Ask-to-Buy, abgebrochene Käufe) müssen ab dem
     // App-Start beobachtet werden — nicht erst beim Öffnen des Konto-Tabs.
     import('./utils/iapTransactionListener.js')
