@@ -2,7 +2,15 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import { randomUUID } from 'crypto'
 import bcryptjs from 'bcryptjs'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
+// Kein Netz im Test: POST /admin/tag fragt sonst je Wort live bei Wiktionary
+// nach und riss in der CI das 5-s-Limit („POST /admin/tag entfernt optionale
+// Modi …“ wackelte am 28.10. zweimal). Muster wie in public.routes.test.js.
+vi.mock('../wiktionary.js', () => ({
+  fetchWiktionary: vi.fn(async () => ({ ipa: '', definitionen: [] })),
+}))
+
 import adminRouter from '../routes/admin.js'
 import { invalidateCache, lemmaToRow, loadReadOnly, save, stmts } from '../store.js'
 import { ladeEntwurf, ladeOffeneEntwuerfe, speichereEntwuerfe } from '../store-entwuerfe.js'
