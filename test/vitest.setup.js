@@ -8,5 +8,5 @@ process.env.ALLOW_DEV_AUTH = '1'
 // Prepared Statements auf Modulebene, die sofort beim Import laufen —
 // die cr2_*-Tabellen müssen also vor dem ersten Test-File-Import existieren.
 // Lokal ist die Migration bereits angewendet, der zweite Lauf überspringt sie.
-import { runMigrations } from './server/migrate-runner.js'
+import { runMigrations } from '../server/migrate-runner.js'
 await runMigrations()

@@ -103,7 +103,7 @@ export default [
   // Tests (Vitest-Globals werden nicht genutzt — explizite Imports —, aber
   // Node-Globals und entspanntere Regeln für Fixtures/Mocks)
   {
-    files: ['**/*.test.{js,jsx}', 'vitest.setup.js', 'vitest.global-setup.js', 'server/__tests__/**'],
+    files: ['**/*.test.{js,jsx}', 'test/vitest.setup.js', 'test/vitest.global-setup.js', 'server/__tests__/**'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: {
       'react-hooks/rules-of-hooks': 'off',
