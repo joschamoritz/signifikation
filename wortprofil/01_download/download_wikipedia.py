@@ -43,7 +43,7 @@ HEADERS = {
     # dumps.wikimedia.org blockt die Standard-requests-UA (403); eine
     # aussagekräftige UA gemäß Wikimedia-Download-Policy verwenden.
     "User-Agent": "Signifikation-Wortprofil/1.0 (Bildungsprojekt; "
-                  "https://signifikation.de; joscha.fresmann@yahoo.de)"
+                  "https://signifikation.de; info@signifikation.de)"
 }
 
 CHUNK = 1024 * 1024          # 1 MB pro Read
