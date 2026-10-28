@@ -35,6 +35,14 @@ export default function QrScanner({ onResult, onClose }) {
 
   const [error, setError] = useState(null)
 
+  // Escape schließt den Scanner – darüber läuft auch die Android-Zurück-Taste
+  // (utils/androidBackButton.js).
+  useEffect(() => {
+    function onKeyDown(e) { if (e.key === 'Escape') onCloseRef.current?.() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   useEffect(() => {
     let stopped = false
     const canvas = document.createElement('canvas')

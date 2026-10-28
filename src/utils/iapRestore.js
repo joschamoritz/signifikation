@@ -1,7 +1,6 @@
-import { Capacitor } from '@capacitor/core'
 import { API } from '../config'
 import { apiFetch } from './apiFetch'
-import { IAP } from '../plugins/iap.js'
+import { IAP, USES_STOREKIT } from '../plugins/iap.js'
 
 // Käufe via StoreKit wiederherstellen und beim Server verifizieren.
 // Liefert ein normalisiertes Resultat – die UI muss nur einen Status auswerten,
@@ -11,7 +10,7 @@ import { IAP } from '../plugins/iap.js'
 //   { ok: true,  unlocked: true  }  – Kauf gefunden + Freischaltung aktiv
 //   { ok: false, reason: 'unsupported' | 'none' | 'not-found' | 'network', message? }
 export async function restoreIapPurchases() {
-  if (!Capacitor.isNativePlatform()) {
+  if (!USES_STOREKIT) {
     return { ok: false, reason: 'unsupported' }
   }
   try {

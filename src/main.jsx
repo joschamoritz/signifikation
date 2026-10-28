@@ -124,6 +124,8 @@ function renderApp() {
     }
     // Universal Links (Classroom-QR öffnet die App) — fire-and-forget, nativ-only.
     import('./utils/initDeepLinks.js').then((m) => m.initDeepLinks()).catch(() => {})
+    // Android-Zurück-Taste — ohne Listener schließt sie die App sofort.
+    import('./utils/androidBackButton.js').then((m) => m.initAndroidBackButton()).catch(() => {})
     // StoreKit-Transaktionen (Ask-to-Buy, abgebrochene Käufe) müssen ab dem
     // App-Start beobachtet werden — nicht erst beim Öffnen des Konto-Tabs.
     import('./utils/iapTransactionListener.js')

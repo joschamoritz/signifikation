@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
-import { IAP } from '../../plugins/iap.js'
+import { IAP, USES_STOREKIT } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { logError } from '../../utils/logError'
 import Sheet from '../ui/Sheet'
@@ -15,7 +14,9 @@ export const PRICE_OPTIONS = [
   { value: '14.99', label: '14,99 €', sub: 'Cicero', productId: 'de.signifikation.gesamtausgabe.cicero' },
 ]
 
-const IS_NATIVE = Capacitor.isNativePlatform()
+// Name historisch: gemeint ist „Kauf über StoreKit“ – auf Android öffnet
+// KontoPremiumBlock dieses Modal gar nicht erst (PURCHASE_AVAILABLE).
+const IS_NATIVE = USES_STOREKIT
 
 export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   const [agreed, setAgreed] = useState(IS_NATIVE)

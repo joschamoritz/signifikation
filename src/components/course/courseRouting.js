@@ -51,6 +51,12 @@ export function useCourseStation() {
   return stationId
 }
 
+/** Ist gerade eine Stations-Detailansicht offen? (Android-Zurueck-Taste) */
+export function isCourseStationOpen() {
+  if (typeof window === 'undefined') return false
+  return parseHash(window.location.hash) !== null
+}
+
 /** Detailansicht oeffnen — legt einen History-Eintrag an (Zurueck kehrt zur Liste). */
 export function openCourseStation(id) {
   if (typeof window === 'undefined' || !id) return

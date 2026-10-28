@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { API, WEB_ORIGIN } from '../config'
 import { apiFetch, setNativeBearerToken } from '../utils/apiFetch'
 import { isAppleNativeAvailable, signInWithAppleNative } from '../utils/appleSignIn'
@@ -188,9 +189,14 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
         if (!active || !payload) return
+        // Android: Social Login liefe als Web-Redirect im WebView – Google
+        // blockt OAuth dort (disallowed_useragent), und der Rücksprung nach
+        // https://localhost kommt nie an. Bis zu einem nativen Login nur
+        // E-Mail/Passwort.
+        const socialAllowed = Capacitor.getPlatform() !== 'android'
         setAuthOptions({
-          googleEnabled: !!payload.googleEnabled,
-          appleEnabled: !!payload.appleEnabled,
+          googleEnabled: socialAllowed && !!payload.googleEnabled,
+          appleEnabled: socialAllowed && !!payload.appleEnabled,
           passwordResetEnabled: !!payload.passwordResetEnabled,
         })
       })

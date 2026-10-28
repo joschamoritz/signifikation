@@ -32,4 +32,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- QR-Scanner im Klassenraum (getUserMedia im WebView). required=false:
+         Geräte ohne Kamera bleiben installierbar, dort gibt es die Code-Eingabe. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

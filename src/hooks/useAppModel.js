@@ -239,6 +239,7 @@ export function useAppModel() {
     showTabBar: navigation.showTabBar,
     classroomTeacher,
     phase,
+    backToHome,
     tabScreens: tabState.tabScreens,
     appGameScreensProps,
     persistentKontoProps: {

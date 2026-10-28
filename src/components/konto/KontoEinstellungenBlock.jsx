@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState, useCallback } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { ThemeContext } from '../../hooks/useTheme'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { HINTS_DISABLED_KEY } from '../../hooks/useSwipeHint'
@@ -14,7 +15,10 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 function isWebPushSupported() {
+  // In der App gibt es keinen Service Worker (main.jsx registriert ihn nur im
+  // Web); iOS hat dafür nativen Push, Android vorerst gar keinen.
   return (
+    !Capacitor.isNativePlatform() &&
     'Notification' in window &&
     'serviceWorker' in navigator &&
     'PushManager' in window

@@ -7,6 +7,8 @@ import TabTransition from './components/TabTransition'
 import { useAppModel } from './hooks/useAppModel'
 import { useTheme, ThemeContext } from './hooks/useTheme'
 import { useLocationPath, matchClassroomRoute } from './components/classroom/routing'
+import { isCourseStationOpen, closeCourseStation } from './components/course/courseRouting'
+import { setBackHandler } from './utils/androidBackButton'
 
 // Classroom zieht socket.io-client (~32 KB) und Mollie-Flows mit; nur laden,
 // wenn der Nutzer tatsächlich auf den jeweiligen Tab wechselt.
@@ -45,11 +47,21 @@ function MainAppShell() {
     handleTabChange,
     showTabBar,
     phase,
+    backToHome,
     tabScreens,
     appGameScreensProps,
     persistentKontoProps,
     classroomTeacher,
   } = useAppModel()
+
+  // Android-Zurück-Taste: Spiel verlassen → Kursstation schließen → Tab
+  // „Spielmodi“. Was danach kommt, regelt utils/androidBackButton.js.
+  useEffect(() => setBackHandler(() => {
+    if (activeTab === 'spielmodi' && phase !== 'home') { backToHome(); return true }
+    if (activeTab === 'kurs' && isCourseStationOpen()) { closeCourseStation(); return true }
+    if (activeTab !== 'spielmodi') { handleTabChange('spielmodi'); return true }
+    return false
+  }), [activeTab, phase, backToHome, handleTabChange])
   // F5: Klassenraum-Tab fuer ALLE sichtbar — Lehrer sehen das Setup,
   // nicht-eingeloggte Nutzer die Schueler-Code-Eingabe (+ QR-Scan).
   const showClassroomTab = true

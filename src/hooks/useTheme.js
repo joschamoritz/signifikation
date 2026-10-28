@@ -12,13 +12,15 @@ function resolveTheme(pref) {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-// StatusBar-Style folgt dem aktiven Theme. Style.Dark = dunkler Inhalt für hellen
-// Hintergrund (Light Mode), Style.Light = heller Inhalt für dunklen Hintergrund.
+// StatusBar-Style folgt dem aktiven Theme. Achtung, die Plugin-Namen benennen
+// den Hintergrund, nicht die Schrift: Style.Light = dunkle Schrift für hellen
+// Hintergrund (Light Mode), Style.Dark = helle Schrift für dunklen Hintergrund.
+// Bis 28.10. war das vertauscht – im Light Mode stand weiße Schrift auf Pergament.
 async function applyNativeStatusBar(theme) {
   if (!IS_NATIVE) return
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
-    await StatusBar.setStyle({ style: theme === 'dark' ? Style.Light : Style.Dark })
+    await StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light })
   } catch { /* Plugin fehlt oder unterstützt Plattform nicht – ignorieren */ }
 }
 

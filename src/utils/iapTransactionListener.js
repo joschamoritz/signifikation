@@ -1,10 +1,7 @@
-import { Capacitor } from '@capacitor/core'
 import { API } from '../config'
-import { IAP } from '../plugins/iap.js'
+import { IAP, USES_STOREKIT } from '../plugins/iap.js'
 import { apiFetch } from './apiFetch'
 import { logError } from './logError'
-
-const IS_NATIVE = Capacitor.isNativePlatform()
 
 /**
  * Ereignis, das nach einer erfolgreichen Freischaltung gefeuert wird. Die
@@ -32,7 +29,7 @@ let started = false
  * ihn etwas dorthin gefuehrt haette.
  */
 export function initIapTransactionListener() {
-  if (!IS_NATIVE || started) return
+  if (!USES_STOREKIT || started) return
   started = true
 
   IAP.addListener('transactionUpdate', async (data) => {

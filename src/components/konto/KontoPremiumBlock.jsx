@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Capacitor } from '@capacitor/core'
-import { IAP } from '../../plugins/iap.js'
+import { IAP, USES_STOREKIT, PURCHASE_AVAILABLE } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { ENTITLEMENTS_CHANGED_EVENT } from '../../utils/iapTransactionListener'
 import CheckoutModal, { PRICE_OPTIONS } from './CheckoutModal'
 
-const IS_NATIVE = Capacitor.isNativePlatform()
+// Name historisch: gemeint ist „Kauf über StoreKit“ (nur iOS).
+const IS_NATIVE = USES_STOREKIT
 
 // Stärkstes Kaufargument (Lehrkräfte-Paket) zuerst.
 const FEATURES = [
@@ -150,7 +150,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
               ))}
             </ul>
 
-            <div className="konto-subscription-unlock">
+            {PURCHASE_AVAILABLE && <div className="konto-subscription-unlock">
               <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
                 <span>Gesamtausgabe freischalten</span>
                 <span className="konto-iap-cta-price">ab {teaserPrice || '6,99 €'}</span>
@@ -175,16 +175,16 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
                   )}
                 </>
               )}
-            </div>
+            </div>}
           </>
         )}
       </div>
 
-      <CheckoutModal
+      {PURCHASE_AVAILABLE && <CheckoutModal
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
         onSuccess={auth.loadSession}
-      />
+      />}
     </li>
   )
 }
