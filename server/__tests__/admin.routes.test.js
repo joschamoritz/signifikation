@@ -241,7 +241,9 @@ describe('admin routes integration', () => {
     expect(typeof payload.totalMatches).toBe('number')
     for (const entry of payload.entries) {
       expect(entry.action).toBe('CREATE')
-      expect(entry.status).toBe('SUCCESS')
+      // 'SUCCESS' heißt „nicht fehlgeschlagen“ – ältere Einträge tragen 'OK' (audit.js, queryAuditLog).
+      // Andere Testdateien schreiben parallel in dieselbe Test-DB, auch mit 'OK'.
+      expect(['FAIL', 'FAILED']).not.toContain(entry.status)
     }
   })
 

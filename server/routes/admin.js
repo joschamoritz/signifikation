@@ -76,6 +76,7 @@ router.use(createAdminCoreRouter({
   adminAuth,
   adminLogout,
   adminHtmlPath: join(__dirname, '../admin.html'),
+  adminAssetsDir: join(__dirname, '../public'),
 }))
 
 router.use(createAdminUsersRouter({
