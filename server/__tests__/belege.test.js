@@ -12,6 +12,7 @@ import Database from 'better-sqlite3'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { abwechslung } from './fixtures/abwechslung.js'
 
 const SAETZE_GESAMT = 2000
 const SATZ_JE_DOK = 10
@@ -59,7 +60,7 @@ function baueFixture(pfad) {
         // liefert — bei lauter gleich guten Sätzen wäre jede Auswahlregel blind.
         const fuellwoerter = 'sehr '.repeat(id % 7)
         insS.run(id, id % 2 === 0
-          ? `Wir wollten damals ein ${fuellwoerter}schönes Haus bauen, Nummer ${id}.`
+          ? `Wir wollten damals ein ${fuellwoerter}schönes Haus bauen, ${abwechslung(id)}, Nummer ${id}.`
           : `Ein belangloser Füllsatz ohne die gesuchten Wörter, Nummer ${id}.`, docId)
       }
     }
@@ -78,7 +79,7 @@ function baueFixture(pfad) {
     // prüft das Auffüllen, wenn es weniger Dokumente als limit gibt.
     for (let i = 21; i <= 28; i++) {
       db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
-        `Der Einsiedler kam allein aus seiner Klause und blieb still, Satz ${i}.`, i)
+        `Der Einsiedler kam allein aus seiner Klause und blieb still, ${abwechslung(i)}, Satz ${i}.`, i)
     }
 
     // Paar, das AUSSCHLIESSLICH flektiert im Text steht — die Grundformen
@@ -87,13 +88,28 @@ function baueFixture(pfad) {
     // (ungerade rowids = Füllsätze, es geht also kein „Haus + bauen" verloren).
     for (const [n, id] of [41, 51, 61, 71, 81, 91].entries()) {
       db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
-        `Die digitalen Gesundheitsanwendungen wurden im Verzeichnis geprüft, Fall ${n + 1}.`, id)
+        `Die digitalen Gesundheitsanwendungen wurden im Verzeichnis geprüft, ${abwechslung(id)}, Fall ${n + 1}.`, id)
     }
 
     // Gegenprobe zur Mindestlänge: „Tor" ist zu kurz zum Prefixen, darf also
     // NICHT über „Tortenheber" gefunden werden.
     db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
       'Die Tortenheber lagen ordentlich sortiert auf dem Tisch bereit.', 101)
+
+    // Nahdubletten (gewaltig + namenlos, echter Fall vom 29.10.2026): fünf OCR-Fassungen
+    // desselben Satzes in fünf Dokumenten, dazu zwei wirklich andere Sätze.
+    const fassungen = [
+      'Da erfaßte die Mutter, die nun allein war auf der ganzen Gotteserde, ein gewaltiger und namenloser Schmerz.',
+      'Da erfaßte die Mutter, die nun allein war auf der ganzen Qotteserde, ein gewaltiger und namenloser Schmerz.',
+      'Da erfabte die Nutter, die nun allein war auf der ganzen Gotteserde, ein gewaltiger und namenloser Schmerz.',
+      'Da erfaßte die Mutter, die nun allein war auf der ganzen Gotteserde, ein gewaltiger und namenloser Schmerz;',
+      'Da erfaßte die Mutter die nun allein war auf der ganzen Gotteserde ein gewaltiger und namenloser Schmerz.',
+      'Ein gewaltiger, namenloser Fluss zog sich durch das Tal bis hinunter an die Küste.',
+      'Über dem namenlosen Grab stand eine gewaltige Eiche mit tief hängenden Ästen.',
+    ]
+    for (const [n, satz] of fassungen.entries()) {
+      db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(satz, 111 + n * 10)
+    }
 
   })()
 
@@ -272,6 +288,17 @@ describe('scoreBeleg', () => {
   it('gibt für leere Eingaben den Minimalwert', () => {
     expect(belege.scoreBeleg('')).toBeLessThan(-1000)
     expect(belege.scoreBeleg(null)).toBeLessThan(-1000)
+  })
+})
+
+describe('belege.js – Nahdubletten', () => {
+  it('zeigt von mehreren Fassungen desselben Satzes nur eine, auch beim Auffüllen', () => {
+    const rows = belege.fetchBelege('gewaltig', 'namenlos', { limit: 5 })
+    const saetze = rows.map(r => r.tokens.map(t => t.w).join(' '))
+    expect(saetze.filter(s => /erfa.te die .utter/.test(s))).toHaveLength(1)
+    expect(saetze.some(s => s.includes('Fluss'))).toBe(true)
+    expect(saetze.some(s => s.includes('Eiche'))).toBe(true)
+    expect(rows).toHaveLength(3)
   })
 })
 

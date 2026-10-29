@@ -15,6 +15,7 @@ import Database from 'better-sqlite3'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { abwechslung } from './fixtures/abwechslung.js'
 
 let tmp
 let belege
@@ -64,13 +65,13 @@ function baueFixtureMitLemma(pfad) {
 
     // Tier 1 reicht: Grundform im Text UND im Lemma-Index (mehrfach, für Pool/Diversität).
     for (let i = 0; i < 10; i++) {
-      satz(`Wir wollten ein schönes Haus bauen, Fall ${i}.`, 'wollen schoen haus bauen fall')
+      satz(`Wir wollten ein schönes Haus bauen, ${abwechslung(id + 1)}, Fall ${i}.`, 'wollen schoen haus bauen fall')
     }
 
     // Tier 1 reicht (Flexion): nur flektiert im Text, aber korrekt lemmatisiert im Index.
     for (let i = 0; i < 6; i++) {
       satz(
-        `Die digitalen Gesundheitsanwendungen wurden geprüft, Fall ${i}.`,
+        `Die digitalen Gesundheitsanwendungen wurden geprüft, ${abwechslung(id + 1)}, Fall ${i}.`,
         'digital gesundheitsanwendung pruefen fall',
       )
     }
@@ -79,12 +80,12 @@ function baueFixtureMitLemma(pfad) {
     // absichtlich NICHTS dafür (simuliert Tagging-Lücke) — lemma_folge bekommt
     // ein anderes, harmloses Lemma.
     for (let i = 0; i < 4; i++) {
-      satz(`Der Wecker begann laut zu klingeln, Fall ${i}.`, 'gegenstand laeuten fall')
+      satz(`Der Wecker begann laut zu klingeln, ${abwechslung(id + 1)}, Fall ${i}.`, 'gegenstand laeuten fall')
     }
 
     // Tier 3 (Flexions-Fallback): weder Grundform im Text noch im Lemma-Index.
     for (let i = 0; i < 4; i++) {
-      satz(`Die Schlacht im Siebenjährigen Krieges wird untersucht, Fall ${i}.`, 'schlacht untersuchen fall')
+      satz(`Die Schlacht im Siebenjährigen Krieges wird untersucht, ${abwechslung(id + 1)}, Fall ${i}.`, 'schlacht untersuchen fall')
     }
 
     // Konjugierte Verbform, die die Infinitiv-Endung ERSETZT statt ergänzt:
@@ -92,13 +93,13 @@ function baueFixtureMitLemma(pfad) {
     // das nie (matchesLemma-Fix, gefunden 2026-08-19). Nur über die Lemma-Suche
     // (Tier 1) auffindbar, da die Grundform „verblassen" im Text nirgends steht.
     for (let i = 0; i < 3; i++) {
-      satz(`Die Erinnerung an jenen Sommer verblasst mit den Jahren, Fall ${i}.`, 'erinnerung sommer verblassen jahr fall')
+      satz(`Die Erinnerung an jenen Sommer verblasst mit den Jahren, ${abwechslung(id + 1)}, Fall ${i}.`, 'erinnerung sommer verblassen jahr fall')
     }
 
     // Bindestrich-Lemma: der Tokenizer zerlegt „geistig-moralisch“ in zwei Tokens, und
     // lemmata_fts (detail=none) kann keine Phrasen – die Suche brach früher mit einem Fehler ab.
     for (let i = 0; i < 3; i++) {
-      satz(`Die geistig-moralische Wende wurde ausgerufen, Fall ${i}.`, 'geistig-moralisch wende ausrufen fall')
+      satz(`Die geistig-moralische Wende wurde ausgerufen, ${abwechslung(id + 1)}, Fall ${i}.`, 'geistig-moralisch wende ausrufen fall')
     }
 
     // Rauschen, damit Fenster/Pool nicht trivial klein sind.

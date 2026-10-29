@@ -650,12 +650,16 @@ const QUELLEN_RUNDEN = [1, 2, Infinity]
  * Reichen die Dokumente oder Korpora nicht für `limit`, wird mit den besten
  * übrigen Sätzen aufgefüllt — ein seltenes Paar soll nicht weniger Belege
  * bekommen als vorher. v1 kennt keine doc_id (NULL) und landet direkt dort.
+ *
+ * Ausnahme: Nahdubletten bleiben auch beim Auffüllen draußen (`zuAehnlich()`).
+ * Fünf OCR-Fassungen desselben Märchensatzes sind kein Gewinn gegenüber einer.
  */
 function besteBelege(rows, limit) {
   const sortiert = [...rows].sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))
   const gewaehlt = []
   const dokumente = new Set()
   const jeQuelle = new Map()
+  const zuAehnlich = dublettenPruefer(gewaehlt)
 
   for (const maxJeQuelle of QUELLEN_RUNDEN) {
     for (const r of sortiert) {
@@ -663,6 +667,7 @@ function besteBelege(rows, limit) {
       if (r.doc_id == null || dokumente.has(r.doc_id)) continue
       const quelle = r.zitation ?? ''
       if ((jeQuelle.get(quelle) ?? 0) >= maxJeQuelle) continue
+      if (zuAehnlich(r)) continue
       dokumente.add(r.doc_id)
       jeQuelle.set(quelle, (jeQuelle.get(quelle) ?? 0) + 1)
       gewaehlt.push(r)
@@ -671,9 +676,52 @@ function besteBelege(rows, limit) {
 
   for (const r of sortiert) {
     if (gewaehlt.length >= limit) break
-    if (!gewaehlt.includes(r)) gewaehlt.push(r)
+    if (!gewaehlt.includes(r) && !zuAehnlich(r)) gewaehlt.push(r)
   }
   return gewaehlt
+}
+
+/**
+ * Ab dieser Ähnlichkeit gelten zwei Sätze als Nahdubletten. Gemessen an 27
+ * Pools (~69.000 Satzpaare, 29.10.2026): ab 0,9 echte Dubletten („träumt“ /
+ * „träumt'“, OCR „Gotteserde“/„Qotteserde“), 0,65–0,9 derselbe Text in anderer
+ * Fassung (Gedichtzeile allein und im Vers), 0,6–0,65 Formelsätze („Der
+ * Ortsname lässt sich als … deuten“) — auch die soll man nicht dreimal lesen.
+ * Darunter verschiedene Sätze.
+ */
+const DUBLETTEN_SCHWELLE = 0.6
+
+/** Zeichen-Trigramme ohne Satzzeichen und Groß-/Kleinschreibung, mit Häufigkeit. */
+function trigramme(satz) {
+  const t = ` ${String(satz).toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `
+  const zaehler = new Map()
+  for (let i = 0; i < t.length - 2; i++) {
+    const g = t.slice(i, i + 3)
+    zaehler.set(g, (zaehler.get(g) ?? 0) + 1)
+  }
+  return zaehler
+}
+
+/** Dice-Koeffizient zweier Trigramm-Zähler (0 = nichts gemeinsam, 1 = gleich). */
+function aehnlichkeit(a, b) {
+  let gemeinsam = 0
+  let summe = 0
+  for (const [g, n] of a) {
+    gemeinsam += Math.min(n, b.get(g) ?? 0)
+    summe += n
+  }
+  for (const n of b.values()) summe += n
+  return summe ? (2 * gemeinsam) / summe : 0
+}
+
+/** Prüft Kandidaten gegen die schon gewählten Sätze; Trigramme werden je Satz einmal gebildet. */
+function dublettenPruefer(gewaehlt) {
+  const cache = new Map()
+  const tri = (r) => {
+    if (!cache.has(r)) cache.set(r, trigramme(r.satz))
+    return cache.get(r)
+  }
+  return (r) => gewaehlt.some(g => aehnlichkeit(tri(g), tri(r)) >= DUBLETTEN_SCHWELLE)
 }
 
 /**
