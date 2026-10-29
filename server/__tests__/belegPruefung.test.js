@@ -11,7 +11,7 @@ vi.mock('../belege.js', () => ({
 }))
 
 const { paareFuerDatum, paarSchluessel } = await import('../belegPruefung/paare.js')
-const { gepruefteSatzIds, fetchBelegeGeprueft, planePruefung, pruefungStatus } = await import('../belegPruefung/index.js')
+const { gepruefteSatzIds, gepruefteDetails, fetchBelegeGeprueft, planePruefung, pruefungStatus } = await import('../belegPruefung/index.js')
 const { fetchBelege, belegeStand } = await import('../belege.js')
 
 describe('paareFuerDatum', () => {
@@ -80,6 +80,30 @@ describe('geprüfte Satz-IDs', () => {
     expect(fetchBelege).toHaveBeenCalledWith('Traum', 'süß', { limit: 5, year: null, satzIds: [7] })
     fetchBelegeGeprueft('Traum', 'Bett', { limit: 5 })
     expect(fetchBelege).toHaveBeenLastCalledWith('Traum', 'Bett', { limit: 5, satzIds: null })
+  })
+})
+
+describe('gepruefteDetails (Relation und Position, Migration 0034)', () => {
+  const speichere = (row) => db.prepare(`
+    INSERT OR REPLACE INTO beleg_pruefung (basis, kollokator, belege_stand, kandidaten, bestanden, satz_ids, details, geprueft_am)
+    VALUES (@basis, @kollokator, @stand, 10, 1, '[3]', @details, '2026-10-29T12:00:00Z')
+  `).run(row)
+
+  beforeEach(() => {
+    db.prepare('DELETE FROM beleg_pruefung').run()
+    belegeStand.mockReturnValue(5000)
+  })
+
+  it('liefert Relation und Position je Satz', () => {
+    speichere({ basis: 'traum', kollokator: 'süß', stand: 5000, details: '{"3":{"rel":["ATTR"],"start":32,"ende":36}}' })
+    expect(gepruefteDetails('Traum', 'süß')).toEqual({ 3: { rel: ['ATTR'], start: 32, ende: 36 } })
+  })
+
+  it('null für Zeilen von vor 0034 und für einen anderen Belegbestand', () => {
+    speichere({ basis: 'traum', kollokator: 'süß', stand: 5000, details: null })
+    expect(gepruefteDetails('traum', 'süß')).toBeNull()
+    speichere({ basis: 'traum', kollokator: 'süß', stand: 4000, details: '{"3":{"rel":["ATTR"],"start":1,"ende":2}}' })
+    expect(gepruefteDetails('traum', 'süß')).toBeNull()
   })
 })
 

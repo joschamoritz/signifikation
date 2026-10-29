@@ -243,6 +243,8 @@ function stmts() {
         ORDER BY dep_lemma
       `),
       lemmaExists: database.prepare('SELECT 1 FROM collocations WHERE lemma = ? LIMIT 1'),
+      lemmaMitPosZeilen: database.prepare(
+        'SELECT count(*) AS n FROM (SELECT 1 FROM collocations WHERE lemma = ? AND pos = ? LIMIT ?)'),
       // Zähler für kanonischesLemma – laufen über idx_lemma_pos bzw. dessen Präfix.
       lemmaCount: database.prepare('SELECT count(*) AS n FROM collocations WHERE lemma = ? AND pos = ?'),
       lemmaCountByPos: database.prepare('SELECT pos, count(*) AS n FROM collocations WHERE lemma = ? GROUP BY pos'),
@@ -1160,6 +1162,20 @@ export async function fetchZeitenwendeAnalyze(lemma) {
  * Prüft, ob ein Lemma mindestens einen Eintrag in wortprofil.db hat.
  * Nützlich für Admin-Validierung ohne den Kalender-Index zu benötigen.
  */
+/**
+ * Wie viele Kollokationszeilen hat genau dieses Lemma in dieser Wortart als Basis,
+ * gezählt höchstens bis `deckel`? Ohne Ausweichen auf eine kanonische Form (anders als
+ * lemmaExistsInWortprofil). Die Zahl trennt echte Lemmata von Parser-Resten: „braun“
+ * hat 2.397 Zeilen als Adjektiv, „sich“ 10, „versaill“ 2.
+ */
+export function lemmaZeilen(lemma, pos, deckel = 1000) {
+  try {
+    return stmts().lemmaMitPosZeilen.get(String(lemma).toLowerCase(), pos, deckel).n
+  } catch {
+    return 0
+  }
+}
+
 export function lemmaExistsInWortprofil(lemma) {
   try {
     const row = stmts().lemmaExists.get(kanonischesLemma(lemma))

@@ -128,7 +128,14 @@ export function waehleForm(distraktor, rahmen, ziel, zaehle) {
     const endung = String(ziel.token).toLowerCase().slice(String(ziel.lemma).length)
     const gleicheEndung = formen.filter(f => f !== regel && f.toLowerCase().endsWith(endung))
     const imRahmen = voll && endung && haeufigste(gleicheEndung, voll, zaehle)
-    return fertig(imRahmen || regel)
+    if (imRahmen) return fertig(imRahmen)
+    // Unbeugbare Adjektive („Landshuter Hochzeit“): Steht vor dem Nomen nur die Grundform,
+    // nie die Regel-Form, bleibt es bei der Grundform statt „landshuteren“. Das sind
+    // Ableitungen von Ortsnamen, darum groß.
+    if (rechts && regel !== lemma && zaehle([regel, rechts]) === 0 && zaehle([lemma, rechts]) > 0) {
+      return lemma[0].toUpperCase() + lemma.slice(1)
+    }
+    return fertig(regel)
   }
 
   for (const bau of [voll, ...halbe].filter(Boolean)) {

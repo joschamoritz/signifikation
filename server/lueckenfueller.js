@@ -14,7 +14,7 @@
  * Punkte: [1, 1, 2, 2, 2, 2] → max. 10
  */
 
-import { fetchRelation } from './wortprofil.js'
+import { fetchRelation, lemmaZeilen } from './wortprofil.js'
 import { fetchBelegeRaw, zaehlePhrase } from './belege.js'
 import { rahmenDerLuecke, waehleForm } from './lueckenfuellerRahmen.js'
 import logger from './logger.js'
@@ -29,6 +29,25 @@ const LF_RELATIONS = {
   Substantiv: ['ATTR', 'KON'],
   Verb:       ['OBJA'],
   Adjektiv:   ['~ATTR'],
+}
+
+/**
+ * Adjektiv-Lemma, das eigentlich eine gebeugte Form ist: „georgischer“ (Partei „Georgischer
+ * Traum“), „tschechische“ (Republik), „silberne“ (Hochzeit). Der Parser hat solche Namensteile
+ * nicht auf die Grundform gebracht; im Spiel stünden sie als Option wie ein eigenes Wort da.
+ * Erkannt daran, dass der Stamm ohne Endung selbst ein gut belegtes Adjektiv ist. Die Schwelle
+ * hält Parser-Reste fern: „Pariser“ → „paris“ (78 Zeilen) und „niedere“ → „nied“ (141) bleiben,
+ * „georgisch“ (655) und „braun“ (2.397) zählen. Gemessen an den ATTR-Pools aller 67 Tagesnomen
+ * vom Oktober/November 2026.
+ */
+const GEBEUGT_ENDUNGEN = ['er', 'es', 'em', 'en', 'e']
+const GEBEUGT_MIN_ZEILEN = 150
+
+function istGebeugtesAdjektiv(item) {
+  if (item.pos !== 'Adjektiv') return false
+  const l = item.lemma.toLowerCase()
+  return GEBEUGT_ENDUNGEN.some(e => l.length > e.length + 3 && l.endsWith(e)
+    && lemmaZeilen(l.slice(0, -e.length), 'Adjektiv', GEBEUGT_MIN_ZEILEN) >= GEBEUGT_MIN_ZEILEN)
 }
 
 const MIN_LOG_DICE  = 5.0
@@ -171,7 +190,7 @@ export async function buildLueckenfueller(lemma, pos) {
   }
 
   const pool = [...seen.values()]
-    .filter(item => parseFloat(item.logDice) >= MIN_LOG_DICE && !item.lemma.includes(' '))
+    .filter(item => parseFloat(item.logDice) >= MIN_LOG_DICE && !item.lemma.includes(' ') && !istGebeugtesAdjektiv(item))
     .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
 
   if (pool.length < MIN_POOL_SIZE) {

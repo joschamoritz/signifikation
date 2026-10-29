@@ -78,6 +78,13 @@ describe('waehleForm', () => {
     expect(form).toBe('produzierten')
   })
 
+  it('Adjektiv: unbeugbare Ortsadjektive behalten ihre Form („Landshuter Hochzeit“)', () => {
+    const zaehle = zaehler({ 'landshuter hochzeit': 30 })
+    const form = waehleForm({ lemma: 'landshuter', pos: 'Adjektiv' }, { links: 'der', rechts: 'Hochzeit' },
+      { token: 'goldenen', lemma: 'golden' }, zaehle)
+    expect(form).toBe('Landshuter')
+  })
+
   it('Nomen: keine Endungsregel – ohne Rahmen-Treffer bleibt die Grundform', () => {
     const zaehle = zaehler({})
     const form = waehleForm({ lemma: 'Lyrik', pos: 'Substantiv' }, { links: 'Erzählungen', rechts: 'Märchen' },

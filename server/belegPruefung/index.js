@@ -32,12 +32,27 @@ const PYTHON_ZEITLIMIT_MS = 20 * 60_000
 const stmts = {
   holen: db.prepare('SELECT * FROM beleg_pruefung WHERE basis = ? AND kollokator = ?'),
   speichern: db.prepare(`
-    INSERT INTO beleg_pruefung (basis, kollokator, belege_stand, kandidaten, bestanden, satz_ids, geprueft_am)
-    VALUES (@basis, @kollokator, @stand, @kandidaten, @bestanden, @satzIds, @jetzt)
+    INSERT INTO beleg_pruefung (basis, kollokator, belege_stand, kandidaten, bestanden, satz_ids, details, geprueft_am)
+    VALUES (@basis, @kollokator, @stand, @kandidaten, @bestanden, @satzIds, @details, @jetzt)
     ON CONFLICT(basis, kollokator) DO UPDATE SET belege_stand = excluded.belege_stand,
       kandidaten = excluded.kandidaten, bestanden = excluded.bestanden, satz_ids = excluded.satz_ids,
-      geprueft_am = excluded.geprueft_am
+      details = excluded.details, geprueft_am = excluded.geprueft_am
   `),
+}
+
+/**
+ * Relation und Position des Kollokators je geprüftem Satz (Migration 0034), oder null
+ * (nie geprüft, vor 0034 geprüft, anderer Belegbestand).
+ * @returns {Object<string, {rel: string[], start: number, ende: number}>|null}  Schlüssel = Satz-ID
+ */
+export function gepruefteDetails(basis, kollokator) {
+  const row = stmts.holen.get(String(basis).toLowerCase(), String(kollokator).toLowerCase())
+  if (!row?.details || row.belege_stand !== belegeStand()) return null
+  try {
+    return JSON.parse(row.details)
+  } catch {
+    return null
+  }
 }
 
 const warteschlange = new Map()   // paarSchluessel → { basis, kollokator }
@@ -135,11 +150,12 @@ export async function pruefeStapel(stapel, lauf, holeKandidaten) {
     })
     : { paare: [], saetze: 0, sekunden: 0 }
 
-  const bestandenJe = new Map(antwort.paare.map(p => [p.schluessel, p.bestanden]))
+  const ergebnisJe = new Map(antwort.paare.map(p => [p.schluessel, p]))
   const jetzt = new Date().toISOString()
   db.transaction(() => {
     for (const p of paare) {
-      const bestanden = bestandenJe.get(paarSchluessel(p.basis, p.kollokator)) ?? []
+      const ergebnis = ergebnisJe.get(paarSchluessel(p.basis, p.kollokator))
+      const bestanden = ergebnis?.bestanden ?? []
       stmts.speichern.run({
         basis: p.basis.toLowerCase(),
         kollokator: p.kollokator.toLowerCase(),
@@ -147,6 +163,7 @@ export async function pruefeStapel(stapel, lauf, holeKandidaten) {
         kandidaten: p.saetze.length,
         bestanden: bestanden.length,
         satzIds: JSON.stringify(bestanden),
+        details: JSON.stringify(ergebnis?.details ?? {}),
         jetzt,
       })
       lauf.bestanden += bestanden.length
