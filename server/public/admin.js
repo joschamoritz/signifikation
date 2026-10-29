@@ -2621,7 +2621,7 @@ function protokollSatz(e) {
     case 'security:CHECKOUT_REJECT_COUNTRY': return `Kauf abgelehnt: Aufruf aus dem Ausland${det.country ? ` (${det.country})` : ''}`
     case 'security:PAYMENT_REJECT': return 'Zahlung abgewiesen: Betrag oder Währung ungültig'
     case 'security:WEBHOOK_REJECT': return 'Zahlungsmeldung von unbekannter Adresse abgewiesen'
-    case 'security:PAYMENT_REFUNDED': return `Kauf ${det.art === 'rueckbuchung' ? 'zurückgebucht' : 'erstattet'} (${det.quelle === 'apple' ? 'App Store' : 'Mollie'})${det.entzogen ? ', Gesamtausgabe entzogen' : ''}`
+    case 'security:PAYMENT_REFUNDED': return `Kauf ${det.art === 'rueckbuchung' ? 'zurückgebucht' : 'erstattet'} (${{ apple: 'App Store', google: 'Google Play' }[det.quelle] || 'Mollie'})${det.entzogen ? ', Gesamtausgabe entzogen' : ''}`
     case 'security:PAYMENT_REFUND_REVERSED': return `Erstattung zurückgenommen (App Store), Kauf zählt wieder${det.freigeschaltet ? ', Gesamtausgabe wieder frei' : ''}`
     default: return `${PROTOKOLL_VORGAENGE[e.action] || e.action || 'Vorgang'} · ${PROTOKOLL_BEREICHE[e.resource] || e.resource || 'Bereich unbekannt'}`
   }
@@ -4625,8 +4625,8 @@ const spieleText = (n) => `${ganzzahlDe(n)} ${n === 1 ? 'Spiel' : 'Spiele'}`
 const nutzerName = (u) => String(u?.name ?? '').trim() || 'ohne Namen'
 
 const ANMELDUNG_TEXT = { credential: 'E-Mail und Passwort', apple: 'Apple', google: 'Google', andere: 'andere' }
-const QUELLE_KAUF_TEXT = { mollie: 'über die Website (Mollie)', 'apple-iap': 'in der iOS-App (App Store)' }
-const QUELLE_ZAHLUNG_TEXT = { mollie: 'Website (Mollie)', apple: 'iOS-App (App Store)', unbekannt: 'Quelle unbekannt' }
+const QUELLE_KAUF_TEXT = { mollie: 'über die Website (Mollie)', 'apple-iap': 'in der iOS-App (App Store)', 'google-play': 'in der Android-App (Google Play)' }
+const QUELLE_ZAHLUNG_TEXT = { mollie: 'Website (Mollie)', apple: 'iOS-App (App Store)', google: 'Android-App (Google Play)', unbekannt: 'Quelle unbekannt' }
 // Löschfrist inaktiver Konten wie server/jobs/inactiveAccounts.js (INACTIVE_DAYS, WARNING_LEAD_DAYS)
 const INAKTIV_TAGE = 730
 const WARNUNG_VORLAUF_TAGE = 30
@@ -5654,9 +5654,9 @@ async function deleteSelectedUser() {
   const details = [user.email]
   if (kauf?.gesamtausgabe) {
     const z = kauf.zahlungen?.[0]
-    const wo = { mollie: ' über die Website', apple: ' im App Store' }[z?.quelle] || ''
+    const wo = { mollie: ' über die Website', apple: ' im App Store', google: ' bei Google Play' }[z?.quelle] || ''
     const quelle = z ? ` (${betragDe(z.betrag, z.waehrung)}${wo})` : ''
-    details.push(`Hat die Gesamtausgabe gekauft${quelle}. Ein Kauf im App Store lässt sich in der App einem neuen Konto wieder zuordnen, ein Website-Kauf nicht.`)
+    details.push(`Hat die Gesamtausgabe gekauft${quelle}. Ein Kauf im App Store oder bei Google Play lässt sich in der App einem neuen Konto wieder zuordnen, ein Website-Kauf nicht.`)
   }
   details.push('Zahlungsbelege bleiben ohne Namen und E-Mail erhalten.', 'Das lässt sich nicht rückgängig machen.')
   if (!(await bestaetige({ frage: `Konto von ${nutzerName(user)} löschen?`, details, aktion: 'Löschen' }))) return
@@ -8408,7 +8408,7 @@ function renderAuswertungKennzahlen(r, tage) {
     const werte = auReihe(z.tage, (t) => t.kaeufe)
     const woche = werte.length !== z.tage.length
     const einnahmenWoche = woche ? auNachWochen(z.tage, (t) => t.betrag) : null
-    const wege = { mollie: 'Website (Mollie)', apple: 'iOS-App (App Store)' }
+    const wege = { mollie: 'Website (Mollie)', apple: 'iOS-App (App Store)', google: 'Android-App (Google Play)' }
     const wegZeilen = z.nachWeg.map((w) => {
       const n = w.stufen.reduce((a, s) => a + s.kaeufe, 0)
       const b = w.stufen.reduce((a, s) => a + s.kaeufe * Number(s.betrag), 0)

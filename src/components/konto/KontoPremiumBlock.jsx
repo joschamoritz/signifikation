@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { IAP, USES_STOREKIT, PURCHASE_AVAILABLE } from '../../plugins/iap.js'
+import { IAP, USES_STORE_BILLING } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { ENTITLEMENTS_CHANGED_EVENT } from '../../utils/iapTransactionListener'
 import CheckoutModal, { PRICE_OPTIONS } from './CheckoutModal'
 
-// Name historisch: gemeint ist „Kauf über StoreKit“ (nur iOS).
-const IS_NATIVE = USES_STOREKIT
+// Name historisch: gemeint ist „Kauf über den Store der App“ (StoreKit oder Google Play).
+const IS_NATIVE = USES_STORE_BILLING
 
 // Stärkstes Kaufargument (Lehrkräfte-Paket) zuerst.
 const FEATURES = [
@@ -24,7 +24,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   const [restoreMessage, setRestoreMessage] = useState(null)
   const [teaserPrice, setTeaserPrice] = useState(null)
 
-  // Teaser-Preis auf iOS aus StoreKit (Storefront-Währung des Nutzers) statt
+  // Teaser-Preis in der App aus dem Store (Währung des Nutzers) statt
   // hardcoded EUR – auf Nicht-Euro-Storefronts (z. B. CH) stimmt „6,99 €“
   // sonst nicht mit dem Preis im Kauf-Sheet überein.
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   }
 
   const { loadSession } = auth
-  // Der StoreKit-Listener selbst haengt seit August 2026 global am App-Start
+  // Der Store-Listener selbst haengt seit August 2026 global am App-Start
   // (src/utils/iapTransactionListener.js) — hier wird nur noch die Anzeige
   // aktualisiert, wenn dort etwas freigeschaltet wurde.
   useEffect(() => {
@@ -152,7 +152,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
               ))}
             </ul>
 
-            {PURCHASE_AVAILABLE && <div className="konto-subscription-unlock">
+            <div className="konto-subscription-unlock">
               <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
                 <span>Gesamtausgabe freischalten</span>
                 <span className="konto-iap-cta-price">ab {teaserPrice || '6,99 €'}</span>
@@ -177,16 +177,16 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
                   )}
                 </>
               )}
-            </div>}
+            </div>
           </>
         )}
       </div>
 
-      {PURCHASE_AVAILABLE && <CheckoutModal
+      <CheckoutModal
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
         onSuccess={auth.loadSession}
-      />}
+      />
     </li>
   )
 }

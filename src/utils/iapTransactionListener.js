@@ -1,5 +1,4 @@
-import { API } from '../config'
-import { IAP, USES_STOREKIT } from '../plugins/iap.js'
+import { IAP, USES_STORE_BILLING, verifyRequest } from '../plugins/iap.js'
 import { apiFetch } from './apiFetch'
 import { logError } from './logError'
 
@@ -13,7 +12,7 @@ export const ENTITLEMENTS_CHANGED_EVENT = 'signifikation:entitlements-changed'
 let started = false
 
 /**
- * Registriert den StoreKit-`transactionUpdate`-Listener EINMAL beim App-Start.
+ * Registriert den `transactionUpdate`-Listener des Kauf-Plugins EINMAL beim App-Start.
  *
  * Vorher hing der Listener am Konto-Tab, der erst beim ersten Besuch lazy
  * geladen wird. `Transaction.updates` emittiert unfertige Transaktionen aber
@@ -27,28 +26,30 @@ let started = false
  *
  * In beiden Faellen blieb dem Nutzer nur der manuelle Restore-Knopf, ohne dass
  * ihn etwas dorthin gefuehrt haette.
+ *
+ * Android (IAPPlugin.java) meldet beim Start und bei jeder Rueckkehr in die App
+ * alle bezahlten, unbestaetigten Play-Kaeufe – dort zusaetzlich wichtig, weil
+ * Google unbestaetigte Kaeufe nach drei Tagen erstattet.
  */
 export function initIapTransactionListener() {
-  if (!USES_STOREKIT || started) return
+  if (!USES_STORE_BILLING || started) return
   started = true
 
   IAP.addListener('transactionUpdate', async (data) => {
     try {
-      const res = await apiFetch(`${API}/iap/verify`, {
+      const { url, body } = verifyRequest(data)
+      const res = await apiFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          jwsRepresentation: data.jwsRepresentation,
-          productId: data.productId,
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) return
 
       // 200 allein genuegt nicht: Gehoert die Transaktion einem anderen Konto,
       // antwortet der Server `unlocked: false` und es wurde nichts
       // freigeschaltet. Dann unfinished lassen, damit Transaction.updates sie
-      // nach einem Kontowechsel erneut liefert.
+      // nach einem Kontowechsel erneut liefert (Android: unbestaetigt lassen).
       const verifyResult = await res.json().catch(() => ({}))
       if (!verifyResult.unlocked) return
 

@@ -173,6 +173,10 @@ export function csrfProtect(req, res, next) {
   if (req.originalUrl?.startsWith('/api/v1/iap/notifications')) {
     return next()
   }
+  // Google-Play-RTDN (Pub/Sub-Push → Server); die Echtheit sichert das OIDC-Token des Push-Abos
+  if (req.originalUrl?.startsWith('/api/v1/iap/play/notifications')) {
+    return next()
+  }
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const contentType = req.headers['content-type'] || ''
     if (!contentType.includes('application/json')) {

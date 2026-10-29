@@ -128,8 +128,8 @@ function renderApp() {
     import('./utils/initDeepLinks.js').then((m) => m.initDeepLinks()).catch(() => {})
     // Android-Zurück-Taste — ohne Listener schließt sie die App sofort.
     initAndroidBackButton().catch(() => {})
-    // StoreKit-Transaktionen (Ask-to-Buy, abgebrochene Käufe) müssen ab dem
-    // App-Start beobachtet werden — nicht erst beim Öffnen des Konto-Tabs.
+    // StoreKit-/Play-Käufe (Ask-to-Buy, ausstehende Zahlung, abgebrochene Käufe)
+    // müssen ab dem App-Start beobachtet werden — nicht erst beim Öffnen des Konto-Tabs.
     import('./utils/iapTransactionListener.js')
       .then((m) => m.initIapTransactionListener())
       .catch(() => {})

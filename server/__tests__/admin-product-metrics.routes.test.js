@@ -146,6 +146,7 @@ describe('Auswertung › Kennzahlen', () => {
       expect(d.nachWeg).toEqual([
         { weg: 'mollie', stufen: [{ betrag: 9.99, kaeufe: 1 }, { betrag: 14.99, kaeufe: 1 }] },
         { weg: 'apple', stufen: [{ betrag: 6.99, kaeufe: 1 }] },
+        { weg: 'google', stufen: [] },
       ])
       // 30 Tage nehmen den Kauf vom 13.07. mit
       const lang = (await hole('/admin/payments/summary?days=30')).json

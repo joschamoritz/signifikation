@@ -488,6 +488,36 @@ export const iapRestoreSchema = z.object({
   })).min(1, 'transactions darf nicht leer sein').max(20, 'Maximal 20 Transaktionen pro Restore'),
 })
 
+// Google-Play-purchaseToken: undurchsichtig, in der Praxis ~150–200 Zeichen aus Buchstaben, Ziffern, . _ -
+const PLAY_PURCHASE_TOKEN = z.string().min(10).max(4096)
+  .regex(/^[A-Za-z0-9._-]+$/, 'purchaseToken hat ein ungültiges Format')
+
+/** POST /api/v1/iap/play/verify */
+export const playVerifySchema = z.object({
+  purchaseToken: PLAY_PURCHASE_TOKEN,
+  productId: z.enum(VALID_IAP_PRODUCT_IDS),
+})
+
+/** POST /api/v1/iap/play/restore */
+export const playRestoreSchema = z.object({
+  transactions: z.array(z.object({
+    purchaseToken: PLAY_PURCHASE_TOKEN,
+    productId: z.enum(VALID_IAP_PRODUCT_IDS),
+  })).min(1, 'transactions darf nicht leer sein').max(20, 'Maximal 20 Transaktionen pro Restore'),
+})
+
+/**
+ * POST /api/v1/iap/play/notifications (Pub/Sub-Push mit RTDN). Nicht als Middleware, sondern per safeParse:
+ * Eine abgelehnte Nachricht würde Pub/Sub sonst tagelang wiederholen.
+ */
+export const playNotificationSchema = z.object({
+  message: z.object({
+    data: z.string().min(1).max(16_000).regex(/^[A-Za-z0-9+/=_-]+$/, 'data muss Base64 sein'),
+    messageId: z.string().max(200).optional(),
+  }),
+  subscription: z.string().max(500).optional(),
+})
+
 // ── Spezialwoche Schemas ────────────────────────────────────────
 
 const ISO_WOCHE = z.string().regex(/^\d{4}-W\d{2}$/, 'woche muss ISO-Format haben: YYYY-Www')

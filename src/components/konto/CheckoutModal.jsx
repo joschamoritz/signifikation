@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
-import { IAP, USES_STOREKIT } from '../../plugins/iap.js'
+import { IAP, STORE, USES_STORE_BILLING, verifyRequest } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { logError } from '../../utils/logError'
 import Sheet from '../ui/Sheet'
@@ -14,9 +14,11 @@ export const PRICE_OPTIONS = [
   { value: '14.99', label: '14,99 €', sub: 'Cicero', productId: 'de.signifikation.gesamtausgabe.cicero' },
 ]
 
-// Name historisch: gemeint ist „Kauf über StoreKit“ – auf Android öffnet
-// KontoPremiumBlock dieses Modal gar nicht erst (PURCHASE_AVAILABLE).
-const IS_NATIVE = USES_STOREKIT
+// Name historisch: gemeint ist „Kauf über den Store der App“ – StoreKit (iOS)
+// oder Google Play (Android). Nur im Web gibt es Mollie samt Checkbox.
+const IS_NATIVE = USES_STORE_BILLING
+const IS_PLAY = STORE === 'google'
+const STORE_NAME = IS_PLAY ? 'Google Play' : 'Apple'
 
 export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   const [agreed, setAgreed] = useState(IS_NATIVE)
@@ -29,7 +31,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
 
   const selectedOption = PRICE_OPTIONS.find(o => o.value === selectedPrice)
 
-  // Auf iOS: StoreKit-Preise laden (displayPrice in Storekonto-Währung des Nutzers).
+  // In der App: Store-Preise laden (displayPrice bzw. formatierter Play-Preis in der Währung des Nutzers).
   //
   // Der Fehlerfall war frueher unsichtbar: .catch(() => {}) schluckte alles, und
   // getLivePrice fiel auf die fest eingetragenen Labels zurueck — die exakt den
@@ -50,7 +52,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
         setProductsAvailable(complete)
         if (!complete) {
           logError('CheckoutModal.getProducts.incomplete',
-            new Error(`StoreKit lieferte ${products?.length ?? 0} von ${PRICE_OPTIONS.length} Produkten`))
+            new Error(`${STORE_NAME} lieferte ${products?.length ?? 0} von ${PRICE_OPTIONS.length} Produkten`))
         }
       })
       .catch((err) => {
@@ -61,11 +63,11 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     return () => { cancelled = true }
   }, [isOpen])
 
-  // Nur auf Native relevant: im Web gibt es kein StoreKit, dort zaehlen die
+  // Nur in der App relevant: im Web gibt es keinen Store, dort zaehlen die
   // EUR-Labels und der Mollie-Pfad.
   const iapUnavailable = IS_NATIVE && productsAvailable === false
 
-  // Preis anzeigen: StoreKit-displayPrice auf iOS, sonst hardcoded EUR
+  // Preis anzeigen: Store-Preis in der App, sonst hardcoded EUR
   function getLivePrice(option) {
     if (IS_NATIVE && iapProducts.length) {
       const p = iapProducts.find(p => p.id === option.productId)
@@ -89,13 +91,18 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
 
   async function handleCheckoutIAP() {
     // Account-Binding-Token vom Server holen – Apple übernimmt es signiert
-    // ins JWS, der Server prüft es bei /iap/verify gegen den Account.
+    // ins JWS, Google als obfuscatedAccountId; der Server prüft es gegen den Account.
     let appAccountToken = null
     try {
       const tokenRes = await apiFetch(`${API}/iap/app-account-token`, { credentials: 'include' })
       if (tokenRes.ok) ({ appAccountToken } = await tokenRes.json())
     } catch {
-      // Kauf bleibt möglich – Server akzeptiert Transaktionen ohne Token (Legacy-Pfad)
+      // Apple: Kauf bleibt möglich – Server akzeptiert Transaktionen ohne Token (Legacy-Pfad)
+    }
+    // Google Play kennt keinen Legacy-Pfad: Ohne Token lehnt der Server den Kauf
+    // ab, also gar nicht erst abbuchen lassen.
+    if (IS_PLAY && !appAccountToken) {
+      throw new Error('Der Kauf konnte nicht vorbereitet werden. Bitte prüfe deine Internetverbindung und versuche es erneut.')
     }
     const result = await IAP.purchase({
       productId: selectedOption.productId,
@@ -103,26 +110,26 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     })
     if (result.status === 'cancelled') return
     if (result.status === 'pending') {
-      setCheckoutError('Kauf wartet auf Bestätigung (z. B. Familienfreigabe). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')
+      setCheckoutError(IS_PLAY
+        ? 'Die Zahlung ist noch nicht abgeschlossen. Sobald Google Play sie bestätigt, wird die Gesamtausgabe beim nächsten Öffnen der App freigeschaltet.'
+        : 'Kauf wartet auf Bestätigung (z. B. Familienfreigabe). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')
       return
     }
-    // Apple hat hier bereits abgebucht. Reißt jetzt das Netz ab, bleibt die
-    // Transaktion unfinished und kommt beim nächsten Start über den globalen
-    // Listener (iapTransactionListener.js) erneut — das muss der Nutzer wissen,
-    // statt nur „Load failed“ zu lesen.
+    // Der Store hat hier bereits abgebucht. Reißt jetzt das Netz ab, bleibt die
+    // Transaktion unfinished (Play: unbestätigt) und kommt beim nächsten Start
+    // über den globalen Listener (iapTransactionListener.js) erneut — das muss
+    // der Nutzer wissen, statt nur „Load failed“ zu lesen.
     let res
     try {
-      res = await apiFetch(`${API}/iap/verify`, {
+      const { url, body } = verifyRequest(result)
+      res = await apiFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          jwsRepresentation: result.jwsRepresentation,
-          productId: result.productId,
-        }),
+        body: JSON.stringify(body),
       })
     } catch {
-      throw new Error('Der Kauf ist bei Apple abgeschlossen, die Freischaltung konnte aber gerade nicht bestätigt werden. '
+      throw new Error(`Der Kauf ist bei ${STORE_NAME} abgeschlossen, die Freischaltung konnte aber gerade nicht bestätigt werden. `
         + 'Sie wird automatisch nachgeholt, sobald du wieder online bist – oder tippe auf „Kauf wiederherstellen“.')
     }
     const data = await res.json().catch(() => ({}))
@@ -239,8 +246,8 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
 
           {iapUnavailable && !checkoutError && (
             <p className="konto-checkout-error" role="alert">
-              Der Kauf ist gerade nicht verfügbar – der App Store liefert die
-              Produkte nicht aus. Bitte versuche es später noch einmal.
+              Der Kauf ist gerade nicht verfügbar – {IS_PLAY ? 'Google Play' : 'der App Store'} liefert
+              die Produkte nicht aus. Bitte versuche es später noch einmal.
             </p>
           )}
 
@@ -273,7 +280,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
 
           <p className="konto-checkout-footnote">
             {IS_NATIVE
-              ? 'Zahlung über Apple In-App Purchase · Einmalig · kein Abo'
+              ? (IS_PLAY ? 'Zahlung über Google Play · Einmalig · kein Abo' : 'Zahlung über Apple In-App Purchase · Einmalig · kein Abo')
               : 'Zahlung über Mollie · SSL-verschlüsselt · Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.'
             }
           </p>

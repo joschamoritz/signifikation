@@ -11,8 +11,10 @@ const ADMIN_GESCHUETZT_FEHLER = 'Admin-Konten lassen sich hier weder ändern noc
 // Anmeldearten aus account.providerId; alles Unbekannte wird zu „andere“.
 const ANMELDUNG = new Set(['credential', 'apple', 'google'])
 
-// Die Quelle folgt aus der Belegform: Mollie-Zahlungen beginnen mit tr_, Apple-Transaktions-IDs sind Ziffern.
-const quelleAusBeleg = (id) => (/^tr_/.test(id) ? 'mollie' : /^\d+$/.test(id) ? 'apple' : 'unbekannt')
+// Die Quelle folgt aus der Belegform: Mollie-Zahlungen beginnen mit tr_, Apple-Transaktions-IDs sind Ziffern,
+// Google Play nutzt die orderId GPA.… (ohne orderId den Token-Hash play:…, routes/iapPlay.js).
+const quelleAusBeleg = (id) => (/^tr_/.test(id) ? 'mollie' : /^\d+$/.test(id) ? 'apple'
+  : /^(GPA\.|play:)/.test(id) ? 'google' : 'unbekannt')
 
 const isoAusMs = (ms) => (Number.isFinite(Number(ms)) && Number(ms) > 0 ? new Date(Number(ms)).toISOString() : null)
 

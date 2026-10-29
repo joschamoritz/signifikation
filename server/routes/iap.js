@@ -12,7 +12,7 @@ import { erfasseErstattung, nimmErstattungZurueck } from '../kaufErstattung.js'
 const router = express.Router()
 
 // productId-Whitelist liegt in middleware/validate.js (iapVerifySchema / iapRestoreSchema).
-const PRODUCT_AMOUNTS = {
+export const PRODUCT_AMOUNTS = {
   'de.signifikation.gesamtausgabe.petit':   '6.99',
   'de.signifikation.gesamtausgabe.korpus':  '9.99',
   'de.signifikation.gesamtausgabe.cicero':  '14.99',
@@ -102,7 +102,7 @@ const unlockEntitlementStmt = db.prepare(`
   SET
     gesamtausgabe_unlocked = 1,
     unlocked_at = CASE WHEN unlocked_at IS NULL THEN ? ELSE unlocked_at END,
-    source      = CASE WHEN gesamtausgabe_unlocked = 1 THEN source ELSE 'apple-iap' END,
+    source      = CASE WHEN gesamtausgabe_unlocked = 1 THEN source ELSE ? END,
     updated_at  = ?
   WHERE user_id = ?
 `)
@@ -268,8 +268,10 @@ export function rejectReasonForPayload(payload, claimedProductId, userId, { allo
   return null
 }
 
-// Exportiert für Tests (Cross-Account-Replay-Szenario).
-export function unlockForUser(userId, transactionId, originalTransactionId, productId) {
+// Exportiert für Tests (Cross-Account-Replay-Szenario) und für Google Play
+// (routes/iapPlay.js: transactionId = orderId, kein Original, quelle 'google-play').
+export function unlockForUser(userId, transactionId, originalTransactionId, productId,
+  { quelle = 'apple-iap', store = 'Apple IAP' } = {}) {
   // .immediate() statt default-deferred: serialisiert parallele
   // verify/restore-Calls für dieselbe transactionId sauber. Siehe
   // payments.js-Webhook für ausführliche Begründung.
@@ -280,25 +282,25 @@ export function unlockForUser(userId, transactionId, originalTransactionId, prod
     // originalTransactionId desselben Kaufs (Restore liefert ggf. neue
     // transactionIds zum selben Original).
     if (getTransactionStmt.get(transactionId)) {
-      logger.info({ transactionId, userId }, 'Apple IAP: Transaktion bereits verarbeitet')
+      logger.info({ transactionId, userId }, `${store}: Transaktion bereits verarbeitet`)
       return
     }
     if (originalTransactionId && originalTransactionId !== transactionId
         && getTransactionStmt.get(originalTransactionId)) {
       logger.info({ transactionId, originalTransactionId, userId },
-        'Apple IAP: Original-Transaktion bereits verarbeitet')
+        `${store}: Original-Transaktion bereits verarbeitet`)
       return
     }
     const now = Date.now()
     ensureEntitlementStmt.run(userId, now, now)
-    unlockEntitlementStmt.run(now, now, userId)
+    unlockEntitlementStmt.run(now, quelle, now, userId)
     setPremiumRoleStmt.run(userId, now, now)
     // Kanonische ID persistieren: originalTransactionId identifiziert den
     // Kauf dauerhaft — Restores mit frischer transactionId zum selben
     // Original laufen damit in den Idempotenz-Check oben.
     insertPaymentStmt.run(originalTransactionId ?? transactionId, userId, PRODUCT_AMOUNTS[productId], now)
     newlyUnlocked = true
-    logger.info({ transactionId, userId, productId }, 'Apple IAP: Gesamtausgabe freigeschaltet')
+    logger.info({ transactionId, userId, productId }, `${store}: Gesamtausgabe freigeschaltet`)
   })
   tx.immediate()
   return newlyUnlocked

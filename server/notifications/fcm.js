@@ -10,28 +10,15 @@
  * ist sie unlesbar, bleibt Android-Push aus – der Modul-Load darf NIE werfen
  * (Boot-Abbruch, siehe push-sender.test.js).
  */
-import { readFileSync } from 'node:fs'
-import { SignJWT, importPKCS8 } from 'jose'
+import { createAccessTokenSource, loadServiceAccount as ladeDienstkonto } from '../google/dienstkonto.js'
 
 const SCOPE = 'https://www.googleapis.com/auth/firebase.messaging'
-const DEFAULT_TOKEN_URI = 'https://oauth2.googleapis.com/token'
 // Kanal-ID wie in src/hooks/usePushNotifications.js (createChannel)
 export const ANDROID_CHANNEL_ID = 'erinnerungen'
 
 /** Liest und prüft die Dienstkonto-JSON; liefert null statt zu werfen. */
 export function loadServiceAccount(path, log) {
-  if (!path) return null
-  try {
-    const sa = JSON.parse(readFileSync(path, 'utf8'))
-    if (!sa.project_id || !sa.client_email || !sa.private_key) {
-      log?.error('FCM-Dienstkonto unvollständig (project_id, client_email, private_key)')
-      return null
-    }
-    return sa
-  } catch (err) {
-    log?.error({ err: err.message }, 'FCM-Dienstkonto nicht lesbar – Android-Push deaktiviert')
-    return null
-  }
+  return ladeDienstkonto(path, log, 'FCM')
 }
 
 /** FCM-Nachricht im HTTP-v1-Format. url landet in data für den Klick-Handler. */
@@ -75,46 +62,19 @@ export function isUnregistered(status, body) {
 export function createFcmSender(sa, { fetchImpl = fetch, now = () => Date.now(), timeoutMs = 10_000 } = {}) {
   if (!sa) return { enabled: false, send: async () => ({ ok: false, unregistered: false, status: 0 }) }
 
-  const tokenUri = sa.token_uri || DEFAULT_TOKEN_URI
   const sendUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`
-  let keyPromise = null
-  let cached = null // { token, expiresAt }
-
-  async function accessToken() {
-    if (cached && cached.expiresAt - 60_000 > now()) return cached.token
-    keyPromise ||= importPKCS8(sa.private_key, 'RS256')
-    const key = await keyPromise
-    const iat = Math.floor(now() / 1000)
-    const assertion = await new SignJWT({ scope: SCOPE })
-      .setProtectedHeader({ alg: 'RS256', typ: 'JWT', ...(sa.private_key_id ? { kid: sa.private_key_id } : {}) })
-      .setIssuer(sa.client_email)
-      .setSubject(sa.client_email)
-      .setAudience(tokenUri)
-      .setIssuedAt(iat)
-      .setExpirationTime(iat + 3600)
-      .sign(key)
-    const res = await fetchImpl(tokenUri, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
-      signal: AbortSignal.timeout(timeoutMs),
-    })
-    if (!res.ok) throw new Error(`FCM-OAuth fehlgeschlagen: HTTP ${res.status}`)
-    const json = await res.json()
-    cached = { token: json.access_token, expiresAt: now() + (json.expires_in || 3600) * 1000 }
-    return cached.token
-  }
+  const zugriff = createAccessTokenSource(sa, { scope: SCOPE, fetchImpl, now, timeoutMs, zweck: 'FCM' })
 
   async function send(token, payload) {
     const res = await fetchImpl(sendUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await zugriff.get()}` },
       body: JSON.stringify(buildMessage(token, payload)),
       signal: AbortSignal.timeout(timeoutMs),
     })
     if (res.ok) return { ok: true, unregistered: false, status: res.status }
     // Abgelaufenes Zugriffstoken: beim nächsten Versand neu holen
-    if (res.status === 401) cached = null
+    if (res.status === 401) zugriff.invalidate()
     const body = await res.json().catch(() => null)
     return { ok: false, unregistered: isUnregistered(res.status, body), status: res.status }
   }

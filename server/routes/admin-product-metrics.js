@@ -44,7 +44,8 @@ const round2 = (n) => Math.round(n * 100) / 100
 // Eingefügt wird bei status='paid'; Erstattungen und Rückbuchungen setzen den Kauf später auf 'refunded'
 // (Mollie-Webhook, App-Store-Benachrichtigung REFUND, erfasst seit 2026-10-27). Erstattete Käufe zählen nicht
 // mit, sondern stehen einzeln daneben (am Tag des Kaufs, ein Erstattungsdatum wird nicht gespeichert).
-// Mollie-Zahlungen haben IDs "tr_…", App-Store-Käufe die Transaktions-ID.
+// Mollie-Zahlungen haben IDs "tr_…", Google Play die orderId "GPA.…" (ohne orderId "play:…"),
+// App-Store-Käufe die Transaktions-ID.
 // Das Produkt ist immer 'gesamtausgabe' (deshalb keine Aufteilung danach).
 const zahlungenStmt = db.prepare(`
   SELECT p.id, p.amount, p.status, p.processed_at AS ms
@@ -114,7 +115,7 @@ function ladeZahlungen(days) {
   const zeitraum = zeitraumVon(days)
   const rows = zahlungenStmt.all({ since: berlinMitternachtMs(zeitraum.von) })
   const nachTag = new Map(tageVonBis(zeitraum.von, zeitraum.bis).map((datum) => [datum, { datum, kaeufe: 0, betrag: 0, teil: datum === zeitraum.bis }]))
-  const wege = { mollie: new Map(), apple: new Map() }
+  const wege = { mollie: new Map(), apple: new Map(), google: new Map() }
   let kaeufe = 0
   let betrag = 0
   const erstattet = { kaeufe: 0, betrag: 0 }
@@ -131,7 +132,8 @@ function ladeZahlungen(days) {
     tag.betrag += wert
     kaeufe += 1
     betrag += wert
-    const stufen = String(r.id).startsWith('tr_') ? wege.mollie : wege.apple
+    const id = String(r.id)
+    const stufen = id.startsWith('tr_') ? wege.mollie : /^(GPA.|play:)/.test(id) ? wege.google : wege.apple
     const stufe = wert.toFixed(2)
     stufen.set(stufe, (stufen.get(stufe) || 0) + 1)
   }

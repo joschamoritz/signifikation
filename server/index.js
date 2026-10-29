@@ -37,6 +37,7 @@ import courseRouter from './routes/course.js'
 import { seedCourseContent } from './course/seed.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter, { IAP_NOTIFICATIONS_PFAD, IAP_NOTIFICATIONS_BODY_LIMIT } from './routes/iap.js'
+import iapPlayRouter from './routes/iapPlay.js'
 import pushRouter from './routes/push.js'
 import archiveRouter from './routes/archive.js'
 import lemmaApiRouter, { LEMMA_API_PFAD, LEMMA_API_BODY_LIMIT } from './routes/lemma-api.js'
@@ -230,6 +231,7 @@ app.use('/', classroomRouter)
 app.use('/', courseRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
+app.use('/', iapPlayRouter)
 app.use('/', pushRouter)
 app.use('/', lemmaApiRouter)
 

@@ -1,8 +1,7 @@
-import { API } from '../config'
 import { apiFetch } from './apiFetch'
-import { IAP, USES_STOREKIT } from '../plugins/iap.js'
+import { IAP, USES_STORE_BILLING, restoreRequest } from '../plugins/iap.js'
 
-// Käufe via StoreKit wiederherstellen und beim Server verifizieren.
+// Käufe via StoreKit bzw. Google Play wiederherstellen und beim Server verifizieren.
 // Liefert ein normalisiertes Resultat – die UI muss nur einen Status auswerten,
 // statt zwei API-Aufrufe inkl. Fehlerbehandlung zu duplizieren.
 //
@@ -10,7 +9,7 @@ import { IAP, USES_STOREKIT } from '../plugins/iap.js'
 //   { ok: true,  unlocked: true  }  – Kauf gefunden + Freischaltung aktiv
 //   { ok: false, reason: 'unsupported' | 'none' | 'not-found' | 'network', message? }
 export async function restoreIapPurchases() {
-  if (!USES_STOREKIT) {
+  if (!USES_STORE_BILLING) {
     return { ok: false, reason: 'unsupported' }
   }
   try {
@@ -18,11 +17,12 @@ export async function restoreIapPurchases() {
     if (!transactions?.length) {
       return { ok: false, reason: 'none' }
     }
-    const res = await apiFetch(`${API}/iap/restore`, {
+    const { url, body } = restoreRequest(transactions)
+    const res = await apiFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ transactions }),
+      body: JSON.stringify(body),
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
