@@ -56,8 +56,10 @@ from collections import Counter
 from pathlib import Path
 
 PARSED_DIR_DEFAULT = Path(__file__).parent.parent / "02_parsed_v2"
+# Kein mkdir beim Import: server/belegPruefung/pruefe.py importiert dieses Modul
+# auf dem Server, wo der App-Nutzer im Code-Verzeichnis nicht schreiben darf.
+# main() legt das Zielverzeichnis selbst an.
 DEPS_DIR = Path(__file__).parent.parent / "03_deps"
-DEPS_DIR.mkdir(exist_ok=True)
 DB_PATH = DEPS_DIR / "triples_v2.db"
 
 # Chunking (K1)

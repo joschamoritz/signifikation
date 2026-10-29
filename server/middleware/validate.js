@@ -238,6 +238,12 @@ export const adminBulkDeleteCalendarSchema = z.object({
   dates: z.array(DATUM_ISO).min(1, 'Mindestens ein Datum erforderlich').max(180, 'Zu viele Datumswerte auf einmal'),
 })
 
+/** POST /admin/beleg-pruefung – kommende Spieltage oder alle (Archiv nachprüfen) */
+export const adminBelegPruefungSchema = z.object({
+  umfang: z.enum(['kommend', 'alle']).default('kommend'),
+  erneut: z.boolean().default(false),
+})
+
 /** POST /admin/preview/lemma */
 export const adminPreviewLemmaSchema = z.object({
   lemma: z.string().trim().min(1, 'lemma erforderlich').max(100, 'lemma zu lang'),

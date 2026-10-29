@@ -95,6 +95,12 @@ function baueFixtureMitLemma(pfad) {
       satz(`Die Erinnerung an jenen Sommer verblasst mit den Jahren, Fall ${i}.`, 'erinnerung sommer verblassen jahr fall')
     }
 
+    // Bindestrich-Lemma: der Tokenizer zerlegt „geistig-moralisch“ in zwei Tokens, und
+    // lemmata_fts (detail=none) kann keine Phrasen – die Suche brach früher mit einem Fehler ab.
+    for (let i = 0; i < 3; i++) {
+      satz(`Die geistig-moralische Wende wurde ausgerufen, Fall ${i}.`, 'geistig-moralisch wende ausrufen fall')
+    }
+
     // Rauschen, damit Fenster/Pool nicht trivial klein sind.
     for (let i = 0; i < 50; i++) {
       satz(`Ein belangloser Füllsatz ohne die gesuchten Wörter, Nummer ${i}.`, 'belanglos fuellsatz nummer')
@@ -176,5 +182,11 @@ describe('belege.js – Lemma-Suche (Phase F2)', () => {
 
   it('gibt bei einem Paar ohne jeden Treffer eine leere Liste zurück', () => {
     expect(belege.fetchBelege('Nashorn', 'jodeln', { limit: 5 })).toEqual([])
+  })
+
+  it('findet Bindestrich-Lemmata über die Lemma-Suche (keine Phrase auf detail=none)', () => {
+    const rows = belege.fetchBelege('Wende', 'geistig-moralisch', { limit: 5 })
+    expect(rows).toHaveLength(3)
+    expect(belege.fetchBelegKandidaten('Wende', 'geistig-moralisch', { ziel: 20 })).toHaveLength(3)
   })
 })

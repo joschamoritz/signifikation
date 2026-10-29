@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchKollokatorenAnalyse, MIN_KOLLOKATOREN, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, lemmaExistsInWortprofil, toId } from '../wortprofil.js'
 import { buildLueckenfuellerImWorker, leereLueckenfuellerWorkerCache } from '../lueckenfuellerImWorker.js'
-import { fetchBelege } from '../belege.js'
+import { fetchBelegeGeprueft, planePruefungFuerTage, pruefungStatus } from '../belegPruefung/index.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getAuswertungSpiele, getAuswertungZeilen, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
@@ -149,6 +149,8 @@ router.use(createAdminOpsRouter({
     leereLueckenfuellerCache()
     leereLueckenfuellerWorkerCache()
   },
+  pruefungStatus,
+  planePruefungFuerTage,
   fetchRelation,
   DATA,
   adminError,
@@ -188,6 +190,7 @@ router.use(createAdminCalendarRouter({
   buildModeGroups,
   // Im Worker-Thread: Die Berechnung braucht beim ersten Aufruf 8–15 s und hielt sonst den Server an
   buildLueckenfueller: buildLueckenfuellerImWorker,
+  planeBelegPruefung: planePruefungFuerTage,
   toId,
   saveTagAtomically,
   auditCreate,
@@ -239,7 +242,7 @@ router.use(createAdminSocialCardsRouter({
   loadKalender,
   loadWortZwilling,
   getLemmataIndex,
-  fetchBelege,
+  fetchBelege: fetchBelegeGeprueft,
   ladeEntwuerfe: ladeSocialEntwuerfe,
   ladeEntwurf: ladeSocialEntwurf,
   setzeCaption: setzeSocialCaption,

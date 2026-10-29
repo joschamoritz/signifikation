@@ -370,6 +370,10 @@ export function cacheSet(key, data) {
   _belegeCache.set(key, data)
 }
 
+export function cacheDeleteWhere(passt) {
+  _belegeCache.deleteWhere(passt)
+}
+
 export function getCacheMetrics() {
   return _belegeCache.getMetrics()
 }

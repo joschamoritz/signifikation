@@ -171,7 +171,7 @@ function db() {
 // Gate F geprüft). `jahr` wird mitgelesen, weil der Jahr-Filter seit dem
 // Latenz-Fix in JavaScript über den Pool läuft und nicht mehr in SQL.
 const V2_SELECT = `
-  SELECT s.satz AS satz, d.ref AS ref, d.jahr AS jahr, s.doc_id AS doc_id,
+  SELECT s.id AS id, s.satz AS satz, d.ref AS ref, d.jahr AS jahr, s.doc_id AS doc_id,
          q.zitation AS zitation, q.lizenz AS lizenz
   FROM belege_fts
   JOIN saetze s    ON s.id     = belege_fts.rowid
@@ -180,7 +180,7 @@ const V2_SELECT = `
   WHERE belege_fts MATCH ?`
 
 const V1_SELECT = `
-  SELECT satz, NULL AS ref, jahr, NULL AS doc_id, zitation, NULL AS lizenz
+  SELECT NULL AS id, satz, NULL AS ref, jahr, NULL AS doc_id, zitation, NULL AS lizenz
   FROM belege
   WHERE belege MATCH ?`
 
@@ -233,7 +233,7 @@ const LEMMA_AB = `
   WHERE lemmata_fts MATCH ? AND lemmata_fts.rowid < ?
   ORDER BY lemmata_fts.rowid DESC LIMIT ?`
 const BY_SATZ_ID = `
-  SELECT s.satz AS satz, d.ref AS ref, d.jahr AS jahr, s.doc_id AS doc_id,
+  SELECT s.id AS id, s.satz AS satz, d.ref AS ref, d.jahr AS jahr, s.doc_id AS doc_id,
          q.zitation AS zitation, q.lizenz AS lizenz
   FROM saetze s
   JOIN dokumente d ON d.doc_id = s.doc_id
@@ -541,6 +541,23 @@ function buildFtsQuery(lemma, collocate, opts = {}) {
   return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, opts)}`
 }
 
+/**
+ * Suchterm für `lemmata_fts`. Die Tabelle hat `detail=none` und kennt deshalb
+ * keine Phrasen: `"geistig-moralisch"` zerlegt der Tokenizer in zwei Tokens, und
+ * FTS5 bricht mit „phrase queries are not supported“ ab — „Wende + geistig-
+ * moralisch“ fand so keinen einzigen Beleg. Mehrteilige Lemmata werden darum zu
+ * einer UND-Verknüpfung ihrer Teile; einteilige bleiben die gewohnte Phrase.
+ */
+function lemmaFtsTerm(word) {
+  const teile = String(word ?? '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+  if (teile.length <= 1) return ftsTerm(word)
+  return `(${teile.map(t => `"${escFts(t)}"`).join(' AND ')})`
+}
+
+function buildLemmaFtsQuery(lemma, collocate) {
+  return `${lemmaFtsTerm(lemma)} AND ${lemmaFtsTerm(collocate)}`
+}
+
 // Ab dieser Wortlänge ist ein Prefix-Term vertretbar. Darunter wird die Menge
 // der zufälligen Mitläufer zu groß („Tor"* fände Torte, Tornado, Torpedo).
 const PREFIX_MIN_LEN = 4
@@ -602,7 +619,7 @@ const POOL_MIN = 48
  */
 function holeZweiTermPool(lemma, collocate, ziel, { seed = null } = {}) {
   let pool = hasLemmaFts()
-    ? holePoolLemma(buildFtsQuery(lemma, collocate), ziel, { seed })
+    ? holePoolLemma(buildLemmaFtsQuery(lemma, collocate), ziel, { seed })
     : []
   if (pool.length < POOL_MIN) {
     const exakt = holePool(buildFtsQuery(lemma, collocate), ziel, { seed })
@@ -666,19 +683,26 @@ function besteBelege(rows, limit) {
  * trifft `scoreBeleg()`. `year` filtert den Pool in JavaScript auf ±15 Jahre;
  * bleiben dabei unter zwei Belege übrig, gilt wie bisher der ungefilterte Pool.
  *
+ * `satzIds` sind Sätze, die die Belegprüfung (server/belegPruefung/) für das
+ * Paar bestätigt hat. Sind welche da, ersetzen sie den Zufallspool ganz: lieber
+ * zwei richtige Belege als fünf, von denen drei die Kollokation gar nicht zeigen.
+ *
  * @param {string} lemma     - Stichwort (z.B. "Tisch")
  * @param {string} collocate - Kollokator (z.B. "rund")
- * @param {object} opts      - { limit, year }
+ * @param {object} opts      - { limit, year, satzIds }
  * @returns {Array} - [{tokens, quelle}] im DWDS-kompatiblen Format
  */
-export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
+export function fetchBelege(lemma, collocate, { limit = 5, year = null, satzIds = null } = {}) {
   const s = stmts()
   if (!s) return []
 
   const ziel = Math.max(limit * POOL_JE_BELEG, POOL_MIN)
 
   try {
-    const unique = dedupe(holeZweiTermPool(lemma, collocate, ziel))
+    const geprueft = satzIds?.length ? holeSaetze(satzIds) : []
+    const unique = geprueft.length
+      ? dedupe(geprueft)
+      : dedupe(holeZweiTermPool(lemma, collocate, ziel))
 
     let auswahl = unique
     if (year) {
@@ -717,7 +741,7 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
 
   try {
     let rows = hasLemmaFts()
-      ? holePoolLemma(buildFtsQuery(lemma, collocate), limit)
+      ? holePoolLemma(buildLemmaFtsQuery(lemma, collocate), limit)
       : []
     if (rows.length < limit) {
       const bau = prefixCollocate ? buildFtsQueryPrefix : buildFtsQuery
@@ -811,7 +835,7 @@ export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
   const seed = String(lemma).toLowerCase()
   try {
     let rows = hasLemmaFts()
-      ? holePoolLemma(ftsTerm(lemma), ziel, { seed })
+      ? holePoolLemma(lemmaFtsTerm(lemma), ziel, { seed })
       : []
     if (rows.length < POOL_MIN) {
       const surface = holePool(ftsTerm(lemma), ziel, { seed })
@@ -831,6 +855,47 @@ export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
     logger.warn({ err }, `Lemma-Belege-Suche fehlgeschlagen: ${lemma}`)
     return []
   }
+}
+
+/** Volle Zeilen zu Satz-IDs (nur v2); unbekannte IDs fallen weg. */
+let _bySatzId = null
+function holeSaetze(ids) {
+  if (!stmts() || _schema !== 'v2') return []
+  _bySatzId ??= db().prepare(BY_SATZ_ID)
+  const rows = []
+  for (const id of ids) {
+    const row = _bySatzId.get(id)
+    if (row) rows.push(row)
+  }
+  return rows
+}
+
+/**
+ * Kandidatensätze für die Belegprüfung: derselbe Pool wie in `fetchBelege()`,
+ * nur größer und mit Satz-ID, ohne Auswahl. Leer im v1-Schema (keine stabilen IDs).
+ *
+ * @returns {Array<{id:number, satz:string}>}
+ */
+export function fetchBelegKandidaten(lemma, collocate, { ziel = 80 } = {}) {
+  if (!stmts() || _schema !== 'v2') return []
+  try {
+    return dedupe(holeZweiTermPool(lemma, collocate, ziel))
+      .filter(r => r.id != null)
+      .map(r => ({ id: r.id, satz: r.satz }))
+  } catch (err) {
+    // Ein Paar mit kaputter Suche darf den Prüflauf der übrigen nicht mitreißen
+    logger.warn({ err }, `Belegkandidaten fehlgeschlagen: ${lemma}+${collocate}`)
+    return []
+  }
+}
+
+/**
+ * Kennung des Belegbestands: die höchste Satz-ID. Geprüfte Satz-IDs gelten nur
+ * für den Bestand, auf dem sie geprüft wurden — nach einem Neuaufbau der
+ * Belege-DB zeigten sie sonst auf fremde Sätze. 0 ohne v2-DB.
+ */
+export function belegeStand() {
+  return stmts() ? maxRowid() : 0
 }
 
 /** Gibt true zurück wenn die Belege-DB vorhanden und lesbar ist. */

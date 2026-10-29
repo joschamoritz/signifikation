@@ -1,7 +1,8 @@
 import express        from 'express'
 import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
-import { fetchBelege, belegeVerfuegbar } from '../belege.js'
+import { belegeVerfuegbar } from '../belege.js'
+import { fetchBelegeGeprueft } from '../belegPruefung/index.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchLemma, fetchBonusQuestion, fetchZeitenwende } from '../wortprofil.js'
 import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, loadSpezialwoche, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
@@ -148,7 +149,7 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
   }
 
   try {
-    const results = fetchBelege(lemma, collocate, { limit: 5, year: year || null })
+    const results = fetchBelegeGeprueft(lemma, collocate, { limit: 5, year: year || null })
     cacheSet(cacheKey, results)
     res.json(results)
   } catch (err) {

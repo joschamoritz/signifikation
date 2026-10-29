@@ -87,6 +87,8 @@ export function createAdminCalendarRouter({
   adminError,
   serverError,
   logger,
+  // Belegprüfung der neuen Paare; ohne Prüf-Umgebung ein No-op mit Status 'aus'
+  planeBelegPruefung = () => ({ status: 'aus' }),
 }) {
   const router = express.Router()
 
@@ -401,6 +403,15 @@ export function createAdminCalendarRouter({
 
     logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 
+    // Läuft im Hintergrund weiter; der Tag ist gespeichert, egal was die Prüfung meldet
+    let belegPruefung
+    try {
+      belegPruefung = planeBelegPruefung([datum]).status
+    } catch (err) {
+      belegPruefung = 'fehler'
+      logger.error({ err }, `Belegprüfung für ${datum} nicht eingeplant`)
+    }
+
     auditCreate('kalender', datum, { ids, woerter, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
       adminKey: adminSessionId || 'unknown',
       ip,
@@ -409,6 +420,7 @@ export function createAdminCalendarRouter({
     return {
       ok: true, datum, ids, zwillingOk, zeitenwendeOk,
       lueckenfuellerId: lueckenfuellerKennung || null, lueckenfuellerOk, lueckenfuellerStatus,
+      belegPruefung,
     }
   }
 

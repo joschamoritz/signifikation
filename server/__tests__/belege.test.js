@@ -274,3 +274,33 @@ describe('scoreBeleg', () => {
     expect(belege.scoreBeleg(null)).toBeLessThan(-1000)
   })
 })
+
+describe('belege.js – geprüfte Sätze (Belegprüfung)', () => {
+  it('fetchBelegKandidaten liefert Satz-IDs zu den Sätzen des Pools', () => {
+    const kandidaten = belege.fetchBelegKandidaten('Haus', 'bauen', { ziel: 30 })
+    expect(kandidaten.length).toBeGreaterThan(0)
+    for (const k of kandidaten) {
+      expect(Number.isInteger(k.id)).toBe(true)
+      expect(k.satz).toContain(`Nummer ${k.id}.`)
+    }
+  })
+
+  it('belegeStand ist die höchste Satz-ID', () => {
+    expect(belege.belegeStand()).toBe(SAETZE_GESAMT)
+  })
+
+  it('mit satzIds kommen nur diese Sätze, ohne Zufallspool', () => {
+    const ids = [2, 202, 1202]
+    for (let i = 0; i < 10; i++) {
+      const rows = belege.fetchBelege('Haus', 'bauen', { limit: 5, satzIds: ids })
+      expect(rows).toHaveLength(3)
+      const nummern = rows.map(r => Number(r.tokens.map(t => t.w).join(' ').match(/Nummer (\d+)/)[1])).sort((a, b) => a - b)
+      expect(nummern).toEqual(ids)
+    }
+  })
+
+  it('unbekannte satzIds fallen auf die normale Suche zurück', () => {
+    const rows = belege.fetchBelege('Haus', 'bauen', { limit: 5, satzIds: [999999] })
+    expect(rows).toHaveLength(5)
+  })
+})

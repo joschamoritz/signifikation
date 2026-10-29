@@ -27,7 +27,7 @@ import { DB_PATH } from '../db.js'
 import logger from '../logger.js'
 import { reportAlert } from '../alerting.js'
 import { loadKalender, getLemmataIndex } from '../store.js'
-import { fetchBelege } from '../belege.js'
+import { fetchBelegeGeprueft } from '../belegPruefung/index.js'
 import { fetchKollokatorenAnalyse, MIN_KOLLOKATOREN } from '../wortprofil.js'
 import { createKollokationAnalyse } from '../kollokationAnalyse.js'
 import { baueEntwuerfe, baueEigenenEntwurf, gehoertZumPlan, verschiebeDatum, kalenderwoche, EIGENER_SLOT } from '../socialCards/entwuerfe.js'
@@ -48,7 +48,7 @@ export function berlinHeute(now = new Date()) {
 
 function standardDeps() {
   const { analyzeKollokationen } = createKollokationAnalyse({ fetchKollokatorenAnalyse, MIN_KOLLOKATOREN })
-  return { loadKalender, getLemmataIndex, fetchBelege, analyzeKollokationen }
+  return { loadKalender, getLemmataIndex, fetchBelege: fetchBelegeGeprueft, analyzeKollokationen }
 }
 
 // Läufe nacheinander, nie zwei Chromium-Instanzen gleichzeitig (Cron + Admin-Button).

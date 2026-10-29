@@ -9,6 +9,7 @@ import { pushStatus } from '../notifications/sender.js'
 import { isMailConfigured } from '../mailer.js'
 import { todayBerlin } from '../customLemmaQuota.js'
 import { listSqliteBackups, sicherungLaeuft } from '../jobs/sqliteBackup.js'
+import { validate, adminBelegPruefungSchema } from '../middleware/validate.js'
 
 function getProcessFingerprint() {
   return {
@@ -97,10 +98,26 @@ export function createAdminOpsRouter({
   getQueryCacheMetrics,
   clearQueryCache,
   leereLueckenfuellerCache = () => {},
+  pruefungStatus = () => ({ aktiv: false }),
+  planePruefungFuerTage = () => ({ status: 'aus', neu: 0 }),
   adminError,
   logger,
 }) {
   const router = express.Router()
+
+  // Belegprüfung von Hand anstoßen: kommende Spieltage (ab heute) oder das ganze Archiv
+  router.post('/admin/beleg-pruefung', adminLimiter, requireAuth, validate(adminBelegPruefungSchema), (req, res) => {
+    try {
+      const { umfang, erneut } = req.body
+      const heute = todayBerlin()
+      const daten = Object.keys(loadKalender()).filter(d => umfang === 'alle' || d >= heute).sort()
+      const ergebnis = planePruefungFuerTage(daten, { erneut })
+      logger.info(`Belegprüfung angestoßen (${umfang}): ${daten.length} Tage, ${ergebnis.neu} neue Paare`)
+      res.json({ ...ergebnis, tage: daten.length, ...pruefungStatus() })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
 
   router.get('/admin/performance', adminLimiter, requireAuth, (_req, res) => {
     try {
@@ -194,6 +211,7 @@ export function createAdminOpsRouter({
       appDb: appDbStatus(),
       wortprofilDb: wortprofilErreichbar(),
       belegeDb: belegeVerfuegbar() ? 'ok' : 'nicht verfügbar',
+      belegPruefung: pruefungStatus(),
       push,
       mail: { eingerichtet: isMailConfigured() },
       sicherung: sicherungStatus(),

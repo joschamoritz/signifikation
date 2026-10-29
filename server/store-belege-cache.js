@@ -33,6 +33,13 @@ export function createBelegeCache({ ttlMs, maxEntries }) {
     cache.set(key, { data, ts: Date.now() })
   }
 
+  /** Entfernt alle Einträge, deren Schlüssel `passt` erfüllt. */
+  function deleteWhere(passt) {
+    for (const key of [...cache.keys()]) {
+      if (passt(key)) cache.delete(key)
+    }
+  }
+
   function getMetrics() {
     const total = metrics.hits + metrics.misses
     const hitRate = total > 0 ? (metrics.hits / total * 100).toFixed(2) : 0
@@ -48,6 +55,7 @@ export function createBelegeCache({ ttlMs, maxEntries }) {
   return {
     get,
     set,
+    deleteWhere,
     getMetrics,
   }
 }

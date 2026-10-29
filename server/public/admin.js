@@ -1946,6 +1946,34 @@ function renderLage(h, { laden = false, fehler = '' } = {}) {
     + `<p class="be-lage-zeit"><span>Geprüft um ${uhrText(berlinTeile(getCurrentDate()))} Uhr</span><button type="button" class="adm-link" data-action="load-health">neu prüfen</button></p>`
 }
 
+// Belegprüfung: zeigt die Belege nur, wenn der Satz die Kollokation wirklich enthält (de_zdl_lg)
+function belegPruefungZeile(bp = {}) {
+  if (!bp.aktiv) return betriebZeile('Belegprüfung', betriebWert('nicht eingerichtet'), 'Belege werden ungeprüft angezeigt')
+  const lauf = bp.letzterLauf
+  const knopf = '<button type="button" class="adm-link" data-action="beleg-pruefung-starten">kommende Tage prüfen</button>'
+  if (bp.laeuft) {
+    const inArbeit = anzahlText(lauf?.paare || 0, 'Paar', 'Paare')
+    return betriebZeile('Belegprüfung', betriebWert('läuft'), esc(bp.wartend ? `${inArbeit} in Arbeit, ${anzahlText(bp.wartend, 'weiteres wartet', 'weitere warten')}` : `${inArbeit} in Arbeit`))
+  }
+  if (lauf?.fehler) return betriebZeile('Belegprüfung', betriebWert('letzter Lauf fehlgeschlagen', 'warn'), `${esc(lauf.fehler)} ${knopf}`)
+  const zuletzt = lauf?.ende ? `zuletzt ${wannText(lauf.ende)} Uhr, ${anzahlText(lauf.paare, 'Paar', 'Paare')} · ` : ''
+  return betriebZeile('Belegprüfung', betriebWert('bereit'), `${esc(zuletzt)}${knopf}`)
+}
+
+async function starteBelegPruefung() {
+  try {
+    const data = await holeJson('/admin/beleg-pruefung', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ umfang: 'kommend' }),
+    })
+    setMeldung('beleg-pruefung-status', data.neu
+      ? `Prüfung läuft: ${anzahlText(data.neu, 'neues Paar', 'neue Paare')} aus ${anzahlText(data.tage, 'Spieltag', 'Spieltagen')}. „neu prüfen“ zeigt, wann sie fertig ist.`
+      : 'Alle kommenden Spieltage sind schon geprüft.', 'ok')
+  } catch (err) {
+    setMeldung('beleg-pruefung-status', `Die Prüfung ist nicht gestartet: ${err.message}`, 'error')
+  }
+  void ladeSystemzustand()
+}
+
 // Zwischenspeicher: ohne Anfragen gibt es keine Trefferquote, die man lesen könnte
 function zwischenspeicherZeile(label, cache) {
   if (!cache || !((cache.hits || 0) + (cache.misses || 0)) && !cache.size) return betriebZeile(label, betriebWert('noch nichts zwischengespeichert'))
@@ -1980,6 +2008,7 @@ function renderSystem(h, perf) {
     `<div><dt>Spieldaten</dt><dd>${datenbank(h.appDb, 'Konten, Kalender, Statistik')}</dd></div>`,
     `<div><dt>Wortprofil</dt><dd>${datenbank(h.wortprofilDb, 'Kollokationen, Wort prüfen')}</dd></div>`,
     `<div><dt>Belegsätze</dt><dd>${h.belegeDb === 'ok' ? datenbank('ok', 'Beispielsätze aus dem Korpus') : betriebWert('nicht verfügbar', 'warn')}</dd></div>`,
+    belegPruefungZeile(h.belegPruefung),
     betriebZeile('Benachrichtigungen', betriebWert(pushText, pushAktiv(push) ? '' : 'warn'), esc(anzahlText(push.geraete || 0, 'Gerät angemeldet', 'Geräte angemeldet'))),
     betriebZeile('E-Mail-Versand', betriebWert(mailDa ? 'eingerichtet' : 'nicht eingerichtet', mailDa ? '' : 'warn'), mailDa ? '' : 'Willkommens-Mails werden nicht verschickt'),
     betriebZeile('Letzte Sicherung', alter === null ? betriebWert('keine gefunden', 'warn') : alter > SICHERUNG_MAX_STUNDEN ? betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr · zu alt`, 'warn') : betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr`), '<a class="adm-link" href="#werkzeuge/sicherung">Sicherung ansehen</a>'),
@@ -6784,6 +6813,8 @@ function speicherErgebnisText(data) {
   if (data.zeitenwendeOk === true) teile.push('Zeitenwende OK')
   if (data.zeitenwendeOk === false) teile.push('Zeitenwende: nicht genug distinkte Kollokatoren')
   if (data.lueckenfuellerId || data.lueckenfuellerStatus === 'mehrdeutig') teile.push(`Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`)
+  if (data.belegPruefung === 'geplant') teile.push('Belege werden im Hintergrund geprüft')
+  if (data.belegPruefung === 'fehler') teile.push('Belegprüfung nicht gestartet')
   return teile.join(' · ')
 }
 
@@ -7580,6 +7611,7 @@ function handleDocumentClick(event) {
   if (action === 'retry-entry-route') return void navigate(currentRouteHash || '#planen')
   if (action === 'refresh-dashboard') return void refreshDashboard()
   if (action === 'load-health') return void (currentRoute?.page === 'system' ? ladeSystemzustand({ fokus: true }) : loadHealth())
+  if (action === 'beleg-pruefung-starten') return void starteBelegPruefung()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
   if (action === 'dashboard-week-heute') return void zeigeDieseWoche()
   if (action === 'select-dashboard-date') return void selectDashboardDay(target.dataset.value || '')
