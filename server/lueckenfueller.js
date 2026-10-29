@@ -6,17 +6,17 @@
  *   - Runde 5   (type:'double')   : Zwei Sätze, je eine Lücke — 4 Optionen (2 korrekt)
  *   - Runde 6   (type:'free')     : Freie Texteingabe, keine Optionen
  *
- * Distraktor-Strategie (aufsteigende Schwierigkeit):
- *   R1: Distraktoren aus Pool-Positionen 5–8 (klar schwächere Kollokatoren)
- *   R2: Distraktoren aus Pool-Positionen 4–7
- *   R3: Pool[0] + Pool[1] als Distraktoren (die richtigen Antworten aus R1/R2!)
- *   R4: Pool[0..2] minus Target (alle vorherigen richtigen Antworten als Fallstrick)
+ * Distraktoren (`pickDistractors`): schwächere Kollokatoren (Pool-Position ≥ 5) in der
+ * Wortart der Lösung, noch nicht gezeigte zuerst; andere Wortarten nur als letzter
+ * Ausweg. Ihre Wortform kommt aus dem Rahmen der Lücke (lueckenfuellerRahmen.js), damit
+ * die Endung die Lösung nicht verrät. Die Double-Runde nimmt je Satz einen davon.
  *
  * Punkte: [1, 1, 2, 2, 2, 2] → max. 10
  */
 
 import { fetchRelation } from './wortprofil.js'
-import { fetchBelegeRaw } from './belege.js'
+import { fetchBelegeRaw, zaehlePhrase } from './belege.js'
+import { rahmenDerLuecke, waehleForm } from './lueckenfuellerRahmen.js'
 import logger from './logger.js'
 
 const LF_RELATIONS = {
@@ -44,27 +44,51 @@ function shuffle(arr) {
   return a
 }
 
+const RAND = /^([.,;:!?„“""''()[\]–—»«‹›]*)(.*?)([.,;:!?„“""''()[\]–—»«‹›]*)$/s
+
+/** Passt ein Wort (ohne Satzzeichen) zu einem Lemma? Ab vier Zeichen genügt der Anfang („spannende“ zu „spannend“). */
+function passtZu(wort, lemma) {
+  const w = wort.toLowerCase()
+  const l = lemma.toLowerCase()
+  return w === l || (l.length >= 4 && w.startsWith(l))
+}
+
+/** Wortanfang, an dem das Grundwort auch flektiert erkennbar ist: „öffnen“ → „öffn“ (öffnet, geöffnet). */
+function grundwortStamm(lemma) {
+  const l = lemma.toLowerCase()
+  const stamm = l.length > 5 ? l.replace(/e?n$/, '') : l
+  return stamm.length >= 3 ? stamm : l
+}
+
 /**
- * Ersetzt den ersten passenden Token im Satz durch '_____'.
+ * Ersetzt den Kollokator im Satz durch '_____' – das Vorkommen, das dem Grundwort am
+ * nächsten steht. Bisher war es das erste passende Wort im Satz; stand der Kollokator
+ * vorher schon einmal ohne Bezug zum Grundwort, saß die Lücke an der falschen Stelle.
+ * Satzzeichen am Wort bleiben stehen („_____.“ statt eines verschluckten Punkts).
  * Gibt { satzMitLuecke, token } zurück (token = exakte Wortform) oder null.
  */
-function blankCollocate(satz, depLemma) {
-  const lower = depLemma.toLowerCase()
+export function blankCollocate(satz, depLemma, basisLemma = '') {
   const parts = satz.split(/(\s+)/)
-  let found = false
-  let foundToken = null
-  const result = parts.map(part => {
-    if (found || /^\s+$/.test(part)) return part
-    const clean = part.replace(/^[.,;:!?„“""''()[\]–—»«‹›]+|[.,;:!?„“""''()[\]–—»«‹›]+$/g, '').toLowerCase()
-    if (clean === lower || (lower.length >= 4 && clean.startsWith(lower))) {
-      found = true
-      foundToken = part.replace(/^[.,;:!?„“""''()[\]–—»«‹›]+|[.,;:!?„“""''()[\]–—»«‹›]+$/g, '')
-      return '_____'
-    }
-    return part
+  const kern = parts.map(p => (/^\s+$/.test(p) ? null : p.match(RAND)))
+  const stamm = basisLemma ? grundwortStamm(basisLemma) : null
+  const istBasis = (i) => !!(stamm && kern[i] && kern[i][2].toLowerCase().includes(stamm))
+
+  const treffer = []
+  const basis = []
+  kern.forEach((k, i) => {
+    if (!k || !k[2]) return
+    if (istBasis(i)) basis.push(i)
+    else if (passtZu(k[2], depLemma)) treffer.push(i)
   })
-  if (!found) return null
-  return { satzMitLuecke: result.join(''), token: foundToken || depLemma }
+  if (!treffer.length) return null
+
+  const abstand = (i) => (basis.length ? Math.min(...basis.map(b => Math.abs(b - i))) : 0)
+  const wahl = treffer.reduce((beste, i) => (abstand(i) < abstand(beste) ? i : beste), treffer[0])
+
+  const [, vorne, wort, hinten] = kern[wahl]
+  const result = [...parts]
+  result[wahl] = `${vorne}_____${hinten}`
+  return { satzMitLuecke: result.join(''), token: wort || depLemma }
 }
 
 /**
@@ -73,26 +97,29 @@ function blankCollocate(satz, depLemma) {
  * es werden ausschließlich frische, noch nie gezeigte Distraktoren gewählt,
  * damit Spieler aus vorherigen Runden keine Rückschlüsse ziehen können.
  */
-function pickDistractors(roundIdx, target, pool, choiceTargets, usedOptions) {
-  const notTarget       = pool.filter(c => c.lemma !== target.lemma)
+function pickDistractors(target, pool, usedOptions, anzahl = 3, ausser = []) {
+  const notTarget       = pool.filter(c => c.lemma !== target.lemma && !ausser.includes(c.lemma))
   const fresh           = notTarget.filter(c => !usedOptions.has(c.lemma))
   // Gleiche Wortart wie das Target – bevorzugte Distraktor-Quelle
+  const samePOS         = notTarget.filter(c => c.pos === target.pos)
   const freshSamePOS    = fresh.filter(c => c.pos === target.pos)
   const weakSamePOS     = freshSamePOS.filter(c => pool.indexOf(c) >= 5)
 
-  function padTo3(preferred) {
-    const result = [...preferred]
-    const seen   = new Set(result.map(r => r.lemma))
-    // Auffüllen: zuerst gleiche Wortart, dann beliebige frische, dann Rest
-    for (const c of [...freshSamePOS, ...fresh, ...notTarget]) {
-      if (result.length >= 3) break
-      if (!seen.has(c.lemma)) { result.push(c); seen.add(c.lemma) }
-    }
-    return result.slice(0, 3)
+  // Auffüllen: zuerst schwächere gleicher Wortart, dann frische gleicher Wortart, dann schon gezeigte
+  // gleicher Wortart – erst danach andere Wortarten. Ein Adjektiv zwischen drei Nomen verrät die
+  // Lösung sofort („es herrscht ___“: moralischen | ausbreitenden | ausgelösten | Chaos).
+  const result = []
+  const seen   = new Set()
+  for (const c of [...weakSamePOS, ...freshSamePOS, ...samePOS, ...fresh, ...notTarget]) {
+    if (result.length >= anzahl) break
+    if (!seen.has(c.lemma)) { result.push(c); seen.add(c.lemma) }
   }
+  return result
+}
 
-  // Bevorzugt: schwächere Kollokatoren gleicher Wortart (pool-Position ≥ 5)
-  return padTo3(weakSamePOS.slice(0, 3))
+/** Form eines Distraktors für eine Lücke, über den Satzrahmen (lueckenfuellerRahmen.js). */
+function distraktorForm(distraktor, ziel) {
+  return waehleForm(distraktor, rahmenDerLuecke(ziel.satzMitLuecke), ziel, zaehlePhrase)
 }
 
 /**
@@ -109,7 +136,7 @@ function findBlankableSatz(lemma, target) {
   // Fallback: wenn kein Satz die Mindestlänge erfüllt, kürzeste akzeptable nehmen.
   const candidates = []
   for (const b of belege) {
-    const blanked = blankCollocate(b.satz, target.lemma)
+    const blanked = blankCollocate(b.satz, target.lemma, lemma)
     if (blanked) candidates.push({ satz: b.satz, quelle: b.quelle, ...blanked })
   }
   if (!candidates.length) return null
@@ -175,27 +202,14 @@ export async function buildLueckenfueller(lemma, pos) {
 
   for (let i = 0; i < choiceTargets.length; i++) {
     const target = choiceTargets[i]
-    const distractors = pickDistractors(i, target, pool, choiceTargets.slice(0, i), usedOptions)
-
-    // Fehlende Distraktoren auffüllen (Fallback)
-    const distSet = new Set([target.lemma, ...distractors.map(d => d.lemma)])
-    while (distractors.length < 3) {
-      const extra = pool.find(c => !distSet.has(c.lemma))
-      if (!extra) break
-      distractors.push(extra)
-      distSet.add(extra.lemma)
-    }
+    const distractors = pickDistractors(target, pool, usedOptions)
 
     // Korrekte Antwort: token-Form wenn vorhanden (z.B. "Säugetierarten"),
     // sonst Lemma – so stimmen Optionsbutton und Lückenfüllung überein
     const correctLabel = target.token || target.lemma
 
-    // Distraktoren: ebenfalls token-Form aus dem Korpus holen (selber Satz-Kontext),
-    // damit alle Optionen grammatisch einheitlich flektiert erscheinen (z.B. "langfristige")
-    const distractorLabels = distractors.map(d => {
-      const found = findBlankableSatz(lemma, d)
-      return found?.token || d.lemma
-    })
+    // Distraktoren in der Form, die in genau diese Lücke passt („einen _____ Wind“ → „kalten“)
+    const distractorLabels = distractors.map(d => distraktorForm(d, target))
 
     // Alle gezeigten Optionen dieser Runde für Folgerunden merken
     usedOptions.add(target.lemma)
@@ -222,13 +236,15 @@ export async function buildLueckenfueller(lemma, pos) {
     const tB = targets[idxB]
     const labelA = tA.token || tA.lemma
     const labelB = tB.token || tB.lemma
-    const wrongOptions = pool
-      .filter(c => c.lemma !== tA.lemma && c.lemma !== tB.lemma)
-      .slice(0, 2)
-      .map(c => {
-        const found = findBlankableSatz(lemma, c)
-        return found?.token || c.lemma
-      })
+    // Bisher die zwei STÄRKSTEN Kollokatoren – die passen fast immer auch in einen der Sätze.
+    // Jetzt wie in den Choice-Runden schwächere gleicher Wortart, je einer passend gebeugt
+    // für Satz A und für Satz B.
+    const [falschA] = pickDistractors(tA, pool, usedOptions, 1, [tB.lemma])
+    const [falschB] = pickDistractors(tB, pool, usedOptions, 1, [tA.lemma, falschA?.lemma].filter(Boolean))
+    const wrongOptions = [
+      falschA && distraktorForm(falschA, tA),
+      falschB && distraktorForm(falschB, tB),
+    ].filter(Boolean)
 
     rounds.push({
       type:    'double',

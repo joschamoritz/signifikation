@@ -938,6 +938,28 @@ export function fetchBelegKandidaten(lemma, collocate, { ziel = 80 } = {}) {
 }
 
 /**
+ * Wie oft steht eine Wortfolge wörtlich im Korpus? Gezählt wird höchstens bis
+ * `deckel`: Für die Formwahl im Lückenfüller reicht „oft“ gegen „selten“, und der
+ * Deckel hält auch Folgen mit Funktionswörtern billig (gemessen 1–35 ms, Node,
+ * warm: „kalten wind“ 3 ms, „einen kalten wind“ 30 ms). 0 ohne v2-DB.
+ *
+ * @param {string[]} woerter  aufeinanderfolgende Wortformen, z. B. ['einen', 'kalten', 'Wind']
+ */
+let _zaehlePhrase = null
+export function zaehlePhrase(woerter, { deckel = 200 } = {}) {
+  if (!stmts() || _schema !== 'v2' || !woerter.length) return 0
+  _zaehlePhrase ??= db().prepare(
+    'SELECT count(*) AS n FROM (SELECT 1 FROM belege_fts WHERE belege_fts MATCH ? LIMIT ?)')
+  const phrase = `"${woerter.map(w => escFts(String(w).toLowerCase())).join(' ')}"`
+  try {
+    return _zaehlePhrase.get(phrase, deckel).n
+  } catch (err) {
+    logger.warn({ err }, `Phrasenzählung fehlgeschlagen: ${phrase}`)
+    return 0
+  }
+}
+
+/**
  * Kennung des Belegbestands: die höchste Satz-ID. Geprüfte Satz-IDs gelten nur
  * für den Bestand, auf dem sie geprüft wurden — nach einem Neuaufbau der
  * Belege-DB zeigten sie sonst auf fremde Sätze. 0 ohne v2-DB.
