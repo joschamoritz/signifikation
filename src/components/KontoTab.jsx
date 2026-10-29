@@ -51,6 +51,7 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, onAuth
             <KontoPremiumBlock
               auth={auth}
               gesamtausgabePermanent={gesamtausgabePermanent}
+              onEntitlementsChanged={onAuthStateChange}
             />
 
             {/* ③ Statistiken */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { IAP, USES_STORE_BILLING } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { ENTITLEMENTS_CHANGED_EVENT } from '../../utils/iapTransactionListener'
@@ -17,7 +17,7 @@ const FEATURES = [
   { label: 'Unbegrenzte Lemmata',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, ohne Tageslimit' },
 ]
 
-export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
+export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, onEntitlementsChanged }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [loginHint, setLoginHint] = useState(false)
   const [restoreStatus, setRestoreStatus] = useState(null) // 'busy' | 'none' | 'not-found' | 'error' | null
@@ -66,7 +66,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
     setRestoreMessage(null)
     const result = await restoreIapPurchases()
     if (result.ok) {
-      await auth.loadSession?.()
+      await Promise.all([auth.loadSession?.(), onEntitlementsChanged?.()])
       setRestoreStatus(null)
       return
     }
@@ -76,15 +76,23 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   }
 
   const { loadSession } = auth
+  // Nach Kauf oder Wiederherstellung beides neu laden: Die Sitzung (/account/me)
+  // trägt die Rolle für Karte ①, diese Karte hängt aber am Freischaltstatus aus
+  // /account/entitlements (gesamtausgabePermanent) – ohne den zweiten Abruf
+  // zeigte sie bis zum nächsten App-Start weiter das Kaufangebot.
+  const handleUnlocked = useCallback(() => {
+    loadSession?.()
+    onEntitlementsChanged?.()
+  }, [loadSession, onEntitlementsChanged])
   // Der Store-Listener selbst haengt seit August 2026 global am App-Start
   // (src/utils/iapTransactionListener.js) — hier wird nur noch die Anzeige
   // aktualisiert, wenn dort etwas freigeschaltet wurde.
   useEffect(() => {
     if (!IS_NATIVE) return undefined
-    const onChanged = () => { loadSession?.() }
+    const onChanged = () => { handleUnlocked() }
     window.addEventListener(ENTITLEMENTS_CHANGED_EVENT, onChanged)
     return () => window.removeEventListener(ENTITLEMENTS_CHANGED_EVENT, onChanged)
-  }, [loadSession])
+  }, [handleUnlocked])
 
   return (
     <li className="test-entry">
@@ -185,7 +193,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
       <CheckoutModal
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
-        onSuccess={auth.loadSession}
+        onSuccess={handleUnlocked}
       />
     </li>
   )
