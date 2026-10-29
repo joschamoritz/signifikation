@@ -17,6 +17,7 @@
 import { fetchRelation, lemmaZeilen } from './wortprofil.js'
 import { fetchBelegeRaw, fetchSaetze, zaehlePhrase } from './belege.js'
 import { rahmenDerLuecke, waehleForm } from './lueckenfuellerRahmen.js'
+import { waehleSatz } from './lueckenfuellerSatz.js'
 import { gepruefteDetails } from './belegPruefung/details.js'
 import logger from './logger.js'
 
@@ -143,21 +144,6 @@ function distraktorForm(distraktor, ziel) {
 }
 
 /**
- * Findet den ersten blankbaren Beleg für einen Kollokator.
- */
-const MIN_SATZ_LEN = 50
-const MAX_SATZ_LEN = 220
-
-/** Der längste Satz im Längenfenster (der Kontext hilft beim Raten), sonst irgendeiner. */
-function waehleSatz(candidates) {
-  if (!candidates.length) return null
-  const inRange = candidates.filter(c => c.satz.length >= MIN_SATZ_LEN && c.satz.length <= MAX_SATZ_LEN)
-  const pool = inRange.length ? inRange : candidates
-  pool.sort((a, b) => b.satz.length - a.satz.length)
-  return pool[0]
-}
-
-/**
  * Satz-IDs, in denen die Belegprüfung den Kollokator in einer Lückenfüller-Relation der
  * Wortart gefunden hat (für Nomen ATTR oder KON …). null: keine Prüfdaten zu diesem Paar.
  */
@@ -180,7 +166,7 @@ function geprueftLueckenSaetze(treffer) {
     const z = [...s.satz]
     const token = z.slice(start, ende).join('')
     if (!token) return []
-    return [{ satz: s.satz, quelle: s.quelle, satzMitLuecke: `${z.slice(0, start).join('')}_____${z.slice(ende).join('')}`, token }]
+    return [{ satz: s.satz, quelle: s.quelle, jahr: s.jahr, satzMitLuecke: `${z.slice(0, start).join('')}_____${z.slice(ende).join('')}`, token }]
   })
 }
 
@@ -194,7 +180,7 @@ function findBlankableSatz(lemma, target, relCodes) {
   const candidates = []
   for (const b of belege) {
     const blanked = blankCollocate(b.satz, target.lemma, lemma)
-    if (blanked) candidates.push({ satz: b.satz, quelle: b.quelle, ...blanked })
+    if (blanked) candidates.push({ satz: b.satz, quelle: b.quelle, jahr: b.jahr, ...blanked })
   }
   return waehleSatz(candidates)
 }

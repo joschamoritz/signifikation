@@ -15,7 +15,8 @@
 
 import { POS_ROUNDS, fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze, posByFrequency } from './wortprofil.js'
 import { fetchWortZwilling } from './wortzwilling.js'
-import { buildLueckenfueller } from './lueckenfueller.js'
+// Im Worker-Thread: die Berechnung braucht 1–16 s und hielte sonst den ganzen Server an
+import { buildLueckenfuellerImWorker as buildLueckenfueller } from './lueckenfuellerImWorker.js'
 import { fetchWiktionary } from './wiktionary.js'
 import { isBlockedText } from './classroom/nickname-filter.js'
 

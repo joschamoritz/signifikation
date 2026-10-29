@@ -15,12 +15,12 @@ vi.mock('../wortprofil.js', () => ({
   posByFrequency: vi.fn(() => []),
 }))
 vi.mock('../wortzwilling.js', () => ({ fetchWortZwilling: vi.fn() }))
-vi.mock('../lueckenfueller.js', () => ({ buildLueckenfueller: vi.fn() }))
+vi.mock('../lueckenfuellerImWorker.js', () => ({ buildLueckenfuellerImWorker: vi.fn() }))
 vi.mock('../wiktionary.js', () => ({ fetchWiktionary: vi.fn(async () => ({ ipa: 'ˈaʁ̥çiːf', definitionen: ['Sammlung'] })) }))
 
 import { fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze, posByFrequency } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { buildLueckenfueller } from '../lueckenfueller.js'
+import { buildLueckenfuellerImWorker as buildLueckenfueller } from '../lueckenfuellerImWorker.js'
 import { validateCustomLemma, buildCustomPlay, MIN_KOLLOKATIONEN } from '../customLemma.js'
 
 function kolls(n, prefix = 'w') {

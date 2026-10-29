@@ -84,7 +84,7 @@ import {
 } from '../classroom/store.js'
 import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { buildLueckenfueller } from '../lueckenfueller.js'
+import { buildLueckenfuellerImWorker as buildLueckenfueller } from '../lueckenfuellerImWorker.js'
 import { parseWzId } from '../classroom/content.js'
 import { withTimeout } from '../classroom/withTimeout.js'
 import { getMode } from '../classroom/modes/index.js'
@@ -254,6 +254,9 @@ function loadAssignmentLemmata(lemmaIds) {
 // Hartes Limit pro Lemma-Snapshot, damit eine haengende Sekundaer-DB
 // (wortprofil.db/belege.db) den Anlegen-Request nicht unbegrenzt blockiert.
 const SNAPSHOT_BUILD_TIMEOUT_MS = 10_000
+// Der Lückenfüller rechnet im Worker-Thread (kalt bis ~16 s); dort greift das Limit wirklich,
+// während die frühere synchrone Rechnung es nie auslösen konnte
+const LUECKENFUELLER_SNAPSHOT_TIMEOUT_MS = 30_000
 
 async function buildContentSnapshot(mode, lemmata) {
   const byLemma = {}
@@ -265,7 +268,7 @@ async function buildContentSnapshot(mode, lemmata) {
   for (const l of lemmata) {
     byLemma[l.id] = await withTimeout(
       m.buildSnapshotEntry(l, deps),
-      SNAPSHOT_BUILD_TIMEOUT_MS,
+      mode === 'lueckenfueller' ? LUECKENFUELLER_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_BUILD_TIMEOUT_MS,
       `content-snapshot ${mode}/${l.id}`,
     )
   }

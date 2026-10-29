@@ -11,7 +11,8 @@
  * (seedCourseContent(), Code = Single Source) und ändert sich pro Prozess nicht.
  *
  * Damit ist ein einfacher Map-Cache pro (stationId, level, format) korrekt und
- * dauerhaft gültig — invalidiert wird nur beim Reseed (Test/Neustart).
+ * dauerhaft gültig — invalidiert wird beim Reseed (Test/Neustart) und nach jedem Lauf der
+ * Belegprüfung (belegPruefung/index.js), damit geprüfte Belegsätze ankommen.
  */
 
 const cache = new Map()

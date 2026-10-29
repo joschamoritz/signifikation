@@ -56,10 +56,10 @@ vi.mock('../wortzwilling.js', () => ({
 
 // Lückenfüller ebenfalls live (belege.db nicht deterministisch im Test) →
 // „null“ → Fallback aufs gespeicherte lemma.lueckenfueller.rounds der Fixtures.
-vi.mock('../lueckenfueller.js', () => ({
-  buildLueckenfueller: vi.fn(async () => null),
+vi.mock('../lueckenfuellerImWorker.js', () => ({
+  buildLueckenfuellerImWorker: vi.fn(async () => null),
 }))
-import { buildLueckenfueller as buildLfMock } from '../lueckenfueller.js'
+import { buildLueckenfuellerImWorker as buildLfMock } from '../lueckenfuellerImWorker.js'
 
 // ── Test-Infrastruktur ─────────────────────────────────────────
 

@@ -16,11 +16,23 @@
 
 import logger from '../logger.js'
 import { queryRelation } from '../wortprofil.js'
-import { fetchBelegeRaw, scoreBeleg } from '../belege.js'
+import { fetchBelegeRaw, fetchSaetze, scoreBeleg } from '../belege.js'
+import { gepruefteSatzIds } from '../belegPruefung/details.js'
 
 /** Escaped einen String für die Verwendung in einem RegExp. */
 function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Belegsätze eines Paars: die von der Belegprüfung bestätigten (dort steht die Kollokation
+ * nachweislich als Abhängigkeit im Satz), sonst die normale Suche. Die Kurs-Paare reiht das
+ * Admin-Werkzeug „kommende Tage prüfen“ mit ein (course/belegPaare.js).
+ */
+function belegPool(lemma, partner, opts) {
+  const ids = gepruefteSatzIds(lemma, partner)
+  const geprueft = ids ? fetchSaetze(ids).map(({ satz, quelle }) => ({ satz, quelle })) : []
+  return geprueft.length ? geprueft : fetchBelegeRaw(lemma, partner, opts)
 }
 
 /** Echter Korpus-Adapter (wortprofil.db + belege.db). */
@@ -42,7 +54,7 @@ export function makeCorpusAdapter() {
     fetchBeleg(lemma, partner) {
       if (!lemma || !partner) return null
       try {
-        const rows = fetchBelegeRaw(lemma, partner, { limit: 12 })
+        const rows = belegPool(lemma, partner, { limit: 12 })
         if (!rows.length) return null
         // Besten Satz wählen statt blind den ersten: viele Korpus-Belege sind
         // abgeschnittene Fragmente (z. B. „Februar eine Entscheidung treffen.“).
@@ -65,7 +77,7 @@ export function makeCorpusAdapter() {
       const clean = r => ({ ...r, satz: r.satz.replace(/\s+/g, ' ').trim() })
       try {
         if (adjacent) {
-          const pool = fetchBelegeRaw(lemma, partner, { limit: 60, prefixCollocate: true })
+          const pool = belegPool(lemma, partner, { limit: 60, prefixCollocate: true })
           const re = new RegExp(`\\b${escapeRegExp(partner)}\\w*\\s+${escapeRegExp(lemma)}\\w*\\b`, 'i')
           return pool
             .filter(r => re.test(r.satz))
@@ -73,7 +85,7 @@ export function makeCorpusAdapter() {
             .slice(0, limit)
             .map(clean)
         }
-        const rows = fetchBelegeRaw(lemma, partner, { limit: 15 })
+        const rows = belegPool(lemma, partner, { limit: 15 })
         return [...rows]
           .sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))
           .slice(0, limit)

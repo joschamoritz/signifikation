@@ -24,6 +24,9 @@ import { lueckenfuellerPool, LUECKENFUELLER_PRUEFPAARE } from '../lueckenfueller
 import { buildLueckenfuellerImWorker } from '../lueckenfuellerImWorker.js'
 import { holeKandidatenImWorker } from './kandidatenImWorker.js'
 import { paarSchluessel, paareFuerDatum } from './paare.js'
+import { gepruefteSatzIds } from './details.js'
+import { kursBelegPaare } from '../course/belegPaare.js'
+import { clearResolveCache } from '../course/resolveCache.js'
 
 const SKRIPT = fileURLToPath(new URL('./pruefe.py', import.meta.url))
 // Kandidaten je Paar: gemessen bestehen ~70 %, jedes Paar behielt mindestens 11 Sätze
@@ -43,8 +46,8 @@ const stmts = {
   `),
 }
 
-// Relation und Position je Satz – eigenes Lesemodul, weil der Lückenfüller-Worker es braucht
-export { gepruefteDetails } from './details.js'
+// Lesen über ein eigenes Modul, weil der Lückenfüller-Worker und der Kurs es brauchen
+export { gepruefteDetails, gepruefteSatzIds } from './details.js'
 
 const warteschlange = new Map()   // paarSchluessel → { basis, kollokator }
 const neubau = new Set()          // Lemma-IDs, deren Lückenfüller nach dem Lauf neu gebaut werden
@@ -53,17 +56,6 @@ let letzterLauf = null
 
 export function pruefungAktiv() {
   return Boolean(process.env.BELEGPRUEFUNG_PYTHON)
-}
-
-/** Geprüfte Satz-IDs eines Paars, oder null (nie geprüft, nichts bestanden, anderer Belegbestand). */
-export function gepruefteSatzIds(basis, kollokator) {
-  const row = stmts.holen.get(String(basis).toLowerCase(), String(kollokator).toLowerCase())
-  if (!row || row.bestanden === 0 || row.belege_stand !== belegeStand()) return null
-  try {
-    return JSON.parse(row.satz_ids)
-  } catch {
-    return null
-  }
 }
 
 /** fetchBelege() mit den geprüften Sätzen des Paars, falls es welche gibt. */
@@ -108,9 +100,10 @@ export function planePruefung(paare, { erneut = false, lueckenfueller = [] } = {
 
 /**
  * Reiht alle Belegpaare der angegebenen Spieltage ein (Speichern eines Tages, Admin-Werkzeug):
- * die angezeigten Paare (paareFuerDatum) und den Pool des Lückenfüller-Worts.
+ * die angezeigten Paare (paareFuerDatum) und den Pool des Lückenfüller-Worts. Mit `kurs` auch die
+ * festen Paare des Kurses (Admin-Werkzeug).
  */
-export async function planePruefungFuerTage(daten, opts) {
+export async function planePruefungFuerTage(daten, { kurs = false, ...opts } = {}) {
   if (!pruefungAktiv()) return { status: 'aus', neu: 0 }
   const maps = loadDailyContentMaps()
   const { byId } = getLemmataIndex()
@@ -128,6 +121,8 @@ export async function planePruefungFuerTage(daten, opts) {
     // Heute wird schon gespielt: dessen Runden bleiben, wie sie sind
     if (datum > heute) lueckenfueller.push({ id: lf.id, paare: lfPaare })
   }
+  // Der Kurs hat ~30 feste Paare; schon geprüfte überspringt planePruefung ohnehin
+  if (kurs) paare.push(...kursBelegPaare())
   return planePruefung(paare, { ...opts, lueckenfueller })
 }
 
@@ -234,6 +229,8 @@ function leereBelegCache(paare) {
     if (praefix !== 'belege' || lemma === undefined || collocate === undefined) return false
     return geprueft.has(paarSchluessel(decodeURIComponent(lemma), decodeURIComponent(collocate)))
   })
+  // Aufgelöste Kurs-Aufgaben tragen ihre Belegsätze in sich (resolveCache.js)
+  clearResolveCache()
 }
 
 function rufePython(eingabe) {

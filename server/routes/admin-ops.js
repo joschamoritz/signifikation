@@ -111,7 +111,7 @@ export function createAdminOpsRouter({
       const { umfang, erneut } = req.body
       const heute = todayBerlin()
       const daten = Object.keys(loadKalender()).filter(d => umfang === 'alle' || d >= heute).sort()
-      const ergebnis = await planePruefungFuerTage(daten, { erneut })
+      const ergebnis = await planePruefungFuerTage(daten, { erneut, kurs: true })
       logger.info(`Belegprüfung angestoßen (${umfang}): ${daten.length} Tage, ${ergebnis.neu} neue Paare`)
       res.json({ ...ergebnis, tage: daten.length, ...pruefungStatus() })
     } catch (err) {

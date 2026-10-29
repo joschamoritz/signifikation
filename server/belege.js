@@ -802,6 +802,7 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
       .map(r => ({
         satz: r.satz,
         quelle: formatQuelle(r),
+        jahr: r.jahr ?? null,
       }))
   } catch (err) {
     logger.warn({ err }, `fetchBelegeRaw fehlgeschlagen: ${lemma}+${collocate}`)
@@ -926,7 +927,7 @@ function holeSaetze(ids) {
  */
 export function fetchSaetze(ids) {
   try {
-    return holeSaetze(ids).map(r => ({ id: r.id, satz: r.satz, quelle: formatQuelle(r) }))
+    return holeSaetze(ids).map(r => ({ id: r.id, satz: r.satz, quelle: formatQuelle(r), jahr: r.jahr ?? null }))
   } catch (err) {
     logger.warn({ err }, 'fetchSaetze fehlgeschlagen')
     return []
