@@ -406,7 +406,7 @@ export function createAdminCalendarRouter({
     // Läuft im Hintergrund weiter; der Tag ist gespeichert, egal was die Prüfung meldet
     let belegPruefung
     try {
-      belegPruefung = planeBelegPruefung([datum]).status
+      belegPruefung = (await planeBelegPruefung([datum])).status
     } catch (err) {
       belegPruefung = 'fehler'
       logger.error({ err }, `Belegprüfung für ${datum} nicht eingeplant`)

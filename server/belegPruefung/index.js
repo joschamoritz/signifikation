@@ -18,7 +18,10 @@ import { fileURLToPath } from 'node:url'
 import db from '../db.js'
 import logger from '../logger.js'
 import { fetchBelege, belegeStand } from '../belege.js'
-import { cacheDeleteWhere, loadDailyContentMaps, getLemmataIndex } from '../store.js'
+import { cacheDeleteWhere, loadDailyContentMaps, getLemmataIndex, invalidateCache, lemmaToRow, stmts as storeStmts } from '../store.js'
+import { berlinTag } from '../date-utils.js'
+import { lueckenfuellerPool, LUECKENFUELLER_PRUEFPAARE } from '../lueckenfueller.js'
+import { buildLueckenfuellerImWorker } from '../lueckenfuellerImWorker.js'
 import { holeKandidatenImWorker } from './kandidatenImWorker.js'
 import { paarSchluessel, paareFuerDatum } from './paare.js'
 
@@ -40,22 +43,11 @@ const stmts = {
   `),
 }
 
-/**
- * Relation und Position des Kollokators je geprüftem Satz (Migration 0034), oder null
- * (nie geprüft, vor 0034 geprüft, anderer Belegbestand).
- * @returns {Object<string, {rel: string[], start: number, ende: number}>|null}  Schlüssel = Satz-ID
- */
-export function gepruefteDetails(basis, kollokator) {
-  const row = stmts.holen.get(String(basis).toLowerCase(), String(kollokator).toLowerCase())
-  if (!row?.details || row.belege_stand !== belegeStand()) return null
-  try {
-    return JSON.parse(row.details)
-  } catch {
-    return null
-  }
-}
+// Relation und Position je Satz – eigenes Lesemodul, weil der Lückenfüller-Worker es braucht
+export { gepruefteDetails } from './details.js'
 
 const warteschlange = new Map()   // paarSchluessel → { basis, kollokator }
+const neubau = new Set()          // Lemma-IDs, deren Lückenfüller nach dem Lauf neu gebaut werden
 let laeuft = false
 let letzterLauf = null
 
@@ -82,21 +74,30 @@ export function fetchBelegeGeprueft(lemma, collocate, opts = {}) {
 /**
  * Reiht Paare zur Prüfung ein und startet den Lauf, falls keiner läuft.
  * Schon für den aktuellen Belegbestand geprüfte Paare werden übersprungen, außer mit `erneut`.
+ * Paare mit `mitDetails` (Lückenfüller) gelten erst als geprüft, wenn auch Relation und
+ * Position vorliegen (Migration 0034) – ältere Zeilen werden für sie nachgeprüft.
+ *
+ * `lueckenfueller`: [{ id, paare }] – Lückenfüller-Lemmata zukünftiger Tage. Wird für eins
+ * davon ein Paar eingereiht, baut der Lauf am Ende seine Runden mit den neuen Prüfdaten neu.
+ *
  * @returns {{status: 'aus'|'geplant', neu: number}}
  */
-export function planePruefung(paare, { erneut = false } = {}) {
+export function planePruefung(paare, { erneut = false, lueckenfueller = [] } = {}) {
   if (!pruefungAktiv()) return { status: 'aus', neu: 0 }
   const stand = belegeStand()
   let neu = 0
-  for (const { basis, kollokator } of paare) {
+  for (const { basis, kollokator, mitDetails } of paare) {
     const schluessel = paarSchluessel(basis, kollokator)
     if (warteschlange.has(schluessel)) continue
     if (!erneut) {
       const row = stmts.holen.get(String(basis).toLowerCase(), String(kollokator).toLowerCase())
-      if (row && row.belege_stand === stand) continue
+      if (row && row.belege_stand === stand && (!mitDetails || row.details != null)) continue
     }
     warteschlange.set(schluessel, { basis, kollokator })
     neu++
+  }
+  for (const { id, paare: lfPaare } of lueckenfueller) {
+    if (lfPaare.some(p => warteschlange.has(paarSchluessel(p.basis, p.kollokator)))) neubau.add(id)
   }
   if (neu && !laeuft) {
     laeuft = true
@@ -105,11 +106,60 @@ export function planePruefung(paare, { erneut = false } = {}) {
   return { status: 'geplant', neu }
 }
 
-/** Reiht alle Belegpaare der angegebenen Spieltage ein (Speichern eines Tages, Admin-Werkzeug). */
-export function planePruefungFuerTage(daten, opts) {
+/**
+ * Reiht alle Belegpaare der angegebenen Spieltage ein (Speichern eines Tages, Admin-Werkzeug):
+ * die angezeigten Paare (paareFuerDatum) und den Pool des Lückenfüller-Worts.
+ */
+export async function planePruefungFuerTage(daten, opts) {
+  if (!pruefungAktiv()) return { status: 'aus', neu: 0 }
   const maps = loadDailyContentMaps()
   const { byId } = getLemmataIndex()
-  return planePruefung(daten.flatMap(datum => paareFuerDatum(datum, maps, byId)), opts)
+  const heute = berlinTag()
+  const paare = daten.flatMap(datum => paareFuerDatum(datum, maps, byId))
+  const lueckenfueller = []
+  for (const datum of daten) {
+    const eintrag = maps.kalender?.[datum]
+    const lf = Array.isArray(eintrag) ? null : byId.get(eintrag?.lueckenfueller_id)
+    if (!lf) continue
+    const pool = await lueckenfuellerPool(lf.lemma, lf.pos)
+    const lfPaare = pool.slice(0, LUECKENFUELLER_PRUEFPAARE)
+      .map(item => ({ basis: lf.lemma, kollokator: item.lemma, mitDetails: true }))
+    paare.push(...lfPaare)
+    // Heute wird schon gespielt: dessen Runden bleiben, wie sie sind
+    if (datum > heute) lueckenfueller.push({ id: lf.id, paare: lfPaare })
+  }
+  return planePruefung(paare, { ...opts, lueckenfueller })
+}
+
+/**
+ * Baut die Lückenfüller-Runden neu, deren Paare im Lauf geprüft wurden – jetzt mit Sätzen,
+ * in denen der Kollokator nachweislich in der Relation steht, und exakter Lücke. Nur für
+ * Wörter, die noch an einem zukünftigen Tag als Lückenfüller geplant sind. Liefert der
+ * Neubau zu wenig Material, bleiben die alten Runden.
+ */
+async function baueLueckenfuellerNeu(lauf) {
+  const ids = [...neubau]
+  neubau.clear()
+  if (!ids.length) return
+  const heute = berlinTag()
+  const { kalender } = loadDailyContentMaps()
+  let neuGebaut = 0
+  for (const id of ids) {
+    const nochGeplant = Object.entries(kalender).some(([datum, e]) => datum > heute && !Array.isArray(e) && e?.lueckenfueller_id === id)
+    const entry = nochGeplant ? getLemmataIndex().byId.get(id) : null
+    if (!entry) continue
+    try {
+      const runden = await buildLueckenfuellerImWorker(entry.lemma, entry.pos)
+      if (!runden?.length) continue
+      storeStmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: runden }))
+      invalidateCache('lemmata.json')
+      neuGebaut++
+      logger.info(`Belegprüfung: Lückenfüller „${entry.lemma}“ mit geprüften Sätzen neu gebaut (${runden.length} Runden)`)
+    } catch (err) {
+      logger.error({ err }, `Belegprüfung: Lückenfüller „${entry.lemma}“ nicht neu gebaut`)
+    }
+  }
+  if (lauf) lauf.lueckenfueller = neuGebaut
 }
 
 export function pruefungStatus() {
@@ -130,6 +180,7 @@ async function arbeiteAb() {
     }
     lauf.ende = new Date().toISOString()
   }
+  await baueLueckenfuellerNeu(letzterLauf)
 }
 
 /**

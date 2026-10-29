@@ -12,15 +12,14 @@
  * und per JSON.parse/stringify konvertiert.
  */
 import Database from 'better-sqlite3'
-import { join, dirname } from 'path'
+import { dirname } from 'path'
 import { mkdirSync } from 'fs'
-import { fileURLToPath } from 'url'
 import logger from './logger.js'
 import { runSqlMigrationsSync } from './migrate-sync.js'
+import { DB_PATH } from './dbPfad.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
 // Exportiert für das dateibasierte Backup (jobs/sqliteBackup.js)
-export const DB_PATH = process.env.APP_DB || join(__dirname, 'data', 'signifikation.db')
+export { DB_PATH }
 
 mkdirSync(dirname(DB_PATH), { recursive: true })
 

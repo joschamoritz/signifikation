@@ -9,6 +9,12 @@ vi.mock('../belege.js', () => ({
   fetchBelege: vi.fn(() => []),
   belegeStand: vi.fn(() => 5000),
 }))
+// Ein eingeplanter Lauf startet sofort; hier ohne Worker und ohne Python – die Kandidatensuche
+// scheitert absichtlich, der Lauf endet mit einem protokollierten Fehler
+vi.mock('../belegPruefung/kandidatenImWorker.js', () => ({
+  holeKandidatenImWorker: vi.fn(() => Promise.reject(new Error('im Test kein Worker'))),
+}))
+vi.mock('../lueckenfuellerImWorker.js', () => ({ buildLueckenfuellerImWorker: vi.fn(async () => null) }))
 
 const { paareFuerDatum, paarSchluessel } = await import('../belegPruefung/paare.js')
 const { gepruefteSatzIds, gepruefteDetails, fetchBelegeGeprueft, planePruefung, pruefungStatus } = await import('../belegPruefung/index.js')
@@ -118,5 +124,20 @@ describe('planePruefung', () => {
     delete process.env.BELEGPRUEFUNG_PYTHON
     expect(planePruefung([{ basis: 'Panik', kollokator: 'Hysterie' }])).toEqual({ status: 'aus', neu: 0 })
     expect(pruefungStatus()).toMatchObject({ aktiv: false, laeuft: false, wartend: 0 })
+  })
+
+  it('prüft Lückenfüller-Paare ohne Relation und Position nach, andere Paare nicht', async () => {
+    process.env.BELEGPRUEFUNG_PYTHON = 'python-im-test'
+    belegeStand.mockReturnValue(5000)
+    db.prepare('DELETE FROM beleg_pruefung').run()
+    db.prepare(`INSERT INTO beleg_pruefung (basis, kollokator, belege_stand, kandidaten, bestanden, satz_ids, details, geprueft_am)
+      VALUES ('traum', 'süß', 5000, 80, 30, '[1]', NULL, '2026-10-29T12:00:00Z')`).run()
+
+    expect(planePruefung([{ basis: 'Traum', kollokator: 'süß' }]).neu).toBe(0)
+    expect(planePruefung([{ basis: 'Traum', kollokator: 'süß', mitDetails: true }]).neu).toBe(1)
+
+    // Der Lauf scheitert im Test an der Kandidatensuche und gibt die Warteschlange wieder frei
+    await vi.waitFor(() => expect(pruefungStatus().laeuft).toBe(false))
+    expect(pruefungStatus().letzterLauf.fehler).toMatch(/kein Worker/)
   })
 })

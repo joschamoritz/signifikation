@@ -919,6 +919,21 @@ function holeSaetze(ids) {
 }
 
 /**
+ * Sätze zu Satz-IDs mit Quellenangabe – für den Lückenfüller, der die geprüften Sätze eines
+ * Paars direkt holt. Unbekannte IDs fallen weg.
+ *
+ * @returns {Array<{id:number, satz:string, quelle:string}>}
+ */
+export function fetchSaetze(ids) {
+  try {
+    return holeSaetze(ids).map(r => ({ id: r.id, satz: r.satz, quelle: formatQuelle(r) }))
+  } catch (err) {
+    logger.warn({ err }, 'fetchSaetze fehlgeschlagen')
+    return []
+  }
+}
+
+/**
  * Kandidatensätze für die Belegprüfung: derselbe Pool wie in `fetchBelege()`,
  * nur größer und mit Satz-ID, ohne Auswahl. Leer im v1-Schema (keine stabilen IDs).
  *

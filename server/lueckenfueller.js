@@ -15,8 +15,9 @@
  */
 
 import { fetchRelation, lemmaZeilen } from './wortprofil.js'
-import { fetchBelegeRaw, zaehlePhrase } from './belege.js'
+import { fetchBelegeRaw, fetchSaetze, zaehlePhrase } from './belege.js'
 import { rahmenDerLuecke, waehleForm } from './lueckenfuellerRahmen.js'
+import { gepruefteDetails } from './belegPruefung/details.js'
 import logger from './logger.js'
 
 const LF_RELATIONS = {
@@ -147,19 +148,9 @@ function distraktorForm(distraktor, ziel) {
 const MIN_SATZ_LEN = 50
 const MAX_SATZ_LEN = 220
 
-function findBlankableSatz(lemma, target) {
-  const belege = fetchBelegeRaw(lemma, target.lemma, { limit: 30, prefixCollocate: true })
-
-  // Alle blankbaren Sätze sammeln, nach Länge sortieren (längster zuerst),
-  // dabei Sätze unter MIN_SATZ_LEN und über MAX_SATZ_LEN ausschließen.
-  // Fallback: wenn kein Satz die Mindestlänge erfüllt, kürzeste akzeptable nehmen.
-  const candidates = []
-  for (const b of belege) {
-    const blanked = blankCollocate(b.satz, target.lemma, lemma)
-    if (blanked) candidates.push({ satz: b.satz, quelle: b.quelle, ...blanked })
-  }
+/** Der längste Satz im Längenfenster (der Kontext hilft beim Raten), sonst irgendeiner. */
+function waehleSatz(candidates) {
   if (!candidates.length) return null
-
   const inRange = candidates.filter(c => c.satz.length >= MIN_SATZ_LEN && c.satz.length <= MAX_SATZ_LEN)
   const pool = inRange.length ? inRange : candidates
   pool.sort((a, b) => b.satz.length - a.satz.length)
@@ -167,16 +158,56 @@ function findBlankableSatz(lemma, target) {
 }
 
 /**
- * Baut bis zu 6 Lückenfüller-Runden für ein Lemma auf.
- * Gibt Array mit Runden-Objekten zurück oder null wenn nicht genug Material.
+ * Satz-IDs, in denen die Belegprüfung den Kollokator in einer Lückenfüller-Relation der
+ * Wortart gefunden hat (für Nomen ATTR oder KON …). null: keine Prüfdaten zu diesem Paar.
  */
-export async function buildLueckenfueller(lemma, pos) {
-  const relCodes = LF_RELATIONS[pos] ?? LF_RELATIONS.Substantiv
+function idsInRelation(lemma, kollokator, relCodes) {
+  const details = gepruefteDetails(lemma, kollokator)
+  if (!details) return null
+  return Object.entries(details)
+    .filter(([, d]) => d.rel.some(r => relCodes.includes(r)))
+    .map(([id, d]) => ({ id: Number(id), ...d }))
+}
 
-  // Kollokatoren über alle relevanten Relationen sammeln und deduplizieren
-  const results = await Promise.allSettled(
-    relCodes.map(rel => fetchRelation(lemma, pos, rel))
-  )
+/**
+ * Geprüfte Sätze: genau die Stelle, an der der Parser den Kollokator in der Relation gefunden
+ * hat, wird zur Lücke. Die Positionen sind Codepoints (Python), daher über [...satz] geschnitten.
+ */
+function geprueftLueckenSaetze(treffer) {
+  const position = new Map(treffer.map(t => [t.id, t]))
+  return fetchSaetze(treffer.map(t => t.id)).flatMap(s => {
+    const { start, ende } = position.get(s.id)
+    const z = [...s.satz]
+    const token = z.slice(start, ende).join('')
+    if (!token) return []
+    return [{ satz: s.satz, quelle: s.quelle, satzMitLuecke: `${z.slice(0, start).join('')}_____${z.slice(ende).join('')}`, token }]
+  })
+}
+
+function findBlankableSatz(lemma, target, relCodes) {
+  // Liegt eine Belegprüfung vor, nur ihre Sätze: Dort steht der Kollokator nachweislich in
+  // der Relation zum Grundwort („Geschichten und Sagen“, nicht „man kann sagen, dass …“).
+  const treffer = idsInRelation(lemma, target.lemma, relCodes)
+  if (treffer) return waehleSatz(geprueftLueckenSaetze(treffer))
+
+  const belege = fetchBelegeRaw(lemma, target.lemma, { limit: 30, prefixCollocate: true })
+  const candidates = []
+  for (const b of belege) {
+    const blanked = blankCollocate(b.satz, target.lemma, lemma)
+    if (blanked) candidates.push({ satz: b.satz, quelle: b.quelle, ...blanked })
+  }
+  return waehleSatz(candidates)
+}
+
+/**
+ * Kollokatoren eines Lemmas für den Lückenfüller, stärkste zuerst – über alle Relationen
+ * der Wortart (LF_RELATIONS), dedupliziert, ohne Mehrwortausdrücke und Namensteile.
+ * Auch die Belegprüfung reiht diese Paare ein (belegPruefung/index.js), damit der
+ * Lückenfüller Relation und Position seiner Sätze kennt.
+ */
+export async function lueckenfuellerPool(lemma, pos) {
+  const relCodes = LF_RELATIONS[pos] ?? LF_RELATIONS.Substantiv
+  const results = await Promise.allSettled(relCodes.map(rel => fetchRelation(lemma, pos, rel)))
   const seen = new Map()
   for (const r of results) {
     if (r.status !== 'fulfilled') continue
@@ -188,10 +219,26 @@ export async function buildLueckenfueller(lemma, pos) {
       }
     }
   }
-
-  const pool = [...seen.values()]
+  return [...seen.values()]
     .filter(item => parseFloat(item.logDice) >= MIN_LOG_DICE && !item.lemma.includes(' ') && !istGebeugtesAdjektiv(item))
     .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+}
+
+/** So viele Pool-Wörter prüft die Belegprüfung je Lückenfüller (10 Ziele + Distraktoren). */
+export const LUECKENFUELLER_PRUEFPAARE = 20
+
+/**
+ * Baut bis zu 6 Lückenfüller-Runden für ein Lemma auf.
+ * Gibt Array mit Runden-Objekten zurück oder null wenn nicht genug Material.
+ */
+export async function buildLueckenfueller(lemma, pos) {
+  const relCodes = LF_RELATIONS[pos] ?? LF_RELATIONS.Substantiv
+
+  // Wörter, die geprüft wurden, aber in keinem Satz in der Relation stehen, sind Parser-
+  // Fehler im Wortprofil: „gewaltig streichen“ ist ein Adverb am Verb, kein „gewaltiges
+  // Streichen“. Ohne Prüfdaten bleibt das Wort (Eigenes Lemma, Klassenraum).
+  const pool = (await lueckenfuellerPool(lemma, pos))
+    .filter(item => idsInRelation(lemma, item.lemma, relCodes)?.length !== 0)
 
   if (pool.length < MIN_POOL_SIZE) {
     logger.debug({ lemma, pos, poolSize: pool.length }, 'Lückenfüller: Pool zu klein')
@@ -201,7 +248,7 @@ export async function buildLueckenfueller(lemma, pos) {
   // Blankbare Sätze für die stärksten Pool-Mitglieder suchen (max. 10 versuchen)
   const targets = []
   for (const candidate of pool.slice(0, 10)) {
-    const found = findBlankableSatz(lemma, candidate)
+    const found = findBlankableSatz(lemma, candidate, relCodes)
     if (found) targets.push({ ...candidate, ...found })
     if (targets.length >= 7) break
   }

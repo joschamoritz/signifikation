@@ -106,12 +106,12 @@ export function createAdminOpsRouter({
   const router = express.Router()
 
   // Belegprüfung von Hand anstoßen: kommende Spieltage (ab heute) oder das ganze Archiv
-  router.post('/admin/beleg-pruefung', adminLimiter, requireAuth, validate(adminBelegPruefungSchema), (req, res) => {
+  router.post('/admin/beleg-pruefung', adminLimiter, requireAuth, validate(adminBelegPruefungSchema), async (req, res) => {
     try {
       const { umfang, erneut } = req.body
       const heute = todayBerlin()
       const daten = Object.keys(loadKalender()).filter(d => umfang === 'alle' || d >= heute).sort()
-      const ergebnis = planePruefungFuerTage(daten, { erneut })
+      const ergebnis = await planePruefungFuerTage(daten, { erneut })
       logger.info(`Belegprüfung angestoßen (${umfang}): ${daten.length} Tage, ${ergebnis.neu} neue Paare`)
       res.json({ ...ergebnis, tage: daten.length, ...pruefungStatus() })
     } catch (err) {

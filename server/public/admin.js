@@ -1956,7 +1956,8 @@ function belegPruefungZeile(bp = {}) {
     return betriebZeile('Belegprüfung', betriebWert('läuft'), esc(bp.wartend ? `${inArbeit} in Arbeit, ${anzahlText(bp.wartend, 'weiteres wartet', 'weitere warten')}` : `${inArbeit} in Arbeit`))
   }
   if (lauf?.fehler) return betriebZeile('Belegprüfung', betriebWert('letzter Lauf fehlgeschlagen', 'warn'), `${esc(lauf.fehler)} ${knopf}`)
-  const zuletzt = lauf?.ende ? `zuletzt ${wannText(lauf.ende)} Uhr, ${anzahlText(lauf.paare, 'Paar', 'Paare')} · ` : ''
+  const lf = lauf?.lueckenfueller ? `, ${anzahlText(lauf.lueckenfueller, 'Lückenfüller', 'Lückenfüller')} neu gebaut` : ''
+  const zuletzt = lauf?.ende ? `zuletzt ${wannText(lauf.ende)} Uhr, ${anzahlText(lauf.paare, 'Paar', 'Paare')}${lf} · ` : ''
   return betriebZeile('Belegprüfung', betriebWert('bereit'), `${esc(zuletzt)}${knopf}`)
 }
 
