@@ -101,9 +101,11 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
           <span className="test-pos">Lizenz</span>
           <span className="test-pos-rule" />
           {/* Kategorie analog zu „täglich" bei den Spielmodi – und sachlich
-              richtig: Einmalkauf, dauerhaft freigeschaltet. „Premium" waere
-              die einzige Stelle, an der das Produkt nicht „Gesamtausgabe" heisst. */}
-          <span className="test-entry-category">dauerhaft</span>
+              richtig: Einmalkauf, kein Abo. Nicht „dauerhaft": Die
+              Nutzungsbedingungen versprechen Zugang, solange die App läuft.
+              „Premium" waere die einzige Stelle, an der das Produkt nicht
+              „Gesamtausgabe" heisst. */}
+          <span className="test-entry-category">einmalig</span>
         </div>
 
         {gesamtausgabePermanent ? (

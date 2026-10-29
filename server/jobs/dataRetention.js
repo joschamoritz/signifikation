@@ -33,6 +33,7 @@ import logger from '../logger.js'
 import { reportAlert } from '../alerting.js'
 import { compactOldUserStats } from '../store.js'
 import { STATS_KONTO_ZEILEN_TAGE } from '../store-stats.js'
+import { loescheAlteZusatzSicherungen } from './sqliteBackup.js'
 
 export const DEFAULT_RETENTION_MS = 730 * 24 * 60 * 60 * 1000 // 24 Monate (730 Tage)
 const DEFAULT_SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
@@ -153,6 +154,9 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
   // Pre-Deploy-Snapshots nach eigener, kuerzerer Frist (siehe oben).
   const deploySnapshotsRemoved = pruneDeploySnapshots(now)
 
+  // Handsicherungen und Kopien vor dem Wiederherstellen: dieselbe Frist.
+  const zusatzSicherungenRemoved = loescheAlteZusatzSicherungen({ now })
+
   const result = {
     auditDeleted: audit.changes,
     auditIpsCleared: auditIps.changes,
@@ -162,8 +166,9 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
     statsCompacted,
     legacyExportsRemoved,
     deploySnapshotsRemoved,
+    zusatzSicherungenRemoved,
   }
-  if (result.auditDeleted > 0 || result.auditIpsCleared > 0 || result.paymentsDeleted > 0 || result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0 || result.deploySnapshotsRemoved > 0) {
+  if (Object.values(result).some((n) => n > 0)) {
     logger.info(result, 'Retention-Sweep: alte Eintraege geloescht/kompaktiert')
   }
   return result

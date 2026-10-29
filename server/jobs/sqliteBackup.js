@@ -34,7 +34,7 @@ import db, { DB_PATH } from '../db.js'
 import { reportAlert } from '../alerting.js'
 import logger from '../logger.js'
 
-const BACKUP_DIR  = process.env.SQLITE_BACKUP_DIR || join(dirname(DB_PATH), 'backups')
+export const BACKUP_DIR  = process.env.SQLITE_BACKUP_DIR || join(dirname(DB_PATH), 'backups')
 
 if (!process.env.SQLITE_BACKUP_DIR && process.env.NODE_ENV === 'production') {
   logger.warn(
@@ -121,6 +121,35 @@ export function zuLoeschen(dateien, keep, ersteJedesTages = false) {
     for (const [, datei] of [...ersteJeTag.entries()].sort(([a], [b]) => (a < b ? 1 : -1)).slice(0, keep)) behalten.add(datei)
   }
   return dateien.filter(f => !behalten.has(f))
+}
+
+// Zusätzliche Sicherungen zusätzlich nach Alter: Die Anzahlgrenze allein hält
+// eine einzelne Handsicherung beliebig lange – samt gelöschter Konten. Die
+// Datenschutzerklärung verspricht, dass gelöschte Daten nach 7 Tagen aus den
+// Sicherungen verschwinden; deshalb dieselbe Frist wie die täglichen Stände.
+// Aufgerufen aus dem täglichen Retention-Sweep (dataRetention.js).
+export const ZUSATZ_MAX_AGE_MS = KEEP_COUNT * 24 * 60 * 60 * 1000
+
+export function loescheAlteZusatzSicherungen({ dir = BACKUP_DIR, now = Date.now(), maxAgeMs = ZUSATZ_MAX_AGE_MS } = {}) {
+  let names
+  try {
+    names = readdirSync(dir)
+  } catch {
+    return 0 // noch kein Backup-Verzeichnis
+  }
+  let removed = 0
+  for (const f of names) {
+    if (!EXTRA_PATTERN.test(f)) continue
+    try {
+      if (statSync(join(dir, f)).mtimeMs < now - maxAgeMs) {
+        unlinkSync(join(dir, f))
+        removed += 1
+      }
+    } catch (err) {
+      logger.warn({ err, file: f }, 'Zusatz-Sicherung konnte nicht geprueft/geloescht werden')
+    }
+  }
+  return removed
 }
 
 /**

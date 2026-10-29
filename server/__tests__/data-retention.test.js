@@ -3,6 +3,7 @@ import { join, dirname, basename } from 'path'
 import { mkdirSync, writeFileSync, utimesSync, existsSync, rmSync } from 'fs'
 import db, { DB_PATH } from '../db.js'
 import { runDataRetention, DEFAULT_RETENTION_MS, SNAPSHOT_MAX_AGE_MS, AUDIT_IP_RETENTION_MS } from '../jobs/dataRetention.js'
+import { BACKUP_DIR, ZUSATZ_MAX_AGE_MS } from '../jobs/sqliteBackup.js'
 
 const NOW = Date.parse('2026-06-10T12:00:00.000Z')
 const OLD_MS = NOW - DEFAULT_RETENTION_MS - 24 * 60 * 60 * 1000 // 1 Tag über der Frist
@@ -151,6 +152,50 @@ describe('dataRetention (Pre-Deploy-Snapshots)', () => {
 
     runDataRetention({ now: NOW })
 
+    expect(existsSync(fremd)).toBe(true)
+  })
+})
+
+describe('dataRetention (Zusatz-Sicherungen)', () => {
+  const angelegt = []
+  afterEach(() => {
+    for (const f of angelegt) if (existsSync(f)) rmSync(f)
+    angelegt.length = 0
+  })
+
+  function datei(name, mtimeMs) {
+    mkdirSync(BACKUP_DIR, { recursive: true })
+    const f = join(BACKUP_DIR, name)
+    writeFileSync(f, 'x')
+    utimesSync(f, mtimeMs / 1000, mtimeMs / 1000)
+    angelegt.push(f)
+    return f
+  }
+
+  // Sonst hielte die Anzahlgrenze eine einzelne Handsicherung samt gelöschter
+  // Konten beliebig lange – die Datenschutzerklärung nennt 7 Tage.
+  it('löscht Handsicherungen und Kopien vor dem Wiederherstellen nach der Sicherungsfrist', () => {
+    const altMs = NOW - ZUSATZ_MAX_AGE_MS - 24 * 60 * 60 * 1000
+    const hand = datei('signifikation-2026-05-01-1200-manuell.db.gz', altMs)
+    const vorher = datei('signifikation-2026-05-01-1300-vor-wiederherstellung.db.gz', altMs)
+    const frisch = datei('signifikation-2026-06-09-1200-manuell.db.gz', FRESH_MS)
+
+    const result = runDataRetention({ now: NOW })
+
+    expect(result.zusatzSicherungenRemoved).toBe(2)
+    expect(existsSync(hand)).toBe(false)
+    expect(existsSync(vorher)).toBe(false)
+    expect(existsSync(frisch)).toBe(true)
+  })
+
+  it('fasst tägliche Sicherungen und fremde Dateien nicht an', () => {
+    const altMs = NOW - ZUSATZ_MAX_AGE_MS - 24 * 60 * 60 * 1000
+    const taeglich = datei('signifikation-2026-05-01.db.gz', altMs)
+    const fremd = datei('notizen.txt', altMs)
+
+    runDataRetention({ now: NOW })
+
+    expect(existsSync(taeglich)).toBe(true)
     expect(existsSync(fremd)).toBe(true)
   })
 })
