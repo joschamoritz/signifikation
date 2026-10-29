@@ -673,22 +673,6 @@
 }
 
 .konto-auth-social-btn {
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-serif);
-  font-size: 0.78rem;
-  min-height: 36px;
-  padding: 0 12px;
-}
-
-.konto-auth-social-btn:disabled {
-  color: var(--disabled);
-}
-
-
-.konto-auth-apple-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -707,22 +691,22 @@
   transition: border-color 120ms ease;
 }
 
-.konto-auth-apple-btn:hover:not(:disabled) {
+.konto-auth-social-btn:hover:not(:disabled) {
   border-color: var(--text);
 }
 
-.konto-auth-apple-btn:active:not(:disabled) {
+.konto-auth-social-btn:active:not(:disabled) {
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.konto-auth-apple-btn:disabled {
+.konto-auth-social-btn:disabled {
   color: var(--disabled);
   border-color: var(--border-lt);
   cursor: default;
 }
 
-.konto-auth-apple-btn svg {
+.konto-auth-social-btn svg {
   flex-shrink: 0;
   color: var(--text);
   margin-top: -2px;
