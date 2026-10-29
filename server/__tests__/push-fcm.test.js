@@ -47,6 +47,11 @@ describe('isUnregistered', () => {
     expect(isUnregistered(404, body)).toBe(true)
   })
 
+  it('erkennt Tokens eines anderen Firebase-Projekts (SENDER_ID_MISMATCH)', () => {
+    const body = { error: { status: 'PERMISSION_DENIED', details: [{ errorCode: 'SENDER_ID_MISMATCH' }] } }
+    expect(isUnregistered(403, body)).toBe(true)
+  })
+
   it('löscht NICHT bei allgemeinem INVALID_ARGUMENT (kann an der Nachricht liegen)', () => {
     const body = { error: { status: 'INVALID_ARGUMENT', details: [{ errorCode: 'INVALID_ARGUMENT' }] } }
     expect(isUnregistered(400, body)).toBe(false)

@@ -54,11 +54,18 @@ export function buildMessage(token, payload) {
  * Subscription löschen. Nur bei eindeutigem UNREGISTERED: ein allgemeines
  * INVALID_ARGUMENT kann auch an unserer Nachricht liegen und darf nicht alle
  * Android-Geräte auf einmal löschen.
+ *
+ * SENDER_ID_MISMATCH: Das Token gehört zu einem anderen Firebase-Projekt –
+ * z. B. nach dem Umzug von signifikation-bb04d nach signifikation (29.10.).
+ * Mit dem aktuellen Dienstkonto ist es nie wieder zustellbar; die App meldet
+ * sich nach dem Update mit einem neuen Token selbst wieder an.
  */
 export function isUnregistered(status, body) {
   const details = body?.error?.details || []
   const code = details.find((d) => d?.errorCode)?.errorCode
-  return code === 'UNREGISTERED' || (status === 404 && body?.error?.status === 'NOT_FOUND')
+  return code === 'UNREGISTERED'
+    || code === 'SENDER_ID_MISMATCH'
+    || (status === 404 && body?.error?.status === 'NOT_FOUND')
 }
 
 /**

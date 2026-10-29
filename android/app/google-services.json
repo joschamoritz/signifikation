@@ -1,26 +1,43 @@
 {
   "project_info": {
-    "project_number": "640942983577",
-    "project_id": "signifikation-bb04d",
-    "storage_bucket": "signifikation-bb04d.firebasestorage.app"
+    "project_number": "495965993243",
+    "project_id": "signifikation",
+    "storage_bucket": "signifikation.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:640942983577:android:d5b9fec5db3a0224f66b08",
+        "mobilesdk_app_id": "1:495965993243:android:ab4705636eaaec7d84bbbe",
         "android_client_info": {
           "package_name": "de.signifikation.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "495965993243-6fs5jhq89d6liccl5p40lh1nqivrv6vj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyB66UsTvA4CvKbH3-tcimfhyxqjUuJOiOw"
+          "current_key": "AIzaSyCCa1aCu9f2CkEQISs5_mmJpKTBOL7FsZU"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "495965993243-6fs5jhq89d6liccl5p40lh1nqivrv6vj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "495965993243-6agj8p3t81759fuvard0hr4qdjhfqlbf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "de.signifikation.app"
+              }
+            }
+          ]
         }
       }
     }
