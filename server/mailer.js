@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import logger from './logger.js'
+import { nutzungsbedingungenAlsText } from './nutzungsbedingungenText.js'
 
 // Zugangsdaten des Mailversands. Die SMTP_*-Namen sind die neuen, die GMAIL_*
 // bleiben als Rückfall bestehen: der Server soll während einer Umstellung nicht
@@ -147,7 +148,7 @@ const NO_TRACKING_HEADERS = {
 }
 
 // Liefert das nodemailer-Info-Objekt (truthy) oder null bei Fehlschlag.
-async function deliver({ to, subject, text, html, context }) {
+async function deliver({ to, subject, text, html, attachments, context }) {
   try {
     const transporter = getTransporter()
     const info = await transporter.sendMail({
@@ -156,6 +157,7 @@ async function deliver({ to, subject, text, html, context }) {
       subject,
       text,
       html,
+      ...(attachments?.length ? { attachments } : {}),
       headers: NO_TRACKING_HEADERS,
     })
     logger.info({ to }, `${context} gesendet`)
@@ -175,6 +177,19 @@ export async function sendPurchaseConfirmation({ to, purchaseDate, amount }) {
     hour: '2-digit', minute: '2-digit',
     timeZone: 'Europe/Berlin',
   })
+
+  // Vertragsinhalt auf dauerhaftem Datenträger (§ 312f Abs. 2 BGB). Fehlt die
+  // Datei, geht die Mail trotzdem raus – nur mit Link statt Anhang.
+  let anhang = []
+  try {
+    anhang = [{
+      filename: 'Nutzungsbedingungen-Signifikation.txt',
+      content: nutzungsbedingungenAlsText(),
+      contentType: 'text/plain; charset=utf-8',
+    }]
+  } catch (err) {
+    logger.warn({ err }, 'Nutzungsbedingungen für die Bestellbestätigung nicht lesbar, Versand ohne Anhang')
+  }
 
   const html = renderLayout({
     kicker: 'Bestellbestätigung',
@@ -205,7 +220,9 @@ export async function sendPurchaseConfirmation({ to, purchaseDate, amount }) {
     hast, ist das Widerrufsrecht gemäß §&nbsp;356 Abs.&nbsp;5 BGB mit Freischaltung der Gesamtausgabe erloschen.
   </p>
   <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin-bottom:32px">
-    Vollständige <a href="https://signifikation.de/nutzungsbedingungen.html" style="color:#9b1c1c;text-decoration:none">Nutzungsbedingungen</a>
+    ${anhang.length
+      ? 'Die beim Kauf gültigen Nutzungsbedingungen hängen dieser E-Mail an (aktuelle Fassung <a href="https://signifikation.de/nutzungsbedingungen.html" style="color:#9b1c1c;text-decoration:none">online</a>).'
+      : 'Vollständige <a href="https://signifikation.de/nutzungsbedingungen.html" style="color:#9b1c1c;text-decoration:none">Nutzungsbedingungen</a>'}
     &middot; Fragen: <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
   </p>`,
     footerHtml: `${RECHNUNG_ANSCHRIFT_HTML}<br>
@@ -226,7 +243,7 @@ Widerrufsrecht: Da du vor dem Kauf der sofortigen Bereitstellung der digitalen
 Inhalte ausdrücklich zugestimmt und dein Wissen vom Erlöschen des Widerrufsrechts
 bestätigt hast, ist das Widerrufsrecht gemäß § 356 Abs. 5 BGB mit Freischaltung
 der Gesamtausgabe erloschen.
-
+${anhang.length ? '\nDie beim Kauf gültigen Nutzungsbedingungen hängen dieser E-Mail an.\n' : ''}
 Nutzungsbedingungen: https://signifikation.de/nutzungsbedingungen.html
 Fragen: info@signifikation.de
 
@@ -235,7 +252,7 @@ ${RECHNUNG_ANSCHRIFT_TEXT}
 Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.`
 
   // Fehlgeschlagene Mail darf die Webhook-Verarbeitung nicht blockieren
-  return deliver({ to, subject: 'Bestellbestätigung – Gesamtausgabe freigeschaltet', text, html, context: 'Bestellbestätigung' })
+  return deliver({ to, subject: 'Bestellbestätigung – Gesamtausgabe freigeschaltet', text, html, attachments: anhang, context: 'Bestellbestätigung' })
 }
 
 // Passwort-Reset. Wirft bei Fehlschlag, damit better-auth den Aufruf als

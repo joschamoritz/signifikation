@@ -192,6 +192,30 @@ describe('mailer', () => {
       expect(mail.html).toContain('§&nbsp;19 UStG')
     })
 
+    // § 312f Abs. 2 BGB: Vertragsinhalt auf dauerhaftem Datenträger, ein Link
+    // auf die (änderbare) Webseite reicht nicht.
+    it('hängt die Nutzungsbedingungen als Text an', async () => {
+      await sendPurchaseConfirmation({ to: 'kunde@test.local', purchaseDate: Date.now(), amount: '9.99' })
+
+      const mail = lastMail()
+      expect(mail.attachments).toHaveLength(1)
+      const [anhang] = mail.attachments
+      expect(anhang.filename).toBe('Nutzungsbedingungen-Signifikation.txt')
+      expect(anhang.contentType).toMatch(/^text\/plain; charset=utf-8/)
+      expect(anhang.content).toContain('Widerrufsrecht')
+      expect(anhang.content).toContain('Muster-Widerrufsformular')
+      expect(mail.text).toMatch(/Nutzungsbedingungen hängen dieser E-Mail an/)
+      expect(mail.html).toMatch(/Nutzungsbedingungen hängen dieser E-Mail an/)
+    })
+
+    it('Willkommens- und Reset-Mail haben keinen Anhang', async () => {
+      await sendWelcomeMail({ to: 'neu@test.local' })
+      expect(lastMail().attachments).toBeUndefined()
+
+      await sendPasswordResetMail({ to: 'nutzer@test.local', url: 'https://signifikation.de/x' })
+      expect(lastMail().attachments).toBeUndefined()
+    })
+
     it('schluckt Versandfehler, damit der Webhook nicht kippt', async () => {
       sendMailMock.mockRejectedValueOnce(new Error('SMTP down'))
 
