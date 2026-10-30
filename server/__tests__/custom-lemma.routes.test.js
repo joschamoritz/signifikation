@@ -1,4 +1,5 @@
 import express from 'express'
+import http from 'node:http'
 import cookieParser from 'cookie-parser'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -105,6 +106,23 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
     expect(Number(r2.headers.get('retry-after'))).toBeGreaterThan(0)
     const b2 = await r2.json()
     expect(b2.quota.remaining).toBe(0)
+  })
+
+  it('play: Aufruf als <img> oder Seitenaufruf (fremde Seite) → 403, verbraucht nichts', async () => {
+    const userId = createTestUser(); userIds.add(userId)
+    // node:http statt fetch: fetch setzt sec-fetch-mode selbst auf cors
+    const holen = (modus) => new Promise((resolve, reject) => {
+      const url = new URL(`${baseUrl}/api/v1/custom-lemma/play?mode=kollokationen&q=Archiv`)
+      http.get(url, { headers: { ...devHeaders(userId, 'user'), 'sec-fetch-mode': modus, 'sec-fetch-site': 'cross-site' } }, (res) => {
+        res.resume()
+        res.on('end', () => resolve(res.statusCode))
+      }).on('error', reject)
+    })
+    expect(await holen('no-cors')).toBe(403)
+    expect(await holen('navigate')).toBe(403)
+    const verbraucht = db.prepare('SELECT count FROM custom_lemma_usage WHERE user_id = ?').get(userId)
+    expect(verbraucht?.count ?? 0).toBe(0)
+    expect(await holen('cors')).toBe(200)
   })
 
   it('play: zwei parallele Requests bei remaining=1 → genau EIN Erfolg (atomarer Verbrauch)', async () => {

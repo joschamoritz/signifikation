@@ -218,9 +218,11 @@ export const auth = betterAuth({
     // bleiben erhalten, da sie an user.id hängen.
     // Hinweis: Apple Private Relay (@privaterelay.appleid.com) matched nie eine echte
     // Mail – in dem Fall entsteht ein neuer Account, das ist gewollt.
+    // Keine trustedProviders: Sonst verknüpft better-auth auch, wenn der Anbieter die
+    // E-Mail als unbestätigt meldet (email_verified=false), und gibt die Session des
+    // bestehenden Kontos heraus. Echte Google- und Apple-Konten melden sie als bestätigt.
     accountLinking: {
       enabled: true,
-      trustedProviders: ['apple', 'google'],
     },
   },
   emailAndPassword: {

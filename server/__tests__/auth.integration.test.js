@@ -120,6 +120,20 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     expect(await alt.text()).not.toContain(EMAIL)
   })
 
+  it('verknüpft Google nicht mit einem bestehenden Konto, wenn die E-Mail beim Anbieter unbestätigt ist', async () => {
+    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(EMAIL)
+    db.prepare('UPDATE user SET emailVerified = 1 WHERE id = ?').run(user.id)
+    const { handleOAuthUserInfo } = await import('better-auth/oauth2')
+    const context = await auth.$context
+    const ergebnis = await handleOAuthUserInfo({ context }, {
+      userInfo: { id: 'google-sub-fremd', email: EMAIL, emailVerified: false, name: 'Fremd' },
+      account: { providerId: 'google', accountId: 'google-sub-fremd' },
+      callbackURL: '/',
+    })
+    expect(ergebnis.error).toBe('account not linked')
+    expect(db.prepare("SELECT COUNT(*) n FROM account WHERE userId = ? AND providerId = 'google'").get(user.id).n).toBe(0)
+  })
+
   it('Sign-out invalidiert die Session', async () => {
     const signIn = await fetch(`${baseUrl}/api/v1/auth/sign-in/email`, {
       method: 'POST',

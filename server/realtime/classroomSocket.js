@@ -263,18 +263,25 @@ function hasOpenSocketsForParticipant(participantId) {
 
 // ── Setup ───────────────────────────────────────────────────────────
 
+const LOOPBACK = /^(127\.|::1$|::ffff:127\.)/
+
+// Client-IP fuer das Connect-Limit, wie Express mit trust proxy 'loopback':
+// Hinter nginx ist handshake.address die Proxy-IP, das Limit wuerde auf EINE IP
+// kollabieren. nginx haengt die echte Adresse mit $proxy_add_x_forwarded_for
+// HINTEN an (ops/nginx-*.conf); alles davor kann der Client selbst schicken.
+// Deshalb zaehlt nur der letzte Eintrag, und nur wenn die Verbindung lokal ist.
+export function socketClientIp(handshake) {
+  const peer = handshake.address || 'unknown'
+  const xff = handshake.headers?.['x-forwarded-for']
+  if (!LOOPBACK.test(peer) || typeof xff !== 'string' || xff.length === 0) return peer
+  return xff.split(',').map((teil) => teil.trim()).filter(Boolean).at(-1) || peer
+}
+
 // Auth-Middleware fuer den Klassenraum-Namespace. Identisch fuer /classroom
 // (W4-S2) — daher als benannte Funktion extrahiert.
 async function classroomSocketAuth(socket, next) {
   try {
-    // Hinter nginx ist handshake.address die Proxy-IP — das Limit wuerde
-    // auf EINE IP kollabieren. X-Forwarded-For (vom Proxy gesetzt, siehe
-    // ops/nginx-*.conf) hat Vorrang; erster Eintrag = Client. Caveat wie
-    // bei Express trust proxy=1: nur hinter dem eigenen Proxy verlaesslich.
-    const xff = socket.handshake.headers['x-forwarded-for']
-    const ip = (typeof xff === 'string' && xff.length > 0)
-      ? xff.split(',')[0].trim()
-      : (socket.handshake.address || 'unknown')
+    const ip = socketClientIp(socket.handshake)
     if (!checkConnectRateLimit(ip)) {
       logger.warn({ ip }, 'classroom socket: rate limit exceeded')
       return next(new Error('RATE_LIMITED'))

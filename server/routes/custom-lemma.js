@@ -39,6 +39,19 @@ function sendQuotaExhausted(res, allowance) {
   })
 }
 
+// play verbraucht Kontingent, ist aber ein GET: csrfProtect greift nicht, und das
+// Session-Cookie ist in Produktion SameSite=None. Fetch-Metadaten verraten, ob der
+// Browser den Aufruf als <img>, Seitenaufruf oder Formular schickt (no-cors, navigate)
+// statt als fetch der App (cors, same-origin). Ohne Header (alte Browser) durchlassen.
+// Umstellung auf POST erst mit einem App-Build, ältere App-Versionen senden noch GET.
+function nurFetchAufruf(req, res, next) {
+  const modus = req.get('sec-fetch-mode')
+  if (modus && modus !== 'cors' && modus !== 'same-origin') {
+    return res.status(403).json({ error: 'Nur aus der App heraus aufrufbar' })
+  }
+  return next()
+}
+
 /**
  * GET /api/v1/custom-lemma/validate?mode=…&q=… (bzw. a=&b= bei Wort-Zwilling)
  * → { mode, usable, reason, … } – verbraucht KEIN Kontingent.
@@ -69,6 +82,7 @@ router.get(
 router.get(
   '/api/v1/custom-lemma/play',
   customLemmaLimiter,
+  nurFetchAufruf,
   requireAuthUser,
   validate(customLemmaValidateSchema, 'query'),
   async (req, res) => {
