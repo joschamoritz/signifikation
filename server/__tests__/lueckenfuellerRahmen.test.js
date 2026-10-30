@@ -23,13 +23,56 @@ function zaehler(katalog) {
 
 describe('rahmenDerLuecke', () => {
   it('liefert das Wort davor und danach', () => {
-    expect(rahmenDerLuecke('Er bringt einen _____ Wind in den Stock.')).toEqual({ links: 'einen', rechts: 'Wind' })
+    expect(rahmenDerLuecke('Er bringt einen _____ Wind in den Stock.')).toEqual({ links: 'einen', rechts: 'Wind', amSatzanfang: false })
   })
 
   it('kein Rahmen über ein Satzzeichen hinweg', () => {
-    expect(rahmenDerLuecke('ohne _____, ohne Panik')).toEqual({ links: 'ohne', rechts: null })
-    expect(rahmenDerLuecke('Panik, _____ und Angst')).toEqual({ links: null, rechts: 'und' })
-    expect(rahmenDerLuecke('_____ statt Urlaubsstimmung')).toEqual({ links: null, rechts: 'statt' })
+    expect(rahmenDerLuecke('ohne _____, ohne Panik')).toEqual({ links: 'ohne', rechts: null, amSatzanfang: false })
+    expect(rahmenDerLuecke('Panik, _____ und Angst')).toEqual({ links: null, rechts: 'und', amSatzanfang: false })
+    expect(rahmenDerLuecke('_____ statt Urlaubsstimmung')).toEqual({ links: null, rechts: 'statt', amSatzanfang: true })
+  })
+
+  it('Satzanfang auch hinter Anführungszeichen', () => {
+    expect(rahmenDerLuecke('„_____ Transistoren wurden …').amSatzanfang).toBe(true)
+  })
+})
+
+describe('waehleForm: Fehler aus der Messung vom 30.10.2026', () => {
+  it('Steigerung der Lösung macht ein anderes Adjektiv nicht zum Ortsadjektiv („geringeren“ → nicht „Hoch“)', () => {
+    const zaehle = zaehler({ 'hoch zahl': 50 })
+    const form = waehleForm({ lemma: 'hoch', pos: 'Adjektiv' }, { links: 'einer', rechts: 'Zahl', amSatzanfang: false },
+      { token: 'geringeren', lemma: 'gering' }, zaehle)
+    expect(form).toBe('hocheren')   // nicht belegt – das Wort fällt danach in waehleDistraktoren heraus
+  })
+
+  it('Ortsadjektiv als Lösung: Distraktoren klein und nach dem Rahmen gebeugt („den Prenzlauer Berg“ → „blauen“)', () => {
+    const zaehle = zaehler({ 'den blauen berg': 7 })
+    const form = waehleForm({ lemma: 'blau', pos: 'Adjektiv' }, { links: 'den', rechts: 'Berg', amSatzanfang: false },
+      { token: 'Prenzlauer', lemma: 'prenzlauer' }, zaehle)
+    expect(form).toBe('blauen')
+  })
+
+  it('Adjektiv mitten im Satz bleibt klein, auch wenn die Lösung großgeschrieben ist', () => {
+    const zaehle = zaehler({})
+    expect(waehleForm({ lemma: 'steil', pos: 'Adjektiv' }, { links: 'am', rechts: 'Berg', amSatzanfang: false },
+      { token: 'Weißen', lemma: 'weiß' }, zaehle)).toBe('steilen')
+    expect(waehleForm({ lemma: 'diskret', pos: 'Adjektiv' }, { links: null, rechts: 'Transistoren', amSatzanfang: true },
+      { token: 'Bipolare', lemma: 'bipolar' }, zaehle)).toBe('Diskrete')
+  })
+
+  it('Nomen ohne Rahmen, Lösung im Plural: belegte Form mit passender Endung („Pappeln“, „Grafen“)', () => {
+    const zaehle = zaehler({ pappeln: 900, pappels: 2 })
+    expect(waehleForm({ lemma: 'Pappel', pos: 'Substantiv' }, { links: null, rechts: null },
+      { token: 'Birken', lemma: 'Birke' }, zaehle)).toBe('Pappeln')
+    const z2 = zaehler({ grafen: 5000, grafs: 40 })
+    expect(waehleForm({ lemma: 'Graf', pos: 'Substantiv' }, { links: null, rechts: null },
+      { token: 'Knappen', lemma: 'Knappe' }, z2)).toBe('Grafen')
+  })
+
+  it('Nomen ohne Rahmen, Lösung in der Grundform: Grundform bleibt', () => {
+    const zaehle = zaehler({ pappeln: 900 })
+    expect(waehleForm({ lemma: 'Pappel', pos: 'Substantiv' }, { links: null, rechts: null },
+      { token: 'Birke', lemma: 'Birke' }, zaehle)).toBe('Pappel')
   })
 })
 

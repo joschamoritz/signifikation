@@ -28,7 +28,10 @@ const ENDUNGEN = {
  * („Panik, _____“), gibt es auf dieser Seite keinen Rahmen: über ein Komma hinweg
  * sagt die Wortfolge nichts über die Form.
  *
- * @returns {{ links: string|null, rechts: string|null }}
+ * `amSatzanfang`: Vor der Lücke stehen höchstens Anführungszeichen – nur dann wird ein
+ * Adjektiv großgeschrieben.
+ *
+ * @returns {{ links: string|null, rechts: string|null, amSatzanfang?: boolean }}
  */
 export function rahmenDerLuecke(satzMitLuecke) {
   const i = String(satzMitLuecke).indexOf(LUECKE)
@@ -38,6 +41,7 @@ export function rahmenDerLuecke(satzMitLuecke) {
   return {
     links: davor.match(/(\p{L}[\p{L}\p{N}-]*)\s+$/u)?.[1] ?? null,
     rechts: danach.match(/^\s+(\p{L}[\p{L}\p{N}-]*)/u)?.[1] ?? null,
+    amSatzanfang: !/[\p{L}\p{N}]/u.test(davor),
   }
 }
 
@@ -77,11 +81,40 @@ export function formNachEndung(lemma, pos, zielToken, zielLemma) {
   return lemma + endung
 }
 
-/** Groß/klein wie im Satz: Nomen immer groß, sonst wie die Lösung (groß nur am Satzanfang). */
-function schreibung(form, pos, zielToken) {
+/**
+ * Groß/klein wie im Satz: Nomen immer groß, Adjektive nur am Satzanfang. Ohne Angabe zum
+ * Satzanfang wie die Lösung – die ist aber auch mitten im Satz groß, wenn sie ein Ortsadjektiv
+ * ist („den Prenzlauer Berg“), und daraus wurden „Blau | Heilig | Steil“.
+ */
+function schreibung(form, pos, zielToken, amSatzanfang) {
   if (!form) return form
-  const gross = pos === 'Substantiv' || /^\p{Lu}/u.test(String(zielToken ?? ''))
+  const gross = pos === 'Substantiv' || (amSatzanfang ?? /^\p{Lu}/u.test(String(zielToken ?? '')))
   return (gross ? form[0].toUpperCase() : form[0].toLowerCase()) + form.slice(1)
+}
+
+/**
+ * Lösung ist ein unbeugbares Ortsadjektiv mitten im Satz („den Prenzlauer Berg“): Ihre
+ * fehlende Endung sagt über die Form der Distraktoren nichts – „blau“ gehört dort als
+ * „blauen“ hin. Dann entscheidet der Rahmen wie bei Nomen.
+ */
+function istOrtsadjektivImSatz(ziel, amSatzanfang) {
+  const token = String(ziel.token ?? '')
+  return !amSatzanfang && /^\p{Lu}/u.test(token) && token.toLowerCase() === String(ziel.lemma ?? '').toLowerCase()
+    && token.toLowerCase().endsWith('er')
+}
+
+/**
+ * Nomen ohne Rahmen-Treffer, Lösung gebeugt (Plural in einer Aufzählung: „an Tannen, _____,
+ * Ebereschen“ mit „Birken“): die häufigste Form mit demselben Endbuchstaben wie die Endung der
+ * Lösung, die es als Wort gibt („Pappeln“, „Grafen“). Sonst stand „Pappel“ allein im Singular.
+ */
+function formWieLoesung(formen, lemma, ziel, zaehle) {
+  const token = String(ziel.token ?? '').toLowerCase()
+  const basis = String(ziel.lemma ?? '').toLowerCase()
+  if (!basis || !token.startsWith(basis) || token === basis) return null
+  const letzter = token.at(-1)
+  const passend = formen.filter(f => f !== lemma && f.endsWith(letzter))
+  return haeufigste(passend, f => [f], zaehle)
 }
 
 /** Die im Rahmen häufigste Form, oder null, wenn keine belegt ist. */
@@ -104,7 +137,8 @@ function haeufigste(kandidaten, bau, zaehle) {
  * „heute Abend produziert Sat1 Sendung“. Erst ohne Regel zählen die halben Rahmen.
  *
  * Nomen: keine Endungsregel („Gedichten“ → „Lyriken“, „Regen“ → „Strömungn“ waren die
- * Folge), nur Rahmen-Treffer vom engsten zum weitesten, sonst die Grundform.
+ * Folge), nur Rahmen-Treffer vom engsten zum weitesten; ohne Treffer bei gebeugter Lösung die
+ * als Wort belegte Form mit passender Endung (formWieLoesung), sonst die Grundform.
  *
  * @param {{lemma: string, pos: string}} distraktor
  * @param {{links: string|null, rechts: string|null}} rahmen  aus rahmenDerLuecke()
@@ -113,13 +147,15 @@ function haeufigste(kandidaten, bau, zaehle) {
  */
 export function waehleForm(distraktor, rahmen, ziel, zaehle) {
   const { lemma, pos } = distraktor
-  const { links, rechts } = rahmen
+  const { links, rechts, amSatzanfang } = rahmen
   const voll = links && rechts ? f => [links, f, rechts] : null
   const halbe = [links && (f => [links, f]), rechts && (f => [f, rechts])].filter(Boolean)
   const formen = formKandidaten(lemma, pos)
-  const fertig = (f) => schreibung(f, pos, ziel.token)
+  const fertig = (f) => schreibung(f, pos, ziel.token, amSatzanfang)
 
-  const regel = pos === 'Substantiv' ? null : formNachEndung(lemma, pos, ziel.token, ziel.lemma)
+  const regel = pos === 'Substantiv' || istOrtsadjektivImSatz(ziel, amSatzanfang)
+    ? null
+    : formNachEndung(lemma, pos, ziel.token, ziel.lemma)
   if (regel) {
     // Meist ist die Regel-Form im vollen Rahmen belegt – dann reicht eine Zählung
     if (voll && zaehle(voll(regel)) > 0) return fertig(regel)
@@ -131,8 +167,9 @@ export function waehleForm(distraktor, rahmen, ziel, zaehle) {
     if (imRahmen) return fertig(imRahmen)
     // Unbeugbare Adjektive („Landshuter Hochzeit“): Steht vor dem Nomen nur die Grundform,
     // nie die Regel-Form, bleibt es bei der Grundform statt „landshuteren“. Das sind
-    // Ableitungen von Ortsnamen, darum groß.
-    if (rechts && regel !== lemma && zaehle([regel, rechts]) === 0 && zaehle([lemma, rechts]) > 0) {
+    // Ableitungen von Ortsnamen auf -er, darum groß. Andere Adjektive nie: Zu „geringeren“
+    // wurde „hoch“ sonst zu „Hoch“ (die Regel-Form „hocheren“ gibt es nicht).
+    if (rechts && lemma.endsWith('er') && regel !== lemma && zaehle([regel, rechts]) === 0 && zaehle([lemma, rechts]) > 0) {
       return lemma[0].toUpperCase() + lemma.slice(1)
     }
     return fertig(regel)
@@ -140,6 +177,10 @@ export function waehleForm(distraktor, rahmen, ziel, zaehle) {
 
   for (const bau of [voll, ...halbe].filter(Boolean)) {
     const f = haeufigste(formen, bau, zaehle)
+    if (f) return fertig(f)
+  }
+  if (pos === 'Substantiv') {
+    const f = formWieLoesung(formen, lemma, ziel, zaehle)
     if (f) return fertig(f)
   }
   return fertig(lemma)

@@ -10,6 +10,8 @@
  * Wortart der Lösung, noch nicht gezeigte zuerst; andere Wortarten nur als letzter
  * Ausweg. Ihre Wortform kommt aus dem Rahmen der Lücke (lueckenfuellerRahmen.js), damit
  * die Endung die Lösung nicht verrät. Die Double-Runde nimmt je Satz einen davon.
+ * `waehleDistraktoren` lässt Varianten der Lösung und der anderen Optionen, Lösungen früherer
+ * Runden und nicht belegte Wortformen aus.
  *
  * Punkte: [1, 1, 2, 2, 2, 2] → max. 10
  */
@@ -50,6 +52,31 @@ function istGebeugtesAdjektiv(item) {
   const l = item.lemma.toLowerCase()
   return GEBEUGT_ENDUNGEN.some(e => l.length > e.length + 3 && l.endsWith(e)
     && lemmaZeilen(l.slice(0, -e.length), 'Adjektiv', GEBEUGT_MIN_ZEILEN) >= GEBEUGT_MIN_ZEILEN)
+}
+
+/**
+ * Vergleichsschlüssel für „dasselbe Wort“: Flexion, Steigerung und alte Schreibung fallen weg.
+ * Im Pool stehen solche Varianten als eigene Lemmata (Mikroskop/Mikroskope, bipolar/bipolarer,
+ * oscillirend/oszillierend, sicilisch/sizilisch), und so standen „Bipolare | Bipolarer“ oder
+ * „kostbaren | kostbarsten“ als zwei Optionen in einer Runde.
+ */
+const KERN_ENDUNG = /(?:sten|ste|st|ern|er|en|em|es|e|n|s)$/
+
+function wortKern(wort) {
+  const w = String(wort ?? '').toLowerCase()
+    .replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss')
+    .replace(/th/g, 't').replace(/c(?![hk])/g, 'z').replace(/ie/g, 'i')
+  const ohne = w.replace(KERN_ENDUNG, '')
+  return ohne.length >= 3 ? ohne : w
+}
+
+/** Gleiches Wort, wenn die Kerne gleich sind oder sich nur um bis zu zwei Buchstaben am Ende unterscheiden (tapf/tapfer). */
+export function gleichesWort(a, b) {
+  const x = wortKern(a)
+  const y = wortKern(b)
+  if (x === y) return true
+  const [kurz, lang] = x.length <= y.length ? [x, y] : [y, x]
+  return kurz.length >= 4 && lang.startsWith(kurz) && lang.length - kurz.length <= 2
 }
 
 const MIN_LOG_DICE  = 5.0
@@ -144,6 +171,26 @@ function distraktorForm(distraktor, ziel) {
 }
 
 /**
+ * Distraktoren samt Form: in der Reihenfolge von pickDistractors, aber ohne Varianten der Lösung,
+ * der übrigen Optionen und der Lösungen früherer Runden (`gesperrt`), und nur mit Formen, die es
+ * als Wort gibt – die Endungsregel baute sonst „biebereren“ oder „hocheren“. Kann das Korpus die
+ * Lösung selbst nicht zählen (keine belege_v2.db), entfällt diese Prüfung.
+ */
+function waehleDistraktoren(target, pool, usedOptions, { anzahl = 3, ausser = [], gesperrt = [] } = {}) {
+  const pruefeForm = zaehlePhrase([target.token || target.lemma]) > 0
+  const gewaehlt = []
+  for (const d of pickDistractors(target, pool, usedOptions, Infinity, ausser)) {
+    if (gewaehlt.length >= anzahl) break
+    const belegt = [target.lemma, target.token, ...ausser, ...gesperrt, ...gewaehlt.map(g => g.lemma)]
+    if (belegt.some(w => w && gleichesWort(w, d.lemma))) continue
+    const form = distraktorForm(d, target)
+    if (!form || (pruefeForm && zaehlePhrase([form]) === 0)) continue
+    gewaehlt.push({ ...d, form })
+  }
+  return gewaehlt
+}
+
+/**
  * Satz-IDs, in denen die Belegprüfung den Kollokator in einer Lückenfüller-Relation der
  * Wortart gefunden hat (für Nomen ATTR oder KON …). null: keine Prüfdaten zu diesem Paar.
  */
@@ -205,9 +252,12 @@ export async function lueckenfuellerPool(lemma, pos) {
       }
     }
   }
-  return [...seen.values()]
-    .filter(item => parseFloat(item.logDice) >= MIN_LOG_DICE && !item.lemma.includes(' ') && !istGebeugtesAdjektiv(item))
+  const sortiert = [...seen.values()]
+    // Unter drei Buchstaben bleiben nur Parser-Reste („Ic“ wurde als „Ice“ zum Distraktor)
+    .filter(item => parseFloat(item.logDice) >= MIN_LOG_DICE && item.lemma.length >= 3 && !item.lemma.includes(' ') && !istGebeugtesAdjektiv(item))
     .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+  // Varianten desselben Worts (Mikroskop/Mikroskope, zweicylindrig/zweizylindrig): die stärkere bleibt
+  return sortiert.filter((item, i) => !sortiert.slice(0, i).some(v => gleichesWort(v.lemma, item.lemma)))
 }
 
 /** So viele Pool-Wörter prüft die Belegprüfung je Lückenfüller (10 Ziele + Distraktoren). */
@@ -254,14 +304,16 @@ export async function buildLueckenfueller(lemma, pos) {
 
   for (let i = 0; i < choiceTargets.length; i++) {
     const target = choiceTargets[i]
-    const distractors = pickDistractors(target, pool, usedOptions)
+    // Lösungen früherer Runden nie als Distraktor: Wer „unbesoldetes“ eben richtig hatte,
+    // soll es nicht in der nächsten Runde als falsch wegklicken müssen
+    const distractors = waehleDistraktoren(target, pool, usedOptions, { gesperrt: choiceTargets.slice(0, i).map(t => t.lemma) })
 
     // Korrekte Antwort: token-Form wenn vorhanden (z.B. "Säugetierarten"),
     // sonst Lemma – so stimmen Optionsbutton und Lückenfüllung überein
     const correctLabel = target.token || target.lemma
 
     // Distraktoren in der Form, die in genau diese Lücke passt („einen _____ Wind“ → „kalten“)
-    const distractorLabels = distractors.map(d => distraktorForm(d, target))
+    const distractorLabels = distractors.map(d => d.form)
 
     // Alle gezeigten Optionen dieser Runde für Folgerunden merken
     usedOptions.add(target.lemma)
@@ -291,12 +343,10 @@ export async function buildLueckenfueller(lemma, pos) {
     // Bisher die zwei STÄRKSTEN Kollokatoren – die passen fast immer auch in einen der Sätze.
     // Jetzt wie in den Choice-Runden schwächere gleicher Wortart, je einer passend gebeugt
     // für Satz A und für Satz B.
-    const [falschA] = pickDistractors(tA, pool, usedOptions, 1, [tB.lemma])
-    const [falschB] = pickDistractors(tB, pool, usedOptions, 1, [tA.lemma, falschA?.lemma].filter(Boolean))
-    const wrongOptions = [
-      falschA && distraktorForm(falschA, tA),
-      falschB && distraktorForm(falschB, tB),
-    ].filter(Boolean)
+    const frueher = choiceTargets.map(t => t.lemma)
+    const [falschA] = waehleDistraktoren(tA, pool, usedOptions, { anzahl: 1, ausser: [tB.lemma], gesperrt: frueher })
+    const [falschB] = waehleDistraktoren(tB, pool, usedOptions, { anzahl: 1, ausser: [tA.lemma, falschA?.lemma].filter(Boolean), gesperrt: frueher })
+    const wrongOptions = [falschA?.form, falschB?.form].filter(Boolean)
 
     rounds.push({
       type:    'double',
