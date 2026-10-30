@@ -69,6 +69,12 @@ describe('waehleForm: Fehler aus der Messung vom 30.10.2026', () => {
       { token: 'Knappen', lemma: 'Knappe' }, z2)).toBe('Grafen')
   })
 
+  it('Lösung auf -e: andere Adjektive bekommen die volle Endung („müden“ → „bekannten“, nicht „bekanntn“)', () => {
+    expect(formNachEndung('bekannt', 'Adjektiv', 'müden', 'müde')).toBe('bekannten')
+    expect(formNachEndung('leise', 'Adjektiv', 'müden', 'müde')).toBe('leisen')
+    expect(formNachEndung('bekannt', 'Adjektiv', 'müde', 'müde')).toBe('bekannt')
+  })
+
   it('Nomen ohne Rahmen, Lösung in der Grundform: Grundform bleibt', () => {
     const zaehle = zaehler({ pappeln: 900 })
     expect(waehleForm({ lemma: 'Pappel', pos: 'Substantiv' }, { links: null, rechts: null },

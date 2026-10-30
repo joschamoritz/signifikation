@@ -74,10 +74,12 @@ export function formNachEndung(lemma, pos, zielToken, zielLemma) {
   const token = String(zielToken ?? '').toLowerCase()
   const basis = String(zielLemma ?? '').toLowerCase()
   if (!token || !basis || !token.startsWith(basis)) return null
-  const endung = token.slice(basis.length)
+  let endung = token.slice(basis.length)
   if (!endung) return lemma
   // „leise“ + „en“ → „leisen“, nicht „leiseen“
   if (pos === 'Adjektiv' && lemma.endsWith('e') && endung.startsWith('e')) return lemma.slice(0, -1) + endung
+  // Lösung auf -e („müde“ → „müden“): Ihr fehlt das e der Endung, anderen nicht – „bekannten“, nicht „bekanntn“
+  if (pos === 'Adjektiv' && basis.endsWith('e') && !lemma.endsWith('e') && !endung.startsWith('e')) endung = `e${endung}`
   return lemma + endung
 }
 

@@ -30,7 +30,7 @@ describe('gleichesWort', () => {
   it('erkennt Flexion, Steigerung und alte Schreibung', () => {
     for (const [a, b] of [['Bipolare', 'Bipolarer'], ['Mikroskop', 'Mikroskope'], ['oscillirenden', 'oszillierenden'],
       ['Sizilische', 'Sicilische'], ['kostbaren', 'kostbarsten'], ['zweicylindrig', 'zweizylindrig'],
-      ['Thäler', 'Tal'], ['Nadelholz', 'Nadelhölzer'], ['tapfer', 'tapferst']]) {
+      ['Thäler', 'Tal'], ['Nadelholz', 'Nadelhölzer'], ['tapfer', 'tapferst'], ['westphälischen', 'westfälischen']]) {
       expect(gleichesWort(a, b), `${a} / ${b}`).toBe(true)
     }
   })
@@ -49,6 +49,14 @@ describe('Distraktoren', () => {
     expect(pool).toContain('bipolar')
     expect(pool).not.toContain('bipolarer')
     expect(pool).not.toContain('ic')
+  })
+
+  it('fasst Varianten nur innerhalb einer Wortart zusammen („groß“ bleibt neben „Größe“)', async () => {
+    const { fetchRelation } = await import('../wortprofil.js')
+    fetchRelation.mockImplementationOnce(async () => [
+      { lemma: 'Größe', pos: 'Substantiv', logDice: '12' }, { lemma: 'groß', pos: 'Adjektiv', logDice: '11' }])
+    const pool = (await lueckenfuellerPool('Zahl', 'Substantiv')).map(p => p.lemma)
+    expect(pool).toEqual(expect.arrayContaining(['Größe', 'groß']))
   })
 
   it('keine Runde zeigt zwei Formen desselben Worts, keine unbelegte Form', async () => {
