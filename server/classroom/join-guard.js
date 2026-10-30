@@ -15,14 +15,15 @@
  *      Klassen. Legitime Tippfehler streuen über verschiedene falsche
  *      Codes und erreichen die Schwelle auf EINEM Code praktisch nie.
  *
- *   2. GLOBAL als hohe Backstop-Schwelle (MAX_FAILURES_GLOBAL / Fenster)
- *      gegen breite Enumeration über viele Codes: bei ~40.000 möglichen
- *      Codes (200 Wörter²) und 400 Versuchen/10 min bleibt der Suchraum
- *      während der Lebensdauer eines Codes (eine Schulstunde) praktisch
- *      nicht enumerierbar — und die Schwelle ist hoch genug, dass kein
- *      realistischer Legitim-Traffic sie erreicht.
+ *   2. GLOBAL als Bremse (MAX_FAILURES_GLOBAL / Fenster) gegen breite
+ *      Enumeration über viele Codes: Ab der Schwelle antwortet der Server auf
+ *      FEHLVERSUCHE erst nach BRAKE_MS, gültige Codes kommen sofort durch.
+ *      Bis 2026-10-30 war das eine Hart-Sperre für alle Beitritte – ~20 IPs
+ *      hätten damit jede Klasse ausgesperrt (Security-Audit). Gegen das Raten
+ *      tragen weiter Code-Entropie (~40.000 Codes, nur Lobby/laufend gültig),
+ *      die Code-Sperre oben und das IP-Limit (classroomJoinLimiter).
  *
- * Beide Aktivierungen feuern einen Alert (reportAlert, 30-min-Cooldown).
+ * Code-Sperre und Bremse feuern je einen Alert (reportAlert, 30-min-Cooldown).
  * Blockierte Versuche verlängern die Fenster NICHT (kein Block-DoS).
  *
  * Single-Node-Annahme (dokumentierte Grenze, P5): In-Memory reicht.
@@ -33,6 +34,7 @@ import { reportAlert } from '../alerting.js'
 const WINDOW_MS = 10 * 60_000
 const MAX_FAILURES_PER_CODE = 10
 const MAX_FAILURES_GLOBAL = 400
+const BRAKE_MS = 2_000
 
 const perCode = new Map() // normalisierter Code → Fehlversuchs-Timestamps
 let globalFailures = []
@@ -49,13 +51,6 @@ function prunedCodeFailures(key, now) {
 }
 
 export function isJoinBlocked(code, now = Date.now()) {
-  globalFailures = globalFailures.filter((t) => now - t < WINDOW_MS)
-  if (globalFailures.length >= MAX_FAILURES_GLOBAL) {
-    reportAlert('join_guard_global',
-      `Classroom-Join-Guard: globale Schwelle aktiv (${globalFailures.length} Fehlversuche/10min) – breiter Enumerationsversuch?`)
-    return true
-  }
-
   const failures = prunedCodeFailures(normalizeCode(code), now)
   if (failures.length >= MAX_FAILURES_PER_CODE) {
     reportAlert('join_guard_code',
@@ -63,6 +58,15 @@ export function isJoinBlocked(code, now = Date.now()) {
     return true
   }
   return false
+}
+
+// Verzögerung in ms für die Antwort auf einen Fehlversuch (0 = keine Bremse).
+export function joinFailureDelayMs(now = Date.now()) {
+  globalFailures = globalFailures.filter((t) => now - t < WINDOW_MS)
+  if (globalFailures.length < MAX_FAILURES_GLOBAL) return 0
+  reportAlert('join_guard_global',
+    `Classroom-Join-Guard: Bremse aktiv (${globalFailures.length} Fehlversuche/10min) – breiter Enumerationsversuch?`)
+  return BRAKE_MS
 }
 
 export function recordJoinFailure(code, now = Date.now()) {
@@ -95,4 +99,5 @@ export {
   WINDOW_MS as JOIN_GUARD_WINDOW_MS,
   MAX_FAILURES_PER_CODE as JOIN_GUARD_MAX_FAILURES_PER_CODE,
   MAX_FAILURES_GLOBAL as JOIN_GUARD_MAX_FAILURES_GLOBAL,
+  BRAKE_MS as JOIN_GUARD_BRAKE_MS,
 }

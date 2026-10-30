@@ -108,7 +108,7 @@ import {
   classroomWriteLimiter,
   classroomReadLimiter,
 } from '../middleware/rateLimiter.js'
-import { isJoinBlocked, recordJoinFailure } from '../classroom/join-guard.js'
+import { isJoinBlocked, joinFailureDelayMs, recordJoinFailure } from '../classroom/join-guard.js'
 import { loadDemoContent } from '../classroom/demoContent.js'
 
 const router = express.Router()
@@ -981,11 +981,11 @@ router.post(
   '/api/v1/classroom/join',
   classroomJoinLimiter,
   validate(classroomJoinSchema),
-  (req, res) => {
+  async (req, res) => {
     try {
       const { code, displayName } = req.body
-      // Brute-Force-Guard pro Code + globaler Backstop — Details und
-      // DoS-Begruendung in classroom/join-guard.js (S-M1, 2026-06-11).
+      // Brute-Force-Guard pro Code + globale Bremse fuer Fehlversuche — Details
+      // und DoS-Begruendung in classroom/join-guard.js (S-M1, Audit 2026-10-30).
       if (isJoinBlocked(code)) {
         trackJoinFailed(code, 'guard_blocked')
         return res.status(429).json({ error: 'Zu viele Beitrittsversuche. Bitte kurz warten.' })
@@ -999,7 +999,11 @@ router.post(
           : 'unknown'
         // Nur ungültige Codes zählen — SESSION_FULL/INVALID_STATE belegen
         // einen gültigen Code und sind kein Rate-Signal.
-        if (result.error === 'INVALID_CODE') recordJoinFailure(code)
+        if (result.error === 'INVALID_CODE') {
+          const bremseMs = joinFailureDelayMs()
+          recordJoinFailure(code)
+          if (bremseMs > 0) await new Promise((resolve) => setTimeout(resolve, bremseMs))
+        }
         trackJoinFailed(code, reason)
         // Stabilen Fehler-Code mitgeben, damit der Kiosk (NameState) eine
         // schuelerfreundliche Meldung waehlen kann statt der technischen.

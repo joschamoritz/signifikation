@@ -6,16 +6,18 @@ import { reportAlert } from '../alerting.js'
 
 import {
   isJoinBlocked,
+  joinFailureDelayMs,
   recordJoinFailure,
   resetJoinGuard,
   pruneJoinGuard,
   JOIN_GUARD_WINDOW_MS,
   JOIN_GUARD_MAX_FAILURES_PER_CODE,
   JOIN_GUARD_MAX_FAILURES_GLOBAL,
+  JOIN_GUARD_BRAKE_MS,
 } from '../classroom/join-guard.js'
 import { generateJoinCode, isValidJoinCodeFormat, JOIN_CODE_WORDS } from '../classroom/join-codes.js'
 
-describe('join-guard (pro Code + globaler Backstop)', () => {
+describe('join-guard (pro Code + globale Bremse)', () => {
   beforeEach(() => resetJoinGuard())
 
   it('blockiert anfangs nicht', () => {
@@ -52,14 +54,15 @@ describe('join-guard (pro Code + globaler Backstop)', () => {
     expect(isJoinBlocked('apfel-birne', now + JOIN_GUARD_WINDOW_MS + 1)).toBe(false)
   })
 
-  it('globaler Backstop blockiert breite Enumeration ueber viele Codes', () => {
+  it('breite Enumeration bremst Fehlversuche, sperrt aber keine fremde Klasse (Audit 2026-10-30)', () => {
     const now = 1_000_000
+    expect(joinFailureDelayMs(now)).toBe(0)
     for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_GLOBAL; i++) {
       recordJoinFailure(`enum-code-${i}`, now)
     }
-    // Auch ein nie probierter Code ist jetzt blockiert (Backstop)
-    expect(isJoinBlocked('unbeteiligter-code', now)).toBe(true)
-    expect(isJoinBlocked('unbeteiligter-code', now + JOIN_GUARD_WINDOW_MS + 1)).toBe(false)
+    expect(isJoinBlocked('unbeteiligter-code', now)).toBe(false)
+    expect(joinFailureDelayMs(now)).toBe(JOIN_GUARD_BRAKE_MS)
+    expect(joinFailureDelayMs(now + JOIN_GUARD_WINDOW_MS + 1)).toBe(0)
   })
 
   it('pruneJoinGuard raeumt abgelaufene Code-Eintraege ab', () => {
@@ -94,18 +97,17 @@ describe('join-guard – Alerts + Anti-DoS-Invarianten', () => {
     expect(reportAlert).toHaveBeenCalledWith('join_guard_code', expect.any(String))
   })
 
-  it('feuert den globalen Alert bei Aktivierung der Backstop-Schwelle', () => {
+  it('feuert den globalen Alert, sobald die Bremse greift', () => {
     for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_GLOBAL; i++) recordJoinFailure(`enum-${i}`, now)
-    expect(isJoinBlocked('unbeteiligt', now)).toBe(true)
+    expect(joinFailureDelayMs(now)).toBe(JOIN_GUARD_BRAKE_MS)
     expect(reportAlert).toHaveBeenCalledWith('join_guard_global', expect.any(String))
   })
 
-  it('prueft die globale Schwelle VOR der per-Code-Schwelle (nur globaler Alert)', () => {
-    // Globale Schwelle reissen, ohne dass der geprüfte Code per-Code-Treffer hat.
+  it('Code-Sperre greift auch bei aktiver Bremse', () => {
     for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_GLOBAL; i++) recordJoinFailure(`enum-${i}`, now)
-    isJoinBlocked('frischer-code', now)
-    expect(reportAlert).toHaveBeenCalledWith('join_guard_global', expect.any(String))
-    expect(reportAlert).not.toHaveBeenCalledWith('join_guard_code', expect.any(String))
+    for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_PER_CODE; i++) recordJoinFailure('apfel-birne', now)
+    expect(isJoinBlocked('apfel-birne', now)).toBe(true)
+    expect(isJoinBlocked('frischer-code', now)).toBe(false)
   })
 
   it('Block-DoS-Schutz: blockierte Versuche verlaengern das Fenster NICHT', () => {
@@ -123,8 +125,8 @@ describe('join-guard – Alerts + Anti-DoS-Invarianten', () => {
     // Weit ueber die Schwelle hinaus auf distinct Codes. Beobachtbar: nach
     // Fensterablauf ist alles verfallen — kein „Ueberhang“, der laenger blockt.
     for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_GLOBAL + 200; i++) recordJoinFailure(`flood-${i}`, now)
-    expect(isJoinBlocked('frisch', now)).toBe(true)
-    expect(isJoinBlocked('frisch', now + JOIN_GUARD_WINDOW_MS)).toBe(false)
+    expect(joinFailureDelayMs(now)).toBe(JOIN_GUARD_BRAKE_MS)
+    expect(joinFailureDelayMs(now + JOIN_GUARD_WINDOW_MS)).toBe(0)
   })
 })
 

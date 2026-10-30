@@ -61,6 +61,10 @@ vi.mock('../lueckenfuellerImWorker.js', () => ({
 }))
 import { buildLueckenfuellerImWorker as buildLfMock } from '../lueckenfuellerImWorker.js'
 
+// Join-Guard-Alarme nicht als Webhook verschicken
+vi.mock('../alerting.js', () => ({ reportAlert: vi.fn() }))
+import { recordJoinFailure, resetJoinGuard, JOIN_GUARD_MAX_FAILURES_GLOBAL, JOIN_GUARD_BRAKE_MS } from '../classroom/join-guard.js'
+
 // ── Test-Infrastruktur ─────────────────────────────────────────
 
 /** Lehrer-Header fuer Dev-Auth (ALLOW_DEV_AUTH=1 in vitest.setup.js) */
@@ -796,6 +800,34 @@ describe('classroom routes', () => {
         expect((await post('/start')).status).toBe(403)
         expect((await post('/finish')).status).toBe(200)
       } finally {
+        cleanupTeacher(teacher)
+      }
+    })
+
+    it('viele Fehlversuche auf fremden Codes: gültiger Code tritt sofort bei, Fehlversuch wird gebremst', async () => {
+      const teacher = `cr2-teacher-bremse-${randomUUID()}`
+      ensureUser(teacher)
+      try {
+        const create = await fetch(`${baseUrl}/api/v1/classroom/sessions`, {
+          method: 'POST', headers: teacherHeaders(teacher, 'premium'), body: JSON.stringify({}),
+        })
+        const { code } = await create.json()
+        for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_GLOBAL; i++) recordJoinFailure(`enum-${i}`)
+
+        const join = (joinCode, ip) => fetch(`${baseUrl}/api/v1/classroom/join`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          body: JSON.stringify({ code: joinCode, displayName: 'Mia' }),
+        })
+        const start = Date.now()
+        expect((await join(code, '198.51.100.21')).status).toBe(201)
+        expect(Date.now() - start).toBeLessThan(JOIN_GUARD_BRAKE_MS)
+
+        const startFehl = Date.now()
+        expect((await join('ungueltig-bremse', '198.51.100.22')).status).toBe(404)
+        expect(Date.now() - startFehl).toBeGreaterThanOrEqual(JOIN_GUARD_BRAKE_MS - 50)
+      } finally {
+        resetJoinGuard()
         cleanupTeacher(teacher)
       }
     })
