@@ -451,6 +451,43 @@ describe('App-Store-Benachrichtigungen (Erstattung)', () => {
     expect(statusVon()).toBe('paid')
   })
 
+  it('ein verspätetes REFUND überschreibt ein schon verarbeitetes REFUND_REVERSED nicht', () => {
+    const mit = (notificationType, signedDate) => ({ ...meldung(notificationType), signedDate })
+    try {
+      expect(verarbeiteAppStoreBenachrichtigung(mit('REFUND', 2_000), tx()).ergebnis).toBe('erstattet')
+      expect(verarbeiteAppStoreBenachrichtigung(mit('REFUND_REVERSED', 3_000), tx()).ergebnis).toBe('zurückgenommen')
+      // Apple wiederholt das ältere REFUND erst jetzt
+      expect(verarbeiteAppStoreBenachrichtigung(mit('REFUND', 2_000), tx()).ergebnis).toBe('veraltet')
+      expect(statusVon()).toBe('paid')
+      expect(isEntitlementActive(user)).toBe(true)
+      // Eine neue Erstattung danach gilt wieder
+      expect(verarbeiteAppStoreBenachrichtigung(mit('REFUND', 4_000), tx()).ergebnis).toBe('erstattet')
+      expect(verarbeiteAppStoreBenachrichtigung(mit('REFUND_REVERSED', 5_000), tx()).ergebnis).toBe('zurückgenommen')
+    } finally {
+      db.prepare('DELETE FROM app_store_meldung_stand WHERE kauf_id = ?').run(origId)
+    }
+  })
+
+  it('REFUND für einen unbekannten Kauf sperrt ihn, REFUND_REVERSED hebt die Sperre wieder auf', () => {
+    const fremd = `orig-unbekannt-${Date.now()}`
+    const fremdTx = `tx-unbekannt-${Date.now()}`
+    const unbekannt = () => ({ bundleId: 'de.signifikation.app', transactionId: fremdTx, originalTransactionId: fremd })
+    const zeile = (id) => db.prepare('SELECT user_id, status FROM payments WHERE id = ?').get(id)
+    try {
+      expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), unbekannt).ergebnis).toBe('kein passender Kauf')
+      expect(zeile(fremd)).toEqual({ user_id: null, status: 'gesperrt' })
+      expect(zeile(fremdTx)?.status).toBe('gesperrt')
+      // Ein später eingereichter Beleg von vor der Erstattung schaltet nichts frei
+      expect(unlockForUser(user, fremdTx, fremd, VALID_PRODUCT_ID)).toBe(false)
+
+      verarbeiteAppStoreBenachrichtigung(meldung('REFUND_REVERSED'), unbekannt)
+      expect(zeile(fremd)).toBeUndefined()
+      expect(zeile(fremdTx)).toBeUndefined()
+    } finally {
+      db.prepare('DELETE FROM payments WHERE id IN (?, ?)').run(fremd, fremdTx)
+    }
+  })
+
   it('ignoriert andere Typen und Sandbox ohne Freigabe, lehnt fremde Apps ab', () => {
     const pruefe = vi.fn(tx())
     expect(verarbeiteAppStoreBenachrichtigung({ notificationType: 'TEST', data: {} }, pruefe)).toEqual({ status: 200, ergebnis: 'ignoriert' })

@@ -8,7 +8,7 @@ import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
 import { auditSecurity } from '../audit.js'
-import { erfasseErstattung } from '../kaufErstattung.js'
+import { erfasseErstattung, sperreUnbekanntenKauf } from '../kaufErstattung.js'
 import defaultPlayApi, { PLAY_PACKAGE_NAME, PlayKaufUnbekannt } from '../playKauf.js'
 import { deriveAppAccountToken, unlockForUser, isEntitlementActive, PRODUCT_AMOUNTS } from './iap.js'
 
@@ -152,7 +152,9 @@ export function verarbeitePlayBenachrichtigung(note) {
   const zweiteId = tokenId(v.purchaseToken)
   const zeile = erfasseErstattung(v.orderId || zweiteId, { zweiteId })
   if (!zeile) {
-    logger.info({ orderId: v.orderId }, 'Google Play: Storno ohne passenden Kauf (unbekannt oder schon erfasst)')
+    // Unbekannter Kauf: sperren, damit ein später eingereichtes Token nichts freischaltet
+    const gesperrt = sperreUnbekanntenKauf(v.orderId || zweiteId, { zweiteId })
+    logger.info({ orderId: v.orderId, gesperrt }, 'Google Play: Storno ohne passenden Kauf (unbekannt oder schon erfasst)')
     return 'kein passender Kauf'
   }
   logger.info({ ...zeile, refundType: v.refundType }, 'Google Play: Kauf als erstattet erfasst')

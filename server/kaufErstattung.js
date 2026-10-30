@@ -90,3 +90,30 @@ export const nimmErstattungZurueck = db.transaction((id, { zweiteId = id, quelle
   premiumStmt.run({ userId, jetzt })
   return { paymentId: zeile.id, userId, freigeschaltet: true }
 })
+
+// Sperreintrag (status 'gesperrt', ohne Konto, Betrag 0): zählt nicht als Kauf oder Erstattung
+// (Kennzahlen lesen nur 'paid' und 'refunded'), blockiert aber jede Freischaltung dieser ID,
+// weil iap.js eine Zeile mit status <> 'paid' als beansprucht behandelt.
+const sperreStmt = db.prepare(`
+  INSERT INTO payments (id, user_id, amount, currency, status, product, processed_at)
+  VALUES (@id, NULL, '0.00', 'EUR', 'gesperrt', @produkt, @jetzt)
+  ON CONFLICT(id) DO NOTHING
+`)
+const entsperreStmt = db.prepare(`DELETE FROM payments WHERE id IN (@id, @zweiteId) AND status = 'gesperrt'`)
+
+/**
+ * Erstattung eines Kaufs, den der Server (noch) nicht kennt, etwa weil der Beleg nie eingereicht wurde:
+ * Sperreintrag anlegen, damit ein später eingereichter Beleg von vor der Erstattung nichts freischaltet
+ * (Security-Audit 2026-10-30). Bestehende Zeilen bleiben unverändert.
+ * @returns {number}  Anzahl neu angelegter Sperreinträge
+ */
+export const sperreUnbekanntenKauf = db.transaction((id, { zweiteId = id, jetzt = Date.now() } = {}) => {
+  let neu = 0
+  for (const x of new Set([id, zweiteId].filter(Boolean))) neu += sperreStmt.run({ id: x, produkt: PRODUKT, jetzt }).changes
+  return neu
+})
+
+/** Zurückgenommene Erstattung eines unbekannten Kaufs: Sperreintrag wieder entfernen. */
+export function hebeSperreAuf(id, { zweiteId = id } = {}) {
+  return entsperreStmt.run({ id, zweiteId }).changes
+}

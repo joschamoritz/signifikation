@@ -7,7 +7,7 @@ import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
 import { auditSecurity } from '../audit.js'
-import { erfasseErstattung, nimmErstattungZurueck } from '../kaufErstattung.js'
+import { erfasseErstattung, nimmErstattungZurueck, sperreUnbekanntenKauf, hebeSperreAuf } from '../kaufErstattung.js'
 
 const router = express.Router()
 
@@ -156,14 +156,70 @@ export function isEntitlementActive(userId) {
 
 // ── JWS-Verifikation (StoreKit 2, ES256) ──────────────────────
 
-function verifyAppleJWS(jws) {
+// Apple-Kennungen der App-Store-Signaturkette (wie Apples SignedDataVerifier):
+// Ohne sie wäre jedes Zertifikat unter Apple Root CA - G3 ein gültiger Signierer,
+// etwa ein Apple-Pay-Zertifikat aus dem eigenen Entwicklerkonto (Security-Audit 2026-10-30).
+const OID_APPLE_LEAF         = '1.2.840.113635.100.6.11.1' // App Store Receipt Signing
+const OID_APPLE_INTERMEDIATE = '1.2.840.113635.100.6.2.1'  // Apple Worldwide Developer Relations
+
+// Minimaler DER-Leser: Node liefert die Erweiterungen eines X509Certificate nicht nach OID.
+function derTeil(buf, pos) {
+  const tag = buf[pos]
+  let laenge = buf[pos + 1]
+  let start = pos + 2
+  if (laenge & 0x80) {
+    const n = laenge & 0x7f
+    laenge = 0
+    for (let i = 0; i < n; i++) laenge = laenge * 256 + buf[start + i]
+    start += n
+  }
+  return { tag, start, ende: start + laenge }
+}
+
+function derKinder(buf, teil) {
+  const kinder = []
+  for (let pos = teil.start; pos < teil.ende;) {
+    const kind = derTeil(buf, pos)
+    kinder.push(kind)
+    pos = kind.ende
+  }
+  return kinder
+}
+
+function oidText(bytes) {
+  const teile = [Math.floor(bytes[0] / 40), bytes[0] % 40]
+  let wert = 0
+  for (const b of bytes.subarray(1)) {
+    wert = wert * 128 + (b & 0x7f)
+    if (!(b & 0x80)) { teile.push(wert); wert = 0 }
+  }
+  return teile.join('.')
+}
+
+// OIDs aller Erweiterungen (tbsCertificate → [3] → SEQUENCE OF Extension → extnID)
+function erweiterungsOids(cert) {
+  const der = cert.raw
+  const tbs = derKinder(der, derTeil(der, 0))[0]
+  const ext = derKinder(der, tbs).find((t) => t.tag === 0xa3)
+  if (!ext) return new Set()
+  const liste = derKinder(der, ext)[0]
+  return new Set(derKinder(der, liste).map((e) => {
+    const id = derKinder(der, e)[0]
+    return oidText(der.subarray(id.start, id.ende))
+  }))
+}
+
+// Exportiert für Tests: rootFingerprints erlaubt eine Test-PKI (Fixtures in __tests__/fixtures/apple-pki).
+export function verifyAppleJWS(jws, { rootFingerprints = APPLE_ROOT_CA_FINGERPRINTS } = {}) {
   const parts = jws.split('.')
   if (parts.length !== 3) throw new Error('Ungültiges JWS-Format')
 
   const header  = JSON.parse(Buffer.from(parts[0], 'base64url').toString())
   const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString())
 
-  if (!Array.isArray(header.x5c) || header.x5c.length < 2) {
+  if (header.alg !== 'ES256') throw new Error(`Unerwarteter JWS-Algorithmus ${header.alg}`)
+  // Apple signiert mit genau drei Zertifikaten: Leaf, Intermediate (WWDR), Root
+  if (!Array.isArray(header.x5c) || header.x5c.length !== 3) {
     throw new Error('Keine vollständige Zertifikatskette (x5c) im JWS-Header')
   }
 
@@ -171,8 +227,15 @@ function verifyAppleJWS(jws) {
 
   // Root-Zertifikat gegen die Allowlist bekannter Apple-Fingerprints prüfen
   const rootFp = certs.at(-1).fingerprint256.replace(/:/g, '').toLowerCase()
-  if (!APPLE_ROOT_CA_FINGERPRINTS.has(rootFp)) {
+  if (!rootFingerprints.has(rootFp)) {
     throw new Error(`Unbekannte Root-CA: ${rootFp}`)
+  }
+
+  if (!erweiterungsOids(certs[0]).has(OID_APPLE_LEAF)) throw new Error('Leaf-Zertifikat ist kein App-Store-Signaturzertifikat')
+  if (!erweiterungsOids(certs[1]).has(OID_APPLE_INTERMEDIATE)) throw new Error('Intermediate ist kein Apple-WWDR-Zertifikat')
+  const leafKey = certs[0].publicKey
+  if (leafKey.asymmetricKeyType !== 'ec' || leafKey.asymmetricKeyDetails?.namedCurve !== 'prime256v1') {
+    throw new Error('Leaf-Schlüssel ist kein P-256')
   }
 
   // Gültigkeitszeitraum: X509Certificate.verify() prüft nur die Signatur,
@@ -192,9 +255,9 @@ function verifyAppleJWS(jws) {
     if (!certs[i].ca) throw new Error(`Zertifikat ${i} ist keine CA`)
   }
 
-  // Zertifikatskette: jedes Zertifikat durch das nächste signiert?
+  // Zertifikatskette: jedes Zertifikat vom nächsten ausgestellt (Name) und signiert?
   for (let i = 0; i < certs.length - 1; i++) {
-    if (!certs[i].verify(certs[i + 1].publicKey)) {
+    if (!certs[i].checkIssued(certs[i + 1]) || !certs[i].verify(certs[i + 1].publicKey)) {
       throw new Error(`Zertifikatskette ungültig an Position ${i}`)
     }
   }
@@ -405,6 +468,13 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
 // Antworten: 200 = verarbeitet oder bewusst ignoriert (Apple wiederholt dann nicht),
 // 400 = Signatur oder Inhalt ungültig.
 
+// Stand je Kauf (Migration 0035): signedDate der zuletzt verarbeiteten Erstattungsmeldung.
+const meldungStandStmt = db.prepare(`SELECT signed_date AS signedDate FROM app_store_meldung_stand WHERE kauf_id = ?`)
+const merkeMeldungStandStmt = db.prepare(`
+  INSERT INTO app_store_meldung_stand (kauf_id, signed_date) VALUES (?, ?)
+  ON CONFLICT(kauf_id) DO UPDATE SET signed_date = MAX(signed_date, excluded.signed_date)
+`)
+
 export const IAP_NOTIFICATIONS_PFAD = '/api/v1/iap/notifications'
 export const IAP_NOTIFICATIONS_BODY_LIMIT = '64kb'
 
@@ -431,15 +501,32 @@ export function verarbeiteAppStoreBenachrichtigung(notification, pruefeJws = ver
   const original = String(tx.originalTransactionId ?? tx.transactionId ?? '')
   if (!transaktion) return { status: 400, ergebnis: 'Transaktions-ID fehlt' }
 
+  // Apple wiederholt Meldungen und liefert sie nicht garantiert in Reihenfolge: Eine Meldung, die nicht
+  // jünger ist als die zuletzt verarbeitete, ändert nichts mehr (sonst überschriebe ein verspätetes
+  // REFUND ein schon verarbeitetes REFUND_REVERSED).
+  const gezeichnet = Number(notification.signedDate)
+  const mitStand = Number.isFinite(gezeichnet) && gezeichnet > 0
+  const stand = mitStand ? meldungStandStmt.get(original)?.signedDate : null
+  if (stand != null && gezeichnet <= stand) {
+    logger.info({ typ, transactionId: transaktion, gezeichnet, stand }, 'App Store: veraltete Erstattungsmeldung ignoriert')
+    return { status: 200, ergebnis: 'veraltet' }
+  }
+  const merkeStand = () => { if (mitStand) merkeMeldungStandStmt.run(original, gezeichnet) }
+
   // Gespeichert ist die originalTransactionId (unlockForUser), ältere Zeilen ggf. die transactionId
   const erstattet = typ === 'REFUND'
   const zeile = erstattet
     ? erfasseErstattung(original, { zweiteId: transaktion })
     : nimmErstattungZurueck(original, { zweiteId: transaktion })
   if (!zeile) {
-    logger.info({ typ, transactionId: transaktion }, 'App Store: Erstattungsmeldung ohne passenden Kauf (unbekannt oder schon erfasst)')
+    // Unbekannter Kauf: sperren bzw. Sperre aufheben, damit ein später eingereichter Beleg passt
+    const gesperrt = erstattet ? sperreUnbekanntenKauf(original, { zweiteId: transaktion }) : 0
+    const entsperrt = erstattet ? 0 : hebeSperreAuf(original, { zweiteId: transaktion })
+    merkeStand()
+    logger.info({ typ, transactionId: transaktion, gesperrt, entsperrt }, 'App Store: Erstattungsmeldung ohne passenden Kauf (unbekannt oder schon erfasst)')
     return { status: 200, ergebnis: 'kein passender Kauf' }
   }
+  merkeStand()
   logger.info({ typ, ...zeile }, erstattet ? 'App Store: Kauf als erstattet erfasst' : 'App Store: Erstattung zurückgenommen')
   auditSecurity(erstattet ? 'PAYMENT_REFUNDED' : 'PAYMENT_REFUND_REVERSED', {
     paymentId: zeile.paymentId, userId: zeile.userId ?? undefined, quelle: 'apple',

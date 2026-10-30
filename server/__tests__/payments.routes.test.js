@@ -404,6 +404,27 @@ describe('payments routes integration', () => {
     expect(rolle(admin.userId)).toBe('admin')
   })
 
+  it('Webhook: nach 5 Fehlversuchen wird nicht mehr freigeschaltet, eine Erstattung aber noch erfasst', async () => {
+    const setzeVersuche = (paymentId) => db.prepare(`INSERT INTO webhook_retries (payment_id, attempts, last_retry) VALUES (?, 5, ?)
+      ON CONFLICT(payment_id) DO UPDATE SET attempts = 5`).run(paymentId, Date.now())
+    const { userId, paymentId, zahlung } = await kaufeUeberWebhook()
+    setzeVersuche(paymentId)
+    mollieMock.get.mockResolvedValue({ ...zahlung, amountRefunded: { value: '9.99', currency: 'EUR' } })
+    expect((await webhook(paymentId)).status).toBe(200)
+    expect(statusVon(paymentId)).toBe('refunded')
+    expect(freigeschaltet(userId)).toBe(0)
+
+    // Eine neue Zahlung am Limit schaltet weiterhin nicht frei
+    const neuerNutzer = createTestUser()
+    testUserIds.add(neuerNutzer)
+    const neueId = `tr_limit${Math.random().toString(16).slice(2, 10)}`
+    setzeVersuche(neueId)
+    mollieMock.get.mockResolvedValue({ id: neueId, status: 'paid', amount: { value: '9.99', currency: 'EUR' }, metadata: { userId: neuerNutzer, product: 'gesamtausgabe' } })
+    expect((await webhook(neueId)).status).toBe(200)
+    expect(statusVon(neueId)).toBeUndefined()
+    db.prepare('DELETE FROM webhook_retries WHERE payment_id = ?').run(neueId)
+  })
+
   it('Webhook: eine schon erstattete Zahlung ohne Kaufzeile schaltet nichts frei', async () => {
     const userId = createTestUser()
     testUserIds.add(userId)

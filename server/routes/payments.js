@@ -231,7 +231,7 @@ export const nurMollieId = (wert) => (typeof wert === 'string' && MOLLIE_ID_RE.t
 // Mollie ruft diesen Endpunkt auf, wenn sich der Zahlungsstatus ändert.
 // Sicherheit: IP-Whitelist + Payment-ID-Verifizierung via Mollie-API
 // Idempotenz: payments-Tabelle verhindert Doppelbuchungen
-// Retry-Logik: Max 5 Versuche, dann aufgeben
+// Retry-Logik: Max 5 Versuche, dann aufgeben – Erstattungen werden auch danach noch erfasst
 
 router.post(
   '/api/v1/payments/webhook',
@@ -263,11 +263,11 @@ router.post(
     }
 
     // ── Retry-Limit prüfen ────────────────────────────────────
+    // Nach 5 Fehlversuchen wird nicht mehr freigeschaltet. Erstattung und Rückbuchung kommen
+    // aber oft Tage später über denselben Webhook: Die Zahlung wird deshalb trotzdem abgeholt,
+    // sonst bliebe die Gesamtausgabe nach einer Erstattung freigeschaltet (Security-Audit 2026-10-30).
     const retryRow = getWebhookRetryStmt.get(paymentId)
-    if (retryRow && retryRow.attempts >= 5) {
-      logger.error({ paymentId, attempts: retryRow.attempts }, 'Webhook: Max Retries erreicht, gebe auf')
-      return res.status(200).end() // 200 → Mollie hört auf zu wiederholen
-    }
+    const amLimit = !!retryRow && retryRow.attempts >= 5
 
     try {
       const client = getMollie()
@@ -288,6 +288,11 @@ router.post(
         }
         deleteWebhookRetryStmt.run(paymentId)
         return res.status(200).end()
+      }
+
+      if (amLimit) {
+        logger.error({ paymentId, attempts: retryRow.attempts }, 'Webhook: Max Retries erreicht, gebe auf')
+        return res.status(200).end() // 200 → Mollie hört auf zu wiederholen
       }
 
       if (payment.status !== 'paid') {
@@ -378,6 +383,7 @@ router.post(
 
       // Echter Fehler (DB-Problem, Netzwerk-Timeout, etc.)
       logger.error({ err, paymentId }, 'Mollie-Webhook-Verarbeitung fehlgeschlagen')
+      if (amLimit) return res.status(200).end()
       
       // Retry-Counter erhöhen
       incrementWebhookRetryStmt.run(paymentId, Date.now())

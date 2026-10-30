@@ -15,7 +15,7 @@ const { sendPurchaseConfirmation } = await import('../mailer.js')
 const {
   createPlayRouter, ablehnungsgrundPlay, zahlungsIdFuer, verarbeitePlayBenachrichtigung, PLAY_NOTIFICATIONS_PFAD,
 } = await import('../routes/iapPlay.js')
-const { deriveAppAccountToken, isEntitlementActive } = await import('../routes/iap.js')
+const { deriveAppAccountToken, isEntitlementActive, unlockForUser } = await import('../routes/iap.js')
 const { PlayKaufUnbekannt } = await import('../playKauf.js')
 const { default: db } = await import('../db.js')
 
@@ -291,6 +291,24 @@ describe('verarbeitePlayBenachrichtigung', () => {
       expect(zahlungVon(id).status).toBe('refunded')
     } finally {
       raeumeAuf([e])
+    }
+  })
+
+  it('Storno eines unbekannten Kaufs legt einen Sperreintrag an, ein späteres Token schaltet nichts frei', () => {
+    const f = `play-sperre-${lauf}`
+    const orderId = `GPA.sperre-${lauf}`
+    const tokenZeile = zahlungsIdFuer({}, 'tok-sperre')
+    legeNutzerAn(f)
+    try {
+      const note = { packageName: 'de.signifikation.app', voidedPurchaseNotification: { purchaseToken: 'tok-sperre', orderId, productType: 2 } }
+      expect(verarbeitePlayBenachrichtigung(note)).toBe('kein passender Kauf')
+      expect(zahlungVon(orderId)).toEqual({ userId: null, status: 'gesperrt', amount: '0.00' })
+      expect(zahlungVon(tokenZeile)?.status).toBe('gesperrt')
+      expect(unlockForUser(f, orderId, null, PRODUKT, { quelle: 'google-play' })).toBe(false)
+      expect(isEntitlementActive(f)).toBe(false)
+    } finally {
+      db.prepare('DELETE FROM payments WHERE id IN (?, ?)').run(orderId, tokenZeile)
+      raeumeAuf([f])
     }
   })
 
