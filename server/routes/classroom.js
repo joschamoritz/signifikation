@@ -112,6 +112,7 @@ import {
 import { isJoinBlocked, joinFailureDelayMs, recordJoinFailure } from '../classroom/join-guard.js'
 import { istJoinCodeAktiv } from '../classroom/join-code.js'
 import { loadDemoContent } from '../classroom/demoContent.js'
+import { berlinTag } from '../date-utils.js'
 
 const router = express.Router()
 
@@ -169,6 +170,7 @@ function mapError(errCode) {
     case 'PAYLOAD_TOO_LARGE':  return { status: 413, message: 'rawAnswer zu groß (max. 4 KiB)' }
     case 'SCORING_FAILED':     return { status: 422, message: 'Scoring fehlgeschlagen – ggf. Content-Snapshot prüfen' }
     case 'IDEMPOTENCY_RACE':   return { status: 409, message: 'Submission-Konflikt – bitte wiederholen' }
+    case 'TOO_MANY_LOBBIES':   return { status: 409, message: 'Höchstens 20 Sessions dürfen gleichzeitig in der Lobby warten – bitte eine starten oder löschen' }
     default:                   return { status: 500, message: 'Interner Serverfehler' }
   }
 }
@@ -192,10 +194,20 @@ function respondStoreResult(res, result, onSuccess = (r) => res.json(r)) {
 }
 
 // ── Lemmata-Lookup (für T-2.2 und T-2.3) ───────────────────────
+// Lemmata, die nur für künftige Tage oder Wochen geplant sind, gelten als unveröffentlicht:
+// Sie sind die Lösungen kommender Spieltage (wie public.js keinZukunftsdatum und das Archiv).
+// Lehrkräfte sehen sie weder in der Auswahl noch per ID (Entscheidung 2026-10-30).
+const EINGEPLANT_SQL = (vergleich) => `(
+  EXISTS (SELECT 1 FROM kalender k WHERE k.datum ${vergleich} :heute
+          AND (k.lueckenfueller_id = lemmata.id OR EXISTS (SELECT 1 FROM json_each(k.ids) j WHERE j.value = lemmata.id)))
+  OR EXISTS (SELECT 1 FROM spezialwochen s WHERE s.von ${vergleich} :heute
+          AND (lower(s.lemma_id) = lemmata.id OR s.lueckenfueller_id = lemmata.id)))`
+const NICHT_UNVEROEFFENTLICHT_SQL = `NOT (${EINGEPLANT_SQL('>')} AND NOT ${EINGEPLANT_SQL('<=')})`
+
 const getLemmataByIdsStmt = db.prepare(`
   SELECT id, lemma, pos, ipa, definition, definitionen, runden, lueckenfueller
   FROM lemmata
-  WHERE id IN (SELECT value FROM json_each(?))
+  WHERE id IN (SELECT value FROM json_each(:ids)) AND ${NICHT_UNVEROEFFENTLICHT_SQL}
 `)
 
 function parseLemmaJson(row) {
@@ -233,7 +245,7 @@ function synthWzLemma(id, pair) {
 // (Wort-Zwilling) als synthetische Objekte. → { lemmata, missing }.
 function loadAssignmentLemmata(lemmaIds) {
   const realIds = lemmaIds.filter((id) => !parseWzId(id))
-  const rows = realIds.length ? getLemmataByIdsStmt.all(JSON.stringify(realIds)) : []
+  const rows = realIds.length ? getLemmataByIdsStmt.all({ ids: JSON.stringify(realIds), heute: berlinTag() }) : []
   const lemmata = rows.map(parseLemmaJson)
   for (const id of lemmaIds) {
     const pair = parseWzId(id)
@@ -408,7 +420,7 @@ function lemmataStmts(mode) {
   const key = mode || '*'
   if (_lemmataStmtCache.has(key)) return _lemmataStmtCache.get(key)
   const where = `WHERE (:q IS NULL OR lemma LIKE :q OR definition LIKE :q)
-    AND (:pos IS NULL OR pos = :pos) ${lemmaModeFilter(mode)}`
+    AND (:pos IS NULL OR pos = :pos) AND ${NICHT_UNVEROEFFENTLICHT_SQL} ${lemmaModeFilter(mode)}`
   const pair = {
     search: db.prepare(`SELECT id, lemma, pos, ipa, definition, definitionen FROM lemmata ${where} ORDER BY lemma LIMIT :limit`),
     count:  db.prepare(`SELECT COUNT(*) AS total FROM lemmata ${where}`),
@@ -427,8 +439,9 @@ router.get(
     const posParam = pos || null
     const { search, count } = lemmataStmts(mode)
 
-    const rows = search.all({ q: qParam, pos: posParam, limit })
-    const { total } = count.get({ q: qParam, pos: posParam })
+    const heute = berlinTag()
+    const rows = search.all({ q: qParam, pos: posParam, limit, heute })
+    const { total } = count.get({ q: qParam, pos: posParam, heute })
 
     function safe(v, fb) { try { return v ? JSON.parse(v) : fb } catch { return fb } }
 
@@ -535,6 +548,7 @@ router.get(
 // und Limits (D3: max. 3 Lemmata) identisch zum echten Assignment sind.
 router.post(
   '/api/v1/classroom/preview',
+  classroomWriteLimiter,
   requirePremium,
   validate(classroomCreateAssignmentSchema),
   async (req, res) => {

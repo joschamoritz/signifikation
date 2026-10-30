@@ -77,6 +77,22 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
     expect(validateCustomLemma).toHaveBeenCalledWith(expect.objectContaining({ mode: 'kollokationen', q: 'Archiv' }))
   })
 
+  it('validate: pro Konto läuft nur eine Lückenfüller-Prüfung gleichzeitig', async () => {
+    const userId = createTestUser(); userIds.add(userId)
+    vi.mocked(validateCustomLemma).mockImplementationOnce(async (input) => {
+      await new Promise((r) => setTimeout(r, 300))
+      return { mode: input.mode, usable: true, reason: null }
+    })
+    const url = `${baseUrl}/api/v1/custom-lemma/validate?mode=lueckenfueller&q=Archiv`
+    const erste = fetch(url, { headers: devHeaders(userId, 'user') })
+    await new Promise((r) => setTimeout(r, 50))
+    const zweite = await fetch(url, { headers: devHeaders(userId, 'user') })
+    expect(zweite.status).toBe(429)
+    expect((await erste).status).toBe(200)
+    // Danach geht es wieder
+    expect((await fetch(url, { headers: devHeaders(userId, 'user') })).status).toBe(200)
+  })
+
   it('validate: 400 bei fehlendem Pflichtfeld (Wort-Zwilling ohne a/b)', async () => {
     const userId = createTestUser(); userIds.add(userId)
     const res = await fetch(`${baseUrl}/api/v1/custom-lemma/validate?mode=wortzwilling&q=Archiv`, {

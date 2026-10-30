@@ -88,6 +88,7 @@ function hashToken(token) {
 
 // ── Prepared Statements ──────────────────────────────────────────────
 const stmts = {
+  countOffeneLobbys: db.prepare(`SELECT COUNT(*) AS c FROM classroom_session WHERE teacher_user_id = ? AND status = 'lobby'`),
   // Sessions
   insertSession: db.prepare(`
     INSERT INTO classroom_session (id, code, teacher_user_id, title, status, settings_json, created_at)
@@ -437,9 +438,13 @@ function normalizeParticipantRow(row) {
 
 // ── Session-CRUD ────────────────────────────────────────────────────
 const CODE_INSERT_MAX_ATTEMPTS = 5
+// Jede Lobby hält einen der ~101.000 Join-Codes, bis sie startet oder nach 7 Tagen verfällt. Ohne Deckel
+// könnte ein Konto den Vorrat aufbrauchen und das Anlegen für alle blockieren (Security-Audit run-2).
+export const MAX_OFFENE_LOBBYS = 20
 
 export function createSession({ teacherUserId, title = null, settings = {} }) {
   if (!teacherUserId) return { error: 'TEACHER_REQUIRED' }
+  if (stmts.countOffeneLobbys.get(teacherUserId).c >= MAX_OFFENE_LOBBYS) return { error: 'TOO_MANY_LOBBIES' }
   const id = randomUUID()
   const settingsJson = JSON.stringify(settings || {})
 

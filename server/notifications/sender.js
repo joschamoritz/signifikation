@@ -60,6 +60,30 @@ const deleteSubscriptionByIdStmt = db.prepare(`
   DELETE FROM push_subscriptions WHERE id = ?
 `)
 
+// Nach so vielen Fehlversuchen in Folge gilt ein Abo als unzustellbar und wird gelöscht (Migration 0036).
+const MAX_FEHLVERSUCHE = 5
+const fehlversuchStmt = db.prepare(`
+  UPDATE push_subscriptions SET fehlversuche = fehlversuche + 1 WHERE id = ? RETURNING fehlversuche
+`)
+const erfolgStmt = db.prepare(`UPDATE push_subscriptions SET fehlversuche = 0 WHERE id = ? AND fehlversuche > 0`)
+
+// Nur aufrufen, wenn tatsächlich gesendet wurde: „nicht konfiguriert“ ist kein Fehlversuch des Abos.
+function merkeFehlversuch(sub) {
+  try {
+    const n = fehlversuchStmt.get(sub.id)?.fehlversuche ?? 0
+    if (n >= MAX_FEHLVERSUCHE) {
+      deleteSubscriptionByIdStmt.run(sub.id)
+      logger.info({ subId: sub.id, fehlversuche: n }, 'Push-Abo nach wiederholten Fehlversuchen gelöscht')
+    }
+  } catch (err) {
+    logger.warn({ err, subId: sub.id }, 'Push-Fehlversuch nicht gezählt')
+  }
+}
+
+function merkeErfolg(sub) {
+  try { erfolgStmt.run(sub.id) } catch { /* ignore */ }
+}
+
 // ── Web Push ──────────────────────────────────────────────────────────────────
 
 /**
@@ -87,6 +111,7 @@ async function sendWebPush(sub, payload) {
   try {
     await webpush.sendNotification(pushSubscription, JSON.stringify(payload), { timeout: SEND_TIMEOUT_MS })
     logger.debug({ subId: sub.id }, 'Web Push gesendet')
+    merkeErfolg(sub)
     return true
   } catch (err) {
     if (err.statusCode === 410 || err.statusCode === 404) {
@@ -95,6 +120,7 @@ async function sendWebPush(sub, payload) {
       try { deleteSubscriptionByIdStmt.run(sub.id) } catch { /* ignore */ }
     } else {
       logger.warn({ err, subId: sub.id }, 'Web Push fehlgeschlagen')
+      merkeFehlversuch(sub)
     }
     return false
   }
@@ -157,6 +183,7 @@ async function sendApnsPush(sub, payload) {
 
     if (result.sent.length > 0) {
       logger.debug({ subId: sub.id }, 'APNs-Push gesendet')
+      merkeErfolg(sub)
       return true
     }
 
@@ -167,11 +194,14 @@ async function sendApnsPush(sub, payload) {
     if (reason === 'BadDeviceToken' || reason === 'Unregistered') {
       try { deleteSubscriptionByIdStmt.run(sub.id) } catch { /* ignore */ }
       logger.info({ subId: sub.id, reason }, 'APNs-Subscription gelöscht')
+    } else {
+      merkeFehlversuch(sub)
     }
 
     return false
   } catch (err) {
     logger.warn({ err, subId: sub.id }, 'APNs-Push Ausnahme')
+    merkeFehlversuch(sub)
     return false
   }
 }
@@ -205,16 +235,20 @@ async function sendFcmPush(sub, payload) {
     const result = await fcm.send(sub.fcm_token, payload)
     if (result.ok) {
       logger.debug({ subId: sub.id }, 'FCM-Push gesendet')
+      merkeErfolg(sub)
       return true
     }
     logger.warn({ subId: sub.id, status: result.status }, 'FCM-Push fehlgeschlagen')
     if (result.unregistered) {
       try { deleteSubscriptionByIdStmt.run(sub.id) } catch { /* ignore */ }
       logger.info({ subId: sub.id }, 'FCM-Subscription gelöscht (UNREGISTERED)')
+    } else {
+      merkeFehlversuch(sub)
     }
     return false
   } catch (err) {
     logger.warn({ err, subId: sub.id }, 'FCM-Push Ausnahme')
+    merkeFehlversuch(sub)
     return false
   }
 }

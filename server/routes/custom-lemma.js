@@ -52,6 +52,25 @@ function nurFetchAufruf(req, res, next) {
   return next()
 }
 
+// Lückenfüller rechnet im einzigen, gemeinsamen Worker (Admin, Klassenraum, alle Nutzer). Pro Konto läuft
+// deshalb höchstens eine Lückenfüller-Berechnung gleichzeitig (Security-Audit run-2).
+const laufendeLueckenfueller = new Set()
+function einLueckenfuellerProKonto(req, res, next) {
+  if (req.query.mode !== 'lueckenfueller') return next()
+  const id = req.user.id
+  if (laufendeLueckenfueller.has(id)) {
+    return res.status(429).json({ error: 'Deine vorige Lückenfüller-Prüfung läuft noch. Bitte kurz warten.' })
+  }
+  laufendeLueckenfueller.add(id)
+  res.on('close', () => laufendeLueckenfueller.delete(id))
+  return next()
+}
+
+function sendeFehler(res, err) {
+  if (err?.code === 'LUECKENFUELLER_AUSGELASTET') return res.status(503).json({ error: err.message })
+  return serverError(res, err)
+}
+
 /**
  * GET /api/v1/custom-lemma/validate?mode=…&q=… (bzw. a=&b= bei Wort-Zwilling)
  * → { mode, usable, reason, … } – verbraucht KEIN Kontingent.
@@ -61,13 +80,14 @@ router.get(
   customLemmaLimiter,
   requireAuthUser,
   validate(customLemmaValidateSchema, 'query'),
+  einLueckenfuellerProKonto,
   async (req, res) => {
     try {
       const result = await validateCustomLemma(req.query)
       res.json(result)
     } catch (err) {
       logger.error({ err, query: req.query }, 'Eigenes-Lemma-Validierung fehlgeschlagen')
-      serverError(res, err)
+      sendeFehler(res, err)
     }
   },
 )
@@ -85,6 +105,7 @@ router.get(
   nurFetchAufruf,
   requireAuthUser,
   validate(customLemmaValidateSchema, 'query'),
+  einLueckenfuellerProKonto,
   async (req, res) => {
     try {
       const date = todayBerlin()
@@ -114,7 +135,7 @@ router.get(
       })
     } catch (err) {
       logger.error({ err, query: req.query }, 'Eigenes-Lemma-Spielaufbau fehlgeschlagen')
-      serverError(res, err)
+      sendeFehler(res, err)
     }
   },
 )

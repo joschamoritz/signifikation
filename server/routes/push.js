@@ -18,12 +18,13 @@ import logger from '../logger.js'
 const router = express.Router()
 
 // ── Endpoint-Whitelist (Push-Provider) ───────────────────────────────────────
-// Verhindert SSRF / Spam-Subscribes auf beliebige URLs
+// Verhindert SSRF / Spam-Subscribes auf beliebige URLs. Nur die Hosts, die Browser tatsächlich als
+// Push-Endpoint liefern – nicht mehr jede Subdomain von googleapis.com (Security-Audit run-2).
 const ALLOWED_PUSH_HOSTS = [
-  /\.googleapis\.com$/i,           // FCM
-  /\.push\.apple\.com$/i,          // APNs
-  /\.notify\.windows\.com$/i,      // WNS
-  /\.push\.services\.mozilla\.com$/i, // Mozilla autopush
+  /^fcm\.googleapis\.com$/i,                 // Chrome, Edge (Chromium), Opera, Samsung Internet
+  /^web\.push\.apple\.com$/i,                // Safari
+  /^[a-z0-9-]+\.notify\.windows\.com$/i,     // WNS (Edge Legacy)
+  /^updates\.push\.services\.mozilla\.com$/i, // Firefox
 ]
 
 function isAllowedPushEndpoint(urlStr) {

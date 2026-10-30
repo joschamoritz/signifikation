@@ -122,7 +122,7 @@ async function validateZeitenwende(q) {
 async function validateLueckenfueller(q, pos) {
   const word = q.trim()
   const resolvedPos = pos || (await bestKollokationPos(word)).pos
-  const rounds = await buildLueckenfueller(word, resolvedPos)
+  const rounds = await buildLueckenfueller(word, resolvedPos, { prioritaet: 'niedrig' })
   const usable = Array.isArray(rounds) && rounds.length > 0
   return {
     mode: 'lueckenfueller',
@@ -244,7 +244,7 @@ export async function buildCustomPlay({ mode, q, pos, a, b }) {
     case 'lueckenfueller': {
       const word = q.trim()
       const resolvedPos = pos || (await bestKollokationPos(word)).pos
-      const rounds = await buildLueckenfueller(word, resolvedPos)
+      const rounds = await buildLueckenfueller(word, resolvedPos, { prioritaet: 'niedrig' })
       if (!Array.isArray(rounds) || rounds.length === 0) {
         return { usable: false, reason: 'Nicht genug Belegsätze für eine spielbare Runde.' }
       }

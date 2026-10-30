@@ -29,6 +29,7 @@ import db from '../db.js'
 import classroomRouter from '../routes/classroom.js'
 import { createSession } from '../classroom/store.js'
 import { makeWzId } from '../classroom/content.js'
+import { berlinTag, plusTage } from '../date-utils.js'
 
 // Kollokationen werden im Klassenraum live aus wortprofil.db generiert
 // (buildContentSnapshot → resolveKollokatoren → fetchLemma). Im Test ist die
@@ -853,6 +854,68 @@ describe('classroom routes', () => {
         expect((await join(code, 'Nachzuegler')).status).toBe(201)
       } finally {
         resetJoinGuard()
+        cleanupTeacher(teacher)
+      }
+    })
+
+    it('Lemma-Auswahl und Aufgaben zeigen keine Wörter, die nur für künftige Tage geplant sind', async () => {
+      const teacher = `cr2-teacher-zukunft-${randomUUID()}`
+      ensureUser(teacher)
+      const morgen = plusTage(berlinTag(), 1)
+      const lemma = (id, wort) => db.prepare(`INSERT OR REPLACE INTO lemmata (id, lemma, pos, wortart, runden, rundenInfo, notiz, link, definition, ipa, definitionen)
+        VALUES (?, ?, 'Substantiv', 'Substantiv', '{}', '[]', '', '', '', '', '[]')`).run(id, wort)
+      lemma('zuk-a', 'Zukunftswortab')
+      lemma('zuk-b', 'Zukunftswortab Alt')
+      lemma('zuk-c', 'Zukunftswortab Woche')
+      lemma('zuk-d', 'Zukunftswortab Frei')
+      db.prepare(`INSERT OR REPLACE INTO kalender (datum, ids) VALUES (?, ?)`).run(morgen, JSON.stringify(['zuk-a', 'zuk-b']))
+      db.prepare(`INSERT OR REPLACE INTO kalender (datum, ids) VALUES ('2001-01-01', ?)`).run(JSON.stringify(['zuk-b']))
+      db.prepare(`INSERT OR REPLACE INTO spezialwochen (woche, von, bis, lemma_id, lueckenfueller_id) VALUES ('2099-W01', ?, ?, 'zuk-woche', 'zuk-c')`)
+        .run(morgen, plusTage(morgen, 6))
+      try {
+        const res = await fetch(`${baseUrl}/api/v1/classroom/lemmata?q=Zukunftswortab&limit=50`, { headers: teacherHeaders(teacher, 'premium') })
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.items.map((i) => i.id).sort()).toEqual(['zuk-b', 'zuk-d'])
+        expect(body.total).toBe(2)
+
+        const create = await fetch(`${baseUrl}/api/v1/classroom/sessions`, {
+          method: 'POST', headers: teacherHeaders(teacher, 'premium'), body: JSON.stringify({}),
+        })
+        const sessionId = (await create.json()).id
+        const add = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments`, {
+          method: 'POST', headers: teacherHeaders(teacher, 'premium'),
+          body: JSON.stringify({ mode: 'kollokationen', lemmaIds: ['zuk-a'] }),
+        })
+        expect(add.status).toBe(404)
+      } finally {
+        db.prepare(`DELETE FROM kalender WHERE datum IN (?, '2001-01-01')`).run(morgen)
+        db.prepare(`DELETE FROM spezialwochen WHERE woche = '2099-W01'`).run()
+        db.prepare(`DELETE FROM lemmata WHERE id IN ('zuk-a', 'zuk-b', 'zuk-c', 'zuk-d')`).run()
+        cleanupTeacher(teacher)
+      }
+    })
+
+    it('höchstens 20 Lobby-Sessions pro Lehrkraft; erfundene Bearer-Header umgehen das Schreib-Limit nicht', async () => {
+      const teacher = `cr2-teacher-lobbys-${randomUUID()}`
+      ensureUser(teacher)
+      try {
+        for (let i = 0; i < 20; i++) expect(createSession({ teacherUserId: teacher }).error).toBeUndefined()
+        expect(createSession({ teacherUserId: teacher }).error).toBe('TOO_MANY_LOBBIES')
+
+        const headers = () => ({
+          ...teacherHeaders(teacher, 'premium'),
+          'x-forwarded-for': '203.0.113.77',
+          authorization: `Bearer ${randomUUID()}.${randomUUID()}`,
+        })
+        const statusse = []
+        for (let i = 0; i < 81; i++) {
+          const res = await fetch(`${baseUrl}/api/v1/classroom/sessions`, { method: 'POST', headers: headers(), body: JSON.stringify({}) })
+          statusse.push(res.status)
+        }
+        expect(statusse.slice(0, 80).every((s) => s === 409)).toBe(true)
+        expect(statusse[80]).toBe(429)
+      } finally {
         cleanupTeacher(teacher)
       }
     })
