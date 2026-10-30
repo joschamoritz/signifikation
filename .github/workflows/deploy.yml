@@ -7,13 +7,15 @@ on:
     branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Nur Verify-Läufe aus einem Push in dieses Repo: Verify läuft auch für Pull Requests
+    # (inkl. Forks), deren Artefakt und SHA dürfen nie in die Produktion.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
+    # Auf Job-Ebene: übersprungene Läufe (z. B. aus PRs) verdrängen keinen wartenden Deploy.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: production

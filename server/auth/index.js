@@ -226,6 +226,9 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    // Reset beendet alle Sessions des Kontos: Wer sich vorab mit fremder Adresse
+    // registriert hat oder eine Session gestohlen hat, bleibt nicht eingeloggt.
+    revokeSessionsOnPasswordReset: true,
     ...(PASSWORD_RESET_ENABLED ? { sendResetPassword: sendPasswordReset } : {}),
   },
   // sendOnSignUp greift auch bei requireEmailVerification: false – better-auth

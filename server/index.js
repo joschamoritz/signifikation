@@ -62,6 +62,10 @@ import { closeDb } from './db.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
+// Produktion: nur nginx auf demselben Host spricht Node an. Auf allen Interfaces
+// erreichbar könnte ein Client X-Forwarded-For und damit req.ip frei wählen.
+// Entwicklung bleibt offen (Android-Emulator über 10.0.2.2, Vite-Proxy).
+const HOST      = process.env.HOST || (IS_PROD ? '127.0.0.1' : undefined)
 
 // ── Letzte Verteidigungslinie für unbehandelte Fehler ─────────
 // Floating Promises (z.B. Fire-and-Forget-Mails) und Fehler ausserhalb von
@@ -81,7 +85,8 @@ const app = express()
 
 // ── Proxy-Trust (nginx als Reverse-Proxy vor Node) ────────────
 // Ohne dies liefert req.ip immer die Proxy-IP → Rate Limiting unwirksam.
-app.set('trust proxy', 1)
+// 'loopback': X-Forwarded-For zählt nur, wenn die Verbindung vom lokalen nginx kommt.
+app.set('trust proxy', 'loopback')
 
 // ── Kompression (Gzip/Brotli) ─────────────────────────────────
 app.use(compression())
@@ -324,7 +329,7 @@ app.use((err, req, res, next) => {
   startAlerting()
 
   // ── Start ────────────────────────────────────────────────────
-  const server = app.listen(PORT, () => {
+  const server = app.listen(PORT, HOST, () => {
     logger.info(`Signifikation-Server läuft auf http://localhost:${PORT}`)
     logger.info(`Admin: http://localhost:${PORT}/admin`)
   })

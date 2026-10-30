@@ -24,6 +24,7 @@ const {
   sendPasswordResetMail,
   sendPurchaseConfirmation,
   sendWelcomeMail,
+  sendInactivityWarningMail,
 } = await import('../mailer.js')
 
 const lastMail = () => sendMailMock.mock.calls.at(-1)[0]
@@ -124,6 +125,24 @@ describe('mailer', () => {
       expect(mail.html).toContain(url)
       expect(mail.text).toContain(url)
       expect(mail.html).toContain('Hallo Anna,')
+    })
+
+    it('maskiert Markup im Namen (HTML), Klartext bleibt unverändert', async () => {
+      const name = '<a href="https://example.test/x">Konto sichern</a>'
+      await sendWelcomeMail({ to: 'neu@test.local', name })
+
+      const mail = lastMail()
+      expect(mail.html).not.toContain('<a href="https://example.test/x">')
+      expect(mail.html).toContain('Hallo &lt;a href=&quot;https://example.test/x&quot;&gt;Konto sichern&lt;/a&gt;,')
+      expect(mail.text).toContain(`Hallo ${name},`)
+    })
+
+    it('maskiert Markup im Namen auch in der Inaktivitätswarnung', async () => {
+      await sendInactivityWarningMail({ to: 'alt@test.local', name: '<b>x</b>', deleteOn: new Date('2027-01-01') })
+
+      const mail = lastMail()
+      expect(mail.html).not.toContain('<b>x</b>')
+      expect(mail.html).toContain('Hallo &lt;b&gt;x&lt;/b&gt;,')
     })
 
     it('kommt ohne Namen und ohne Link aus', async () => {

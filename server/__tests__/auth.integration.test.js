@@ -97,6 +97,29 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     expect(res.headers.get('set-cookie') || '').toContain('better-auth.session_token')
   })
 
+  it('Passwort-Reset beendet alle bestehenden Sessions', async () => {
+    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(EMAIL)
+    // Reset-Token wie request-password-reset anlegen, ohne vom konfigurierten Versandweg abzuhaengen
+    const token = `test-reset-${Date.now()}`
+    const ctx = await auth.$context
+    await ctx.internalAdapter.createVerificationValue({
+      value: user.id,
+      identifier: `reset-password:${token}`,
+      expiresAt: new Date(Date.now() + 60_000),
+    })
+    expect(db.prepare('SELECT COUNT(*) n FROM session WHERE userId = ?').get(user.id).n).toBeGreaterThan(0)
+
+    const res = await fetch(`${baseUrl}/api/v1/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token, newPassword: PASSWORD }),
+    })
+    expect(res.status).toBe(200)
+    expect(db.prepare('SELECT COUNT(*) n FROM session WHERE userId = ?').get(user.id).n).toBe(0)
+    const alt = await fetch(`${baseUrl}/api/v1/auth/get-session`, { headers: { cookie: sessionCookie } })
+    expect(await alt.text()).not.toContain(EMAIL)
+  })
+
   it('Sign-out invalidiert die Session', async () => {
     const signIn = await fetch(`${baseUrl}/api/v1/auth/sign-in/email`, {
       method: 'POST',

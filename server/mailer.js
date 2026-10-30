@@ -63,6 +63,13 @@ function getTransporter() {
   return _transporter
 }
 
+// Nutzerwerte (Kontoname) vor dem Einsetzen ins Mail-HTML maskieren: Sonst landet beliebiges Markup in einer
+// Mail, die von unserer Adresse an eine frei gewählte, unbestätigte Adresse geht.
+const HTML_ZEICHEN = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+function escapeHtml(wert) {
+  return String(wert).replace(/[&<>"']/g, (z) => HTML_ZEICHEN[z])
+}
+
 // Rahmen aller Systemmails (Wörterbuch-Ästhetik wie die App: Pergament,
 // Serifen, roter Akzent). Inline-Styles sind in E-Mails Pflicht – Gmail und
 // Outlook strippen <style>-Blöcke.
@@ -308,6 +315,7 @@ ${LINKS_FOOTER_TEXT}`
 // nicht kippen.
 export async function sendWelcomeMail({ to, name, verificationUrl }) {
   const anrede = name?.trim() ? `Hallo ${name.trim()},` : 'Hallo,'
+  const anredeHtml = name?.trim() ? `Hallo ${escapeHtml(name.trim())},` : 'Hallo,'
 
   const verifyHtml = verificationUrl
     ? `${renderButton(verificationUrl, 'E-Mail-Adresse bestätigen')}
@@ -321,7 +329,7 @@ export async function sendWelcomeMail({ to, name, verificationUrl }) {
   const html = renderLayout({
     kicker: 'Willkommen',
     title: 'Dein Konto ist angelegt',
-    lead: `${anrede} schön, dass du dabei bist.`,
+    lead: `${anredeHtml} schön, dass du dabei bist.`,
     bodyHtml: `  <p style="font-size:14px;color:#5a4e45;line-height:1.7;margin:0 0 24px">
     Ab sofort merkt sich Signifikation deine Ergebnisse, deine Serie und deinen Fortschritt im Kurs –
     auf allen Geräten, auf denen du angemeldet bist.
@@ -379,13 +387,14 @@ ${LINKS_FOOTER_TEXT}`
 // gelöscht, denn ohne Warnung keine Löschung.
 export async function sendInactivityWarningMail({ to, name, deleteOn }) {
   const anrede = name?.trim() ? `Hallo ${name.trim()},` : 'Hallo,'
+  const anredeHtml = name?.trim() ? `Hallo ${escapeHtml(name.trim())},` : 'Hallo,'
   const datum = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Berlin' }).format(deleteOn)
   const url = 'https://signifikation.de/'
 
   const html = renderLayout({
     kicker: 'Dein Konto',
     title: 'Wir löschen dein Konto bald',
-    lead: `${anrede} du hast dich seit zwei Jahren nicht mehr bei Signifikation angemeldet.`,
+    lead: `${anredeHtml} du hast dich seit zwei Jahren nicht mehr bei Signifikation angemeldet.`,
     bodyHtml: `  <p style="font-size:14px;color:#5a4e45;line-height:1.7;margin:0 0 24px">
     Damit wir keine Daten länger als nötig aufbewahren, löschen wir Konten nach zwei Jahren ohne
     Anmeldung. Dein Konto wird am <strong>${datum}</strong> gelöscht, zusammen mit deinen Ergebnissen
