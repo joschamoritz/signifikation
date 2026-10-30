@@ -1961,6 +1961,31 @@ function belegPruefungZeile(bp = {}) {
   return betriebZeile('Belegprüfung', betriebWert('bereit'), `${esc(zuletzt)}${knopf}`)
 }
 
+// Lückenfüller kommender Tage mit der aktuellen Erzeugung neu bauen (gespeicherte Runden ändern sich sonst nicht)
+function lueckenfuellerNeubauZeile(st = {}) {
+  const knopf = '<button type="button" class="adm-link" data-action="lueckenfueller-neubau-starten">kommende neu bauen</button>'
+  if (st.laeuft) return betriebZeile('Lückenfüller', betriebWert('werden neu gebaut'), esc(`${st.fertig || 0} von ${anzahlText(st.gesamt || 0, 'Wort', 'Wörtern')} fertig`))
+  if (!st.ende) return betriebZeile('Lückenfüller', betriebWert('bereit'), knopf)
+  const rest = [st.unveraendert ? `${st.unveraendert} unverändert` : '', st.fehler ? `${st.fehler} mit Fehler` : ''].filter(Boolean).join(', ')
+  const zuletzt = `zuletzt ${wannText(st.ende)} Uhr, ${st.neu} von ${anzahlText(st.gesamt, 'Wort', 'Wörtern')} neu gebaut${rest ? ` (${rest})` : ''} · `
+  return betriebZeile('Lückenfüller', betriebWert('bereit', st.fehler ? 'warn' : ''), `${esc(zuletzt)}${knopf}`)
+}
+
+async function starteLueckenfuellerNeubau() {
+  try {
+    const data = await holeJson('/admin/lueckenfueller-neubau', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    const text = data.status === 'laeuft'
+      ? 'Der Neubau läuft schon. „neu prüfen“ zeigt den Stand.'
+      : data.gesamt
+        ? `Neubau läuft: ${anzahlText(data.gesamt, 'Wort', 'Wörter')} der kommenden Tage, eins nach dem anderen. „neu prüfen“ zeigt den Stand.`
+        : 'Für die kommenden Tage ist kein Lückenfüller geplant.'
+    setMeldung('lueckenfueller-neubau-status', text, 'ok')
+  } catch (err) {
+    setMeldung('lueckenfueller-neubau-status', `Der Neubau ist nicht gestartet: ${err.message}`, 'error')
+  }
+  void ladeSystemzustand()
+}
+
 async function starteBelegPruefung() {
   try {
     const data = await holeJson('/admin/beleg-pruefung', {
@@ -2010,6 +2035,7 @@ function renderSystem(h, perf) {
     `<div><dt>Wortprofil</dt><dd>${datenbank(h.wortprofilDb, 'Kollokationen, Wort prüfen')}</dd></div>`,
     `<div><dt>Belegsätze</dt><dd>${h.belegeDb === 'ok' ? datenbank('ok', 'Beispielsätze aus dem Korpus') : betriebWert('nicht verfügbar', 'warn')}</dd></div>`,
     belegPruefungZeile(h.belegPruefung),
+    lueckenfuellerNeubauZeile(h.lueckenfuellerNeubau),
     betriebZeile('Benachrichtigungen', betriebWert(pushText, pushAktiv(push) ? '' : 'warn'), esc(anzahlText(push.geraete || 0, 'Gerät angemeldet', 'Geräte angemeldet'))),
     betriebZeile('E-Mail-Versand', betriebWert(mailDa ? 'eingerichtet' : 'nicht eingerichtet', mailDa ? '' : 'warn'), mailDa ? '' : 'Willkommens-Mails werden nicht verschickt'),
     betriebZeile('Letzte Sicherung', alter === null ? betriebWert('keine gefunden', 'warn') : alter > SICHERUNG_MAX_STUNDEN ? betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr · zu alt`, 'warn') : betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr`), '<a class="adm-link" href="#werkzeuge/sicherung">Sicherung ansehen</a>'),
@@ -7617,6 +7643,7 @@ function handleDocumentClick(event) {
   if (action === 'refresh-dashboard') return void refreshDashboard()
   if (action === 'load-health') return void (currentRoute?.page === 'system' ? ladeSystemzustand({ fokus: true }) : loadHealth())
   if (action === 'beleg-pruefung-starten') return void starteBelegPruefung()
+  if (action === 'lueckenfueller-neubau-starten') return void starteLueckenfuellerNeubau()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
   if (action === 'dashboard-week-heute') return void zeigeDieseWoche()
   if (action === 'select-dashboard-date') return void selectDashboardDay(target.dataset.value || '')

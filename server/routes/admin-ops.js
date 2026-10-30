@@ -100,6 +100,8 @@ export function createAdminOpsRouter({
   leereLueckenfuellerCache = () => {},
   pruefungStatus = () => ({ aktiv: false }),
   planePruefungFuerTage = () => ({ status: 'aus', neu: 0 }),
+  starteLueckenfuellerNeubau = () => ({ status: 'aus', gesamt: 0 }),
+  lueckenfuellerNeubauStatus = () => ({ laeuft: false }),
   adminError,
   logger,
 }) {
@@ -114,6 +116,16 @@ export function createAdminOpsRouter({
       const ergebnis = await planePruefungFuerTage(daten, { erneut, kurs: true })
       logger.info(`Belegprüfung angestoßen (${umfang}): ${daten.length} Tage, ${ergebnis.neu} neue Paare`)
       res.json({ ...ergebnis, tage: daten.length, ...pruefungStatus() })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
+
+  // Lückenfüller kommender Tage mit der aktuellen Erzeugung neu bauen (Hintergrund, im Worker)
+  router.post('/admin/lueckenfueller-neubau', adminLimiter, requireAuth, (_req, res) => {
+    try {
+      const { fertig: _fertig, ...ergebnis } = starteLueckenfuellerNeubau()
+      res.json(ergebnis)
     } catch (err) {
       adminError(res, err)
     }
@@ -212,6 +224,7 @@ export function createAdminOpsRouter({
       wortprofilDb: wortprofilErreichbar(),
       belegeDb: belegeVerfuegbar() ? 'ok' : 'nicht verfügbar',
       belegPruefung: pruefungStatus(),
+      lueckenfuellerNeubau: lueckenfuellerNeubauStatus(),
       push,
       mail: { eingerichtet: isMailConfigured() },
       sicherung: sicherungStatus(),

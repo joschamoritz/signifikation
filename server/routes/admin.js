@@ -4,6 +4,7 @@ import { dirname, join }  from 'path'
 import { fetchLemma, fetchKollokatorenAnalyse, MIN_KOLLOKATOREN, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, lemmaExistsInWortprofil, toId } from '../wortprofil.js'
 import { buildLueckenfuellerImWorker, leereLueckenfuellerWorkerCache } from '../lueckenfuellerImWorker.js'
 import { fetchBelegeGeprueft, planePruefungFuerTage, pruefungStatus } from '../belegPruefung/index.js'
+import { starteLueckenfuellerNeubau, lueckenfuellerNeubauStatus } from '../lueckenfuellerNeubau.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getAuswertungSpiele, getAuswertungZeilen, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
@@ -152,6 +153,8 @@ router.use(createAdminOpsRouter({
   },
   pruefungStatus,
   planePruefungFuerTage,
+  starteLueckenfuellerNeubau,
+  lueckenfuellerNeubauStatus,
   fetchRelation,
   DATA,
   adminError,
