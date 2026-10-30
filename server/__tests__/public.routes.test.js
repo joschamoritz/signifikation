@@ -21,7 +21,9 @@ vi.mock('../belege.js', () => ({
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-const TEST_DATUM = '2099-01-15'
+// Vergangener Tag: Zukünftige Tage liefern die Tagesrouten nicht aus (Security-Audit 2026-10-30)
+const TEST_DATUM = '2000-01-15'
+const MORGEN = plusTage(berlinTag(), 1)
 
 const TEST_LEMMA = {
   id: 'test-lemma',
@@ -123,6 +125,32 @@ describe('public routes integration', () => {
     db.prepare('DELETE FROM wortzwilling WHERE datum = ?').run(TEST_DATUM)
     db.prepare('DELETE FROM zeitenwende WHERE datum = ?').run(TEST_DATUM)
     db.prepare('DELETE FROM stats WHERE datum = ?').run(TEST_DATUM)
+    for (const tabelle of ['kalender', 'wortzwilling', 'zeitenwende']) {
+      db.prepare(`DELETE FROM ${tabelle} WHERE datum = ?`).run(MORGEN)
+    }
+  })
+
+  // ── Zukünftige Tage ────────────────────────────────────────────
+
+  describe('geplante Tage nach heute', () => {
+    it('heute, wortzwilling, zeitenwende und spezialwoche antworten mit 403', async () => {
+      seedLemma()
+      seedKalender(MORGEN)
+      seedWortzwilling(MORGEN)
+      seedZeitenwende(MORGEN)
+      for (const route of ['heute', 'wortzwilling', 'zeitenwende', 'spezialwoche']) {
+        const res = await fetch(`${baseUrl}/api/v1/${route}?datum=${MORGEN}`)
+        expect(res.status, route).toBe(403)
+      }
+    })
+
+    it('bonus liefert nichts für ein Lemma, das nur für einen künftigen Tag geplant ist', async () => {
+      seedLemma({ ...TEST_LEMMA, id: 'test-lemma-zukunft' })
+      seedKalender(MORGEN, ['test-lemma-zukunft'])
+      const res = await fetch(`${baseUrl}/api/v1/bonus?id=test-lemma-zukunft`)
+      expect(res.status).toBe(200)
+      expect(await res.json()).toBeNull()
+    })
   })
 
   // ── /health ────────────────────────────────────────────────────
@@ -325,8 +353,9 @@ describe('public routes integration', () => {
       expect(await res.json()).toBeNull()
     })
 
-    it('gibt Bonusfrage zurück wenn Lemma mit bonusFrage vorhanden', async () => {
+    it('gibt Bonusfrage zurück wenn Lemma an einem vergangenen Tag lief', async () => {
       seedLemma()
+      seedKalender()
       const res = await fetch(`${baseUrl}/api/v1/bonus?id=test-lemma`)
       expect(res.status).toBe(200)
       const body = await res.json()

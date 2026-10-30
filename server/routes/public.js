@@ -24,6 +24,21 @@ function todayDatum() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
 }
 
+// Geplante Tage nach heute sind unveröffentlicht: Ihre Inhalte sind die Lösungen kommender Spieltage
+// (wie /api/v1/archiv und das SSR-Archiv). Nach validate() einhängen, dort ist datum geprüft.
+function keinZukunftsdatum(req, res, next) {
+  if (req.query.datum && req.query.datum > todayDatum()) {
+    return res.status(403).json({ error: 'Zukünftige Einträge nicht verfügbar' })
+  }
+  return next()
+}
+
+const veroeffentlichtStmt = db.prepare(`
+  SELECT 1 FROM kalender, json_each(kalender.ids)
+  WHERE json_each.value = ? AND kalender.datum <= ?
+  LIMIT 1
+`)
+
 /**
  * GET /health – Readiness-Check.
  * Prüft DB-Erreichbarkeit und Belege-Verfügbarkeit.
@@ -51,7 +66,7 @@ router.get('/health', (_req, res) => {
 })
 
 /** GET /api/heute → die 3 Lemmata des Tages */
-router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
+router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), keinZukunftsdatum, (req, res) => {
   try {
     const datum = req.query.datum || todayDatum()
     const { byId, byLemma } = getLemmataIndex()
@@ -75,7 +90,7 @@ router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
 })
 
 /** GET /api/wortzwilling → Wort-Zwilling-Eintrag des Tages (ohne Scores) */
-router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, res) => {
+router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), keinZukunftsdatum, (req, res) => {
   try {
     const datum = req.query.datum || todayDatum()
     const entry = loadWortZwillingEntry(datum)
@@ -94,7 +109,7 @@ router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, re
 })
 
 /** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages (inkl. IPA + Definitionen) */
-router.get('/api/v1/zeitenwende', validate(datumQuerySchema, 'query'), async (req, res) => {
+router.get('/api/v1/zeitenwende', validate(datumQuerySchema, 'query'), keinZukunftsdatum, async (req, res) => {
   try {
     const datum = req.query.datum || todayDatum()
     const entry = loadZeitenwendeEntry(datum)
@@ -284,10 +299,11 @@ router.get('/api/v1/ipa', belegeLimiter, validate(qQuerySchema, 'query'), async 
   }
 })
 
-/** GET /api/bonus – Bonusfrage für ein Lemma (beim Admin-Eintrag vorberechnet) */
+/** GET /api/bonus – Bonusfrage für ein Lemma (beim Admin-Eintrag vorberechnet), nur für schon veröffentlichte Tage */
 router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), (req, res) => {
   const { id } = req.query
   try {
+    if (!veroeffentlichtStmt.get(id, todayDatum())) return res.json(null)
     const { byId } = getLemmataIndex()
     const l = byId.get(id)
     res.json(l?.bonusFrage ?? null)
@@ -303,7 +319,7 @@ router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), (req, res) => {
  * Enthält das aufgelöste Lemma-Objekt (Kollokationen), Wort-Zwilling-Daten,
  * Zeitenwende-Metadaten und optional das Lückenfüller-Lemma.
  */
-router.get('/api/v1/spezialwoche', belegeLimiter, validate(spezialwocheDatumQuerySchema, 'query'), async (req, res) => {
+router.get('/api/v1/spezialwoche', belegeLimiter, validate(spezialwocheDatumQuerySchema, 'query'), keinZukunftsdatum, async (req, res) => {
   try {
     const datum = req.query.datum || todayDatum()
     const entry = loadSpezialwoche(datum)

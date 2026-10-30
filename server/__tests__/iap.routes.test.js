@@ -349,6 +349,49 @@ describe('unlockForUser (Restore nach Kontoloeschung, Migration 0020)', () => {
   })
 })
 
+describe('unlockForUser (erstatteter Kauf nach Kontoloeschung)', () => {
+  const userOld = `iap-refunded-deleted-${Date.now()}`
+  const userNew = `iap-refunded-rejoined-${Date.now()}`
+  const txId = `tx-refunded-orphan-${Date.now()}`
+  const origId = `orig-refunded-orphan-${Date.now()}`
+
+  function ensureUser(id) {
+    db.prepare(`INSERT OR IGNORE INTO user (id, email, name, emailVerified, createdAt, updatedAt)
+                VALUES (?, ?, ?, 1, ?, ?)`)
+      .run(id, `${id}@test.local`, id, Date.now(), Date.now())
+  }
+
+  beforeAll(() => {
+    ensureUser(userOld)
+    ensureUser(userNew)
+  })
+
+  afterAll(() => {
+    db.prepare('DELETE FROM payments WHERE id = ?').run(origId)
+    for (const u of [userOld, userNew]) {
+      db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user WHERE id = ?').run(u)
+    }
+  })
+
+  it('ein vor der Erstattung abgegriffenes JWS schaltet den Kauf fuer ein neues Konto nicht frei', () => {
+    expect(unlockForUser(userOld, txId, origId, VALID_PRODUCT_ID)).toBe(true)
+    const tx = () => ({ bundleId: 'de.signifikation.app', transactionId: txId, originalTransactionId: origId })
+    const meldung = {
+      notificationType: 'REFUND',
+      data: { bundleId: 'de.signifikation.app', environment: 'Production', signedTransactionInfo: 'a.b.c' },
+    }
+    expect(verarbeiteAppStoreBenachrichtigung(meldung, tx).ergebnis).toBe('erstattet')
+    db.prepare('DELETE FROM user WHERE id = ?').run(userOld)
+
+    expect(unlockForUser(userNew, txId, origId, VALID_PRODUCT_ID)).toBe(false)
+    expect(isEntitlementActive(userNew)).toBe(false)
+    const row = db.prepare('SELECT user_id, status FROM payments WHERE id = ?').get(origId)
+    expect(row).toEqual({ user_id: null, status: 'refunded' })
+  })
+})
+
 describe('deriveAppAccountToken', () => {
   it('ist deterministisch und unterscheidet User', () => {
     expect(deriveAppAccountToken('user-a')).toBe(deriveAppAccountToken('user-a'))

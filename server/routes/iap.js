@@ -85,8 +85,11 @@ export function deriveAppAccountToken(userId) {
 // verwaiste Zeile den Restore-Pfad fuer den neu registrierten Account
 // blockieren (Apple-Guideline 5.1.1(v) verlangt aber einen funktionierenden
 // Restore, siehe rejectReasonForPayload oben).
+// status <> 'paid': Eine erstattete Zeile bleibt auch verwaist beansprucht.
+// Sonst schaltete ein vor der Erstattung abgegriffenes JWS den Kauf nach
+// Kontoloeschung fuer ein neues Konto wieder frei (Security-Audit 2026-10-30).
 const getTransactionStmt = db.prepare(
-  `SELECT id FROM payments WHERE id = ? AND user_id IS NOT NULL`
+  `SELECT id FROM payments WHERE id = ? AND (user_id IS NOT NULL OR status <> 'paid')`
 )
 
 const ensureEntitlementStmt = db.prepare(`
@@ -131,7 +134,7 @@ const insertPaymentStmt = db.prepare(`
     user_id      = excluded.user_id,
     amount       = excluded.amount,
     processed_at = excluded.processed_at
-  WHERE payments.user_id IS NULL
+  WHERE payments.user_id IS NULL AND payments.status = 'paid'
 `)
 
 const getUserEmailStmt = db.prepare(

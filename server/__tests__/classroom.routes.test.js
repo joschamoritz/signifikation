@@ -769,6 +769,37 @@ describe('classroom routes', () => {
       expect(res.status).toBe(401)
     })
 
+    it('ohne Premium (z. B. nach Erstattung): duplicate, Aufgaben und start → 403, beenden bleibt erlaubt', async () => {
+      const teacher = `cr2-teacher-downgrade-${randomUUID()}`
+      ensureUser(teacher)
+      const lemmaId = insertTestLemma(`downgrade-${randomUUID()}`)
+      try {
+        const create = await fetch(`${baseUrl}/api/v1/classroom/sessions`, {
+          method: 'POST', headers: teacherHeaders(teacher, 'premium'), body: JSON.stringify({}),
+        })
+        expect(create.status).toBe(201)
+        const sessionId = (await create.json()).id
+        const add = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments`, {
+          method: 'POST', headers: teacherHeaders(teacher, 'premium'),
+          body: JSON.stringify({ mode: 'kollokationen', lemmaIds: [lemmaId] }),
+        })
+        expect(add.status).toBe(201)
+
+        // Rolle premium → user: die Grants der Session bestehen weiter
+        const user = teacherHeaders(teacher, 'user')
+        const post = (pfad, body = {}) => fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}${pfad}`, {
+          method: 'POST', headers: user, body: JSON.stringify(body),
+        })
+        expect((await post('/duplicate')).status).toBe(403)
+        expect((await post('/assignments', { mode: 'kollokationen', lemmaIds: [lemmaId] })).status).toBe(403)
+        expect((await post('/assignments/bulk', { blocks: [{ mode: 'kollokationen', lemmaIds: [lemmaId] }] })).status).toBe(403)
+        expect((await post('/start')).status).toBe(403)
+        expect((await post('/finish')).status).toBe(200)
+      } finally {
+        cleanupTeacher(teacher)
+      }
+    })
+
     it('POST /join mit ungültigem Code → 404', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/join`, {
         method: 'POST',

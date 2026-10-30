@@ -351,9 +351,13 @@ router.post(
 // „Mit neuer Klasse wiederholen“: klont Titel + Assignment-Bloecke in eine
 // frische Lobby-Session mit neuem Join-Code (ohne Teilnehmer/Abgaben).
 // requireCapability prueft session:manage auf der QUELL-Session (:id).
+// requirePremium wie beim Anlegen: Grants ueberdauern eine Erstattung, deshalb
+// sperren duplicate, Aufgaben anlegen und start die Nutzung ohne Premium.
+// Beenden, Loeschen, Ergebnisse und Kick bleiben fuer den Besitzer offen.
 router.post(
   '/api/v1/classroom/sessions/:id/duplicate',
   classroomWriteLimiter,
+  requirePremium,
   requireCapability('session:manage'),
   validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomDuplicateSessionSchema),
@@ -580,6 +584,7 @@ router.get(
 router.post(
   '/api/v1/classroom/sessions/:id/assignments',
   classroomWriteLimiter,
+  requirePremium,
   requireCapability('session:manage'),
   validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomCreateAssignmentSchema),
@@ -629,6 +634,7 @@ router.post(
 router.post(
   '/api/v1/classroom/sessions/:id/assignments/bulk',
   classroomWriteLimiter,
+  requirePremium,
   requireCapability('session:manage'),
   validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomCreateAssignmentsSchema),
@@ -695,6 +701,7 @@ router.delete(
 router.post(
   '/api/v1/classroom/sessions/:id/start',
   classroomWriteLimiter,
+  requirePremium,
   requireCapability('session:manage'),
   validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomStartSessionSchema),
