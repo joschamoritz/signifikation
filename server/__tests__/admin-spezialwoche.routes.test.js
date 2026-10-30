@@ -8,11 +8,16 @@ import { isoWocheSpanne } from '../date-utils.js'
 
 const durchlass = (_req, _res, next) => next()
 
-function baue({ wz = { wortA: 'Laterne', wortB: 'Lampion', kollokatoren: [{ wort: 'hell', zuordnung: 'A' }, { wort: 'bunt', zuordnung: 'B' }] }, lemmata = [], gespeichert = new Map() } = {}) {
+const RUNDEN = [{ type: 'choice' }, { type: 'choice' }, { type: 'free' }]
+
+function baue({ wz = { wortA: 'Laterne', wortB: 'Lampion', kollokatoren: [{ wort: 'hell', zuordnung: 'A' }, { wort: 'bunt', zuordnung: 'B' }] }, lemmata = [], gespeichert = new Map(), runden = RUNDEN } = {}) {
   const speichern = vi.fn((e) => { gespeichert.set(e.woche, e) })
   const audit = vi.fn()
   const aktualisiert = vi.fn()
   const fetchWortZwilling = vi.fn(async () => (wz instanceof Error ? Promise.reject(wz) : wz))
+  const buildLueckenfueller = vi.fn(async () => (runden instanceof Error ? Promise.reject(runden) : runden))
+  const fetchLemma = vi.fn(async (lemma, pos) => ({ id: lemma.toLowerCase().replace(/ü/g, 'ue'), lemma, pos, runden: {} }))
+  const speichereLemma = vi.fn()
   const index = {
     byId: new Map(lemmata.map((l) => [l.id, l])),
     byLemma: new Map(lemmata.map((l) => [l.lemma, l])),
@@ -33,6 +38,9 @@ function baue({ wz = { wortA: 'Laterne', wortB: 'Lampion', kollokatoren: [{ wort
     getLemmataIndex: () => index,
     lemmaExistsInWortprofil: (id) => !id.startsWith('nichtda'),
     fetchWortZwilling,
+    buildLueckenfueller,
+    fetchLemma,
+    speichereLemma,
     toId: (w) => w.toLowerCase().replace(/ü/g, 'ue'),
     auditCreate: audit,
     auditUpdate: aktualisiert,
@@ -41,7 +49,7 @@ function baue({ wz = { wortA: 'Laterne', wortB: 'Lampion', kollokatoren: [{ wort
     serverError: (res, err) => res.status(500).json({ error: String(err?.message ?? err) }),
     logger: { info() {}, warn() {}, error() {} },
   }))
-  return { app, speichern, audit, aktualisiert, fetchWortZwilling, gespeichert }
+  return { app, speichern, audit, aktualisiert, fetchWortZwilling, buildLueckenfueller, fetchLemma, speichereLemma, gespeichert }
 }
 
 async function mitServer(app, fn) {
@@ -136,6 +144,52 @@ describe('POST /admin/spezialwoche', () => {
       // Wort statt Kennung („Laterne“) wird zur Kennung aufgelöst
       expect((await post(basis, { woche: '2026-W46', lemma_id: 'kritik', lueckenfueller_id: 'Laterne', zwilling_pos: 'Substantiv' })).status).toBe(200)
       expect(speichern.mock.calls.at(-1)[0].lueckenfueller_id).toBe('laterne')
+    })
+  })
+
+  it('Lückenfüller = Wort der Woche ohne Runden: Runden entstehen beim Speichern, neues Lemma wird angelegt', async () => {
+    const { app, speichern, buildLueckenfueller, fetchLemma, speichereLemma } = baue()
+    await mitServer(app, async (basis) => {
+      const res = await post(basis, { woche: '2026-W49', lemma_id: 'Weihnachtsmarkt', lueckenfueller_id: 'Weihnachtsmarkt', zwilling_partner: 'Jahrmarkt', zwilling_pos: 'Substantiv' })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({ ok: true, lfRunden: 3 })
+      expect(buildLueckenfueller).toHaveBeenCalledWith('Weihnachtsmarkt', 'Substantiv')
+      expect(fetchLemma).toHaveBeenCalledWith('Weihnachtsmarkt', 'Substantiv')
+      expect(speichereLemma).toHaveBeenCalledWith(expect.objectContaining({ id: 'weihnachtsmarkt', lueckenfueller: RUNDEN }))
+      expect(speichern).toHaveBeenCalledWith(expect.objectContaining({ lueckenfueller_id: 'weihnachtsmarkt' }))
+    })
+  })
+
+  it('Lückenfüller = Wort B: Runden in der Wortart des Paars; vorhandenes Lemma behält seine Daten', async () => {
+    const lemmata = [{ id: 'kuerbis', lemma: 'Kürbis', pos: 'Substantiv', notiz: 'bleibt' }]
+    const { app, buildLueckenfueller, fetchLemma, speichereLemma } = baue({ lemmata })
+    await mitServer(app, async (basis) => {
+      const res = await post(basis, { woche: '2026-W44', lemma_id: 'laterne', lueckenfueller_id: 'kürbis', zwilling_partner: 'Kürbis', zwilling_pos: 'Substantiv' })
+      expect(res.status).toBe(200)
+      expect(buildLueckenfueller).toHaveBeenCalledWith('Kürbis', 'Substantiv')
+      expect(fetchLemma).not.toHaveBeenCalled()
+      expect(speichereLemma).toHaveBeenCalledWith({ id: 'kuerbis', lemma: 'Kürbis', pos: 'Substantiv', notiz: 'bleibt', lueckenfueller: RUNDEN })
+    })
+  })
+
+  it('Lückenfüller-Runden: zu wenig Material → 422 und nichts gespeichert', async () => {
+    const { app, speichern, speichereLemma } = baue({ runden: null })
+    await mitServer(app, async (basis) => {
+      const res = await post(basis, { woche: '2026-W49', lemma_id: 'weihnachtsmarkt', lueckenfueller_id: 'Weihnachtsmarkt', zwilling_pos: 'Substantiv' })
+      expect(res.status).toBe(422)
+      expect(await res.json()).toMatchObject({ feld: 'lueckenfueller_id', error: expect.stringMatching(/^Nicht genug Material für „Weihnachtsmarkt“/) })
+      expect(speichern).not.toHaveBeenCalled()
+      expect(speichereLemma).not.toHaveBeenCalled()
+    })
+  })
+
+  it('Lückenfüller-Runden: Fehler beim Erzeugen → gespeichert ohne Lückenfüller, mit lfFehler: true', async () => {
+    const { app, speichern } = baue({ runden: new Error('Worker weg') })
+    await mitServer(app, async (basis) => {
+      const res = await post(basis, { woche: '2026-W49', lemma_id: 'weihnachtsmarkt', lueckenfueller_id: 'Weihnachtsmarkt', zwilling_pos: 'Substantiv' })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({ ok: true, lfFehler: true })
+      expect(speichern).toHaveBeenCalledWith(expect.objectContaining({ lueckenfueller_id: '' }))
     })
   })
 

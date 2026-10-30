@@ -289,6 +289,12 @@ router.use(createAdminSpezialwocheRouter({
   getLemmataIndex,
   lemmaExistsInWortprofil,
   fetchWortZwilling,
+  buildLueckenfueller: buildLueckenfuellerImWorker,
+  fetchLemma,
+  speichereLemma: (lemma) => {
+    stmts.upsertLemma.run(lemmaToRow(lemma))
+    invalidateCache('lemmata.json')
+  },
   toId,
   auditCreate,
   auditUpdate,

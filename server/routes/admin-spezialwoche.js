@@ -1,5 +1,6 @@
 import express from 'express'
 import { isoWocheSpanne } from '../date-utils.js'
+import { findeLueckenfuellerLemma } from '../lueckenfuellerAutoGen.js'
 
 /**
  * Admin-Router für Spezialwochen (Wort der Woche).
@@ -40,6 +41,9 @@ export function createAdminSpezialwocheRouter({
   getLemmataIndex,
   lemmaExistsInWortprofil,
   fetchWortZwilling,
+  buildLueckenfueller,
+  fetchLemma,
+  speichereLemma,
   toId,
   auditCreate,
   auditUpdate,
@@ -128,6 +132,10 @@ export function createAdminSpezialwocheRouter({
    * Wenn zwilling_partner gesetzt ist, wird fetchWortZwilling() aufgerufen und die Kollokatoren werden
    * gespeichert. Ist das Paar nicht geeignet, wird nichts gespeichert (422): Die App zeigt ein Paar sonst an,
    * obwohl das Spiel keine Wörter hat.
+   *
+   * Lückenfüller wie beim Tag (lueckenfuellerAutoGen.js): Ist das Wort das Wort der Woche oder Wort B und hat
+   * noch keine Runden, entstehen sie beim Speichern. Für jedes andere Wort braucht es vorher „Runden erzeugen“.
+   * Vorhandene Runden werden nie neu gebaut, sie können schon an Tagen gespielt worden sein.
    */
   router.post('/admin/spezialwoche', adminLimiter, requireAuth,
     validate(adminSpezialwocheSchema, 'body', { mitFeld: true }),
@@ -153,15 +161,25 @@ export function createAdminSpezialwocheRouter({
       }
 
       let lueckenfueller_id = ''
+      // Wort der Woche oder Wort B ohne Runden: Runden entstehen weiter unten, nach der Zwilling-Prüfung
+      let lfNeu = ''
       if (lfEingabe) {
         if (!lemmaExistsInWortprofil(lfEingabe.toLowerCase())) {
           return res.status(404).json({ error: `Nicht genug Material für „${lfEingabe}“: zu wenige Kollokatoren oder keine Belegsätze, in denen sich eine Lücke setzen lässt.`, feld: 'lueckenfueller_id' })
         }
         const lf = findeLueckenfuellerMitRunden(lfEingabe)
-        if (!lf) {
-          return res.status(422).json({ error: `„${lfEingabe}“ hat noch keine Lückenfüller-Runden. Unter Tag bearbeiten › Lückenfüller › Runden erzeugen anlegen oder das Feld leeren.`, feld: 'lueckenfueller_id' })
+        if (lf) {
+          lueckenfueller_id = lf.id
+        } else {
+          lfNeu = [anzeigeName(lemma_id), zwilling_partner].find((wort) => wort && toId(wort) === toId(lfEingabe)) ?? ''
+          if (!lfNeu) {
+            return res.status(422).json({ error: `„${lfEingabe}“ hat noch keine Lückenfüller-Runden. Beim Speichern entstehen sie nur für das Wort der Woche und Wort B; für ein anderes Wort vorher unter Tag bearbeiten › Lückenfüller › Runden erzeugen anlegen oder das Feld leeren.`, feld: 'lueckenfueller_id' })
+          }
+          const { kollision } = findeLueckenfuellerLemma({ name: lfNeu, getLemmataIndex, toId })
+          if (kollision) {
+            return res.status(422).json({ error: `„${lfNeu}“: Die Kennung „${kollision.id}“ gehört schon zum Wort „${kollision.lemma}“. Runden werden nicht angelegt, Feld leeren.`, feld: 'lueckenfueller_id' })
+          }
         }
-        lueckenfueller_id = lf.id
       }
 
       let zwilling_kollokatoren = []
@@ -191,6 +209,31 @@ export function createAdminSpezialwocheRouter({
         }
       }
 
+      let lfRunden = 0
+      let lfFehler = false
+      if (lfNeu) {
+        const { lemma: bestehend } = findeLueckenfuellerLemma({ name: lfNeu, getLemmataIndex, toId })
+        // Das Wort der Woche ist immer ein Substantiv (routes/public.js), Wort B hat die Wortart des Paars
+        const pos = bestehend?.pos || (lfNeu === anzeigeName(lemma_id) ? 'Substantiv' : zwilling_pos)
+        try {
+          const runden = await buildLueckenfueller(bestehend?.lemma ?? lfNeu, pos)
+          const basis = runden ? (bestehend ?? await fetchLemma(lfNeu, pos)) : null
+          if (!basis) {
+            return res.status(422).json({ error: `Nicht genug Material für „${lfNeu}“: zu wenige Kollokatoren oder keine Belegsätze, in denen sich eine Lücke setzen lässt.`, feld: 'lueckenfueller_id' })
+          }
+          // Ein vorhandenes Lemma bleibt vollständig erhalten, nur die Runden kommen dazu
+          speichereLemma({ ...basis, lueckenfueller: runden })
+          lueckenfueller_id = basis.id
+          lfRunden = runden.length
+          logger.info({ woche, lemma: basis.lemma, runden: lfRunden }, 'Spezialwoche: Lückenfüller-Runden erzeugt')
+        } catch (err) {
+          // Wie beim Wort-Zwilling: Ein Abruffehler ist kein Urteil über das Wort. Ohne Lückenfüller
+          // speichern und der Seite sagen, dass er fehlt.
+          logger.error({ err }, 'Spezialwoche: Fehler beim Erzeugen der Lückenfüller-Runden')
+          lfFehler = true
+        }
+      }
+
       try {
         const vorher = loadSpezialwocheByWoche(woche)
         const ersetzt = !!vorher
@@ -217,6 +260,8 @@ export function createAdminSpezialwocheRouter({
           lemmaName: anzeigeName(lemma_id),
           wzKollokatoren: zwilling_kollokatoren.length,
           ...(wzFehler ? { wzFehler: true } : {}),
+          ...(lfRunden ? { lfRunden } : {}),
+          ...(lfFehler ? { lfFehler: true } : {}),
         })
       } catch (err) {
         serverError(res, err)

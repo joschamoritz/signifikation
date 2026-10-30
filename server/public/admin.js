@@ -6426,10 +6426,14 @@ async function saveSpezialwoche() {
     const d = await holeJson('/admin/spezialwoche', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     swEntfernt = null
     const wz = body.zwilling_partner && !d.wzFehler ? `, Wort-Zwilling mit ${body.zwilling_partner} (${anzahlText(d.wzKollokatoren, 'Kollokator', 'Kollokatoren')})` : ''
-    const warnung = d.wzFehler ? ` Der Wort-Zwilling mit ${body.zwilling_partner} konnte gerade nicht geprüft werden und fehlt; bitte noch einmal speichern.` : ''
+    const lf = d.lfRunden ? `, Lückenfüller mit ${anzahlText(d.lfRunden, 'neuen Runde', 'neuen Runden')}` : ''
+    const warnungen = [
+      d.wzFehler ? ` Der Wort-Zwilling mit ${body.zwilling_partner} konnte gerade nicht geprüft werden und fehlt; bitte noch einmal speichern.` : '',
+      d.lfFehler ? ` Die Lückenfüller-Runden für ${body.lueckenfueller_id} konnten gerade nicht erzeugt werden, der Lückenfüller fehlt; bitte noch einmal speichern.` : '',
+    ].join('')
     swSpeichert = false
     clearSwForm({ meldungBehalten: true })
-    setMeldung('sw-msg', `${kwNr(body.woche)} ${d.ersetzt ? 'ersetzt' : 'gespeichert'}: ${d.lemmaName || body.lemma_id}${wz}.${warnung}`, d.wzFehler ? 'warn' : 'ok', { fokus: true })
+    setMeldung('sw-msg', `${kwNr(body.woche)} ${d.ersetzt ? 'ersetzt' : 'gespeichert'}: ${d.lemmaName || body.lemma_id}${wz}${lf}.${warnungen}`, warnungen ? 'warn' : 'ok', { fokus: true })
     await ladeWortDerWoche({ auswahlNeu: true })
     void loadHealth()   // Stand in der Übersicht
   } catch (err) {
