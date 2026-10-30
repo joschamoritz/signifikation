@@ -125,6 +125,10 @@ describe('mailer', () => {
       expect(mail.html).toContain(url)
       expect(mail.text).toContain(url)
       expect(mail.html).toContain('Hallo Anna,')
+      // Hinweis für Empfänger, deren Adresse jemand anderes eingegeben hat
+      const hinweis = 'Du hast dich nicht bei Signifikation registriert? Dann bestätige nichts und ignoriere diese E-Mail.'
+      expect(mail.html).toContain(hinweis)
+      expect(mail.text).toContain(hinweis)
     })
 
     it('maskiert Markup im Namen (HTML), Klartext bleibt unverändert', async () => {

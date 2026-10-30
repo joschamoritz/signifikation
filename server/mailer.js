@@ -313,6 +313,10 @@ ${LINKS_FOOTER_TEXT}`
 // das Konto ist sofort nutzbar (requireEmailVerification bleibt aus). Fehler
 // werden geschluckt: eine gescheiterte Willkommensmail darf die Registrierung
 // nicht kippen.
+// Jeder kann sich mit einer fremden Adresse registrieren; bestätigt die Besitzerin den
+// Link, gilt das fremde Konto als ihres (Security-Audit run-2).
+const NICHT_DU_HINWEIS = 'Du hast dich nicht bei Signifikation registriert? Dann bestätige nichts und ignoriere diese E-Mail.'
+
 export async function sendWelcomeMail({ to, name, verificationUrl }) {
   const anrede = name?.trim() ? `Hallo ${name.trim()},` : 'Hallo,'
   const anredeHtml = name?.trim() ? `Hallo ${escapeHtml(name.trim())},` : 'Hallo,'
@@ -323,6 +327,10 @@ export async function sendWelcomeMail({ to, name, verificationUrl }) {
   <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin:0 0 32px">
     Die Bestätigung ist freiwillig – dein Konto funktioniert auch ohne. Sie stellt nur sicher,
     dass wir dich erreichen, falls du einmal dein Passwort zurücksetzen musst.
+  </p>
+
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin:0 0 32px">
+    ${NICHT_DU_HINWEIS}
   </p>`
     : ''
 
@@ -372,6 +380,8 @@ Kurs:           Stationen zu Kollokationen
 ${verificationUrl ? `
 E-Mail-Adresse bestätigen (freiwillig – dein Konto funktioniert auch ohne):
 ${verificationUrl}
+
+${NICHT_DU_HINWEIS}
 ` : ''}
 Fragen? Antworte einfach auf diese E-Mail oder schreib an info@signifikation.de.
 
