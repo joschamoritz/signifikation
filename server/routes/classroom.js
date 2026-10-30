@@ -104,11 +104,13 @@ import {
 } from '../realtime/classroomSocket.js'
 import {
   classroomJoinLimiter,
+  classroomJoinGesamtLimiter,
   classroomHeartbeatLimiter,
   classroomWriteLimiter,
   classroomReadLimiter,
 } from '../middleware/rateLimiter.js'
 import { isJoinBlocked, joinFailureDelayMs, recordJoinFailure } from '../classroom/join-guard.js'
+import { istJoinCodeAktiv } from '../classroom/join-code.js'
 import { loadDemoContent } from '../classroom/demoContent.js'
 
 const router = express.Router()
@@ -976,9 +978,12 @@ router.get(
 
 // ── T-2.5 POST /api/v1/classroom/join (public) ──────────────────
 // Beitritt per Code + Anzeigename → Participant-Token.
-// Rate-Limit: classroomJoinLimiter (10 / 5 Min).
+// Rate-Limit: classroomJoinGesamtLimiter (120 / 5 Min) für alle Versuche, classroomJoinLimiter
+// (10 / 5 Min) nur für Codes ohne aktive Session – eine Klasse hinter einer Schul-IP passt hinein.
 router.post(
   '/api/v1/classroom/join',
+  classroomJoinGesamtLimiter,
+  (req, _res, next) => { req.joinCodeGueltig = istJoinCodeAktiv(req.body?.code); next() },
   classroomJoinLimiter,
   validate(classroomJoinSchema),
   async (req, res) => {

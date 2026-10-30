@@ -45,4 +45,10 @@ export function generateUniqueJoinCode({
   throw new Error('Join-Code konnte nach maximaler Anzahl Versuche nicht eindeutig erzeugt werden')
 }
 
+// Gehört der Code gerade einer Session in Lobby oder laufend? (Join-Limiter, routes/classroom.js)
+export function istJoinCodeAktiv(code) {
+  const normalisiert = normalizeJoinCode(code)
+  return normalisiert.length > 0 && countActiveByCodeStmt.get(normalisiert).c > 0
+}
+
 export { normalizeJoinCode }

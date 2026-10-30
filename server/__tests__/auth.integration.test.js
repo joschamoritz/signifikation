@@ -6,7 +6,7 @@
 import express from 'express'
 import { toNodeHandler } from 'better-auth/node'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { auth } from '../auth/index.js'
+import { auth, verwerfeAltzugaengeVorVerknuepfung } from '../auth/index.js'
 import db from '../db.js'
 
 const EMAIL = `auth-int-${Date.now()}@test.local`
@@ -132,6 +132,60 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     })
     expect(ergebnis.error).toBe('account not linked')
     expect(db.prepare("SELECT COUNT(*) n FROM account WHERE userId = ? AND providerId = 'google'").get(user.id).n).toBe(0)
+  })
+
+  it('Verknüpfung mit Google beendet alte Sessions und verwirft das Passwort (Vorregistrierung)', async () => {
+    const email = `auth-vorab-${Date.now()}@test.local`
+    try {
+      const signUp = await fetch(`${baseUrl}/api/v1/auth/sign-up/email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password: PASSWORD, name: 'Vorab' }),
+      })
+      expect(signUp.status).toBe(200)
+      const altCookie = (signUp.headers.get('set-cookie') || '').split(';')[0]
+      const user = db.prepare('SELECT id FROM user WHERE email = ?').get(email)
+      expect(db.prepare('SELECT COUNT(*) n FROM session WHERE userId = ?').get(user.id).n).toBeGreaterThan(0)
+
+      // Derselbe Weg wie beim impliziten Linking in handleOAuthUserInfo
+      const context = await auth.$context
+      await context.internalAdapter.linkAccount({ userId: user.id, providerId: 'google', accountId: 'google-sub-vorab' })
+
+      expect(db.prepare('SELECT COUNT(*) n FROM session WHERE userId = ?').get(user.id).n).toBe(0)
+      expect(db.prepare("SELECT COUNT(*) n FROM account WHERE userId = ? AND providerId = 'credential'").get(user.id).n).toBe(0)
+      expect(db.prepare("SELECT COUNT(*) n FROM account WHERE userId = ? AND providerId = 'google'").get(user.id).n).toBe(1)
+      const alt = await fetch(`${baseUrl}/api/v1/auth/get-session`, { headers: { cookie: altCookie } })
+      expect(await alt.text()).not.toContain(email)
+      const mitPasswort = await fetch(`${baseUrl}/api/v1/auth/sign-in/email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password: PASSWORD }),
+      })
+      expect(mitPasswort.status).toBe(401)
+    } finally {
+      const row = db.prepare('SELECT id FROM user WHERE email = ?').get(email)
+      if (row) db.prepare('DELETE FROM user WHERE id = ?').run(row.id)
+    }
+  })
+
+  it('Verknüpfung lässt das Passwort eines Admin-Kontos stehen', () => {
+    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(EMAIL)
+    db.prepare(`INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, 'admin', ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET role = 'admin'`).run(user.id, Date.now(), Date.now())
+    try {
+      verwerfeAltzugaengeVorVerknuepfung({ userId: user.id, providerId: 'apple' })
+      expect(db.prepare("SELECT COUNT(*) n FROM account WHERE userId = ? AND providerId = 'credential'").get(user.id).n).toBe(1)
+    } finally {
+      db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(user.id)
+    }
+  })
+
+  it('Rate-Limit-IP kommt aus X-Real-IP, nicht aus mehrteiligem X-Forwarded-For', async () => {
+    const { getIp } = await import('@better-auth/core/utils/ip')
+    const { options } = await auth.$context
+    expect(options.advanced.ipAddress.ipAddressHeaders).toEqual(['x-real-ip'])
+    const headers = new Headers({ 'x-real-ip': '203.0.113.5', 'x-forwarded-for': '198.51.100.1, 203.0.113.5' })
+    expect(getIp(headers, options)).toBe('203.0.113.5')
   })
 
   it('Sign-out invalidiert die Session', async () => {

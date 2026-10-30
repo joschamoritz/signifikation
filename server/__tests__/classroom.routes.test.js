@@ -832,6 +832,31 @@ describe('classroom routes', () => {
       }
     })
 
+    it('eine ganze Klasse hinter einer Schul-IP kann beitreten, Raten bleibt begrenzt', async () => {
+      const teacher = `cr2-teacher-schulip-${randomUUID()}`
+      ensureUser(teacher)
+      try {
+        const create = await fetch(`${baseUrl}/api/v1/classroom/sessions`, {
+          method: 'POST', headers: teacherHeaders(teacher, 'premium'), body: JSON.stringify({}),
+        })
+        const { code } = await create.json()
+        const join = (joinCode, name) => fetch(`${baseUrl}/api/v1/classroom/join`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+          body: JSON.stringify({ code: joinCode, displayName: name }),
+        })
+        for (let i = 0; i < 25; i++) expect((await join(code, `Kind${i}`)).status, `Beitritt ${i}`).toBe(201)
+
+        for (const buchstabe of 'abcdefghij') expect((await join(`falsch-code-${buchstabe}`, 'Rate')).status).toBe(404)
+        expect((await join('falsch-code-zehn', 'Rate')).status).toBe(429)
+        // Der gültige Code der Klasse kommt trotzdem weiter durch
+        expect((await join(code, 'Nachzuegler')).status).toBe(201)
+      } finally {
+        resetJoinGuard()
+        cleanupTeacher(teacher)
+      }
+    })
+
     it('POST /join mit ungültigem Code → 404', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/join`, {
         method: 'POST',

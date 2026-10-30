@@ -80,6 +80,7 @@ const adminStore = new CleanupStore(60_000)
 const adminBildStore = new CleanupStore(60_000)
 const statsStore = new CleanupStore(60_000)
 const classroomJoinStore = new CleanupStore(5 * 60_000)
+const classroomJoinGueltigStore = new CleanupStore(5 * 60_000)
 const classroomHeartbeatStore = new CleanupStore(60_000)
 const classroomWriteStore = new CleanupStore(60_000)
 const classroomReadStore = new CleanupStore(60_000)
@@ -152,9 +153,22 @@ export const registerLimiter = rateLimit({
   skipSuccessfulRequests: true,
 })
 
+// Beitritt: Eine ganze Klasse sitzt oft hinter EINER Schul-IP (Security-Audit run-2).
+// Das strenge Limit zählt deshalb nur Versuche mit einem Code, der gerade keiner aktiven
+// Session gehört (Raten); req.joinCodeGueltig setzt die Join-Route vorher. Alle Versuche
+// zusammen begrenzt das großzügige Limit darunter (Klassengröße mit Reserve).
 export const classroomJoinLimiter = rateLimit({
   windowMs: 5 * 60_000, max: 10,
   store: classroomJoinStore,
+  keyGenerator: getClientIp,
+  skip: (req) => req.joinCodeGueltig === true,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Versuche. Bitte warte 5 Minuten.' },
+})
+
+export const classroomJoinGesamtLimiter = rateLimit({
+  windowMs: 5 * 60_000, max: 120,
+  store: classroomJoinGueltigStore,
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Versuche. Bitte warte 5 Minuten.' },

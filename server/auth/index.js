@@ -187,6 +187,27 @@ export const authFeatureFlags = {
 // Android und iOS als „server client ID“). Öffentlich, kein Geheimnis.
 export const googleWebClientId = socialProviders.google ? GOOGLE_CLIENT_ID : null
 
+// Verknüpfung eines Google-/Apple-Logins mit einem Konto, das schon ein Passwort hat:
+// Wer das Konto vorab mit fremder Adresse angelegt hat, behielte sonst Passwort und
+// Session, sobald die echte Besitzerin bestätigt und sich per Google/Apple anmeldet
+// (Security-Audit run-2). Deshalb vor dem Verknüpfen alle bisherigen Sessions beenden
+// und das Passwort verwerfen; „Passwort vergessen“ legt bei Bedarf ein neues an.
+// Admin-Konten behalten ihr Passwort (eigener Admin-Login, angelegt per setup-admin).
+const hatPasswortStmt = db.prepare(`SELECT 1 FROM account WHERE userId = ? AND providerId = 'credential'`)
+const rolleStmt = db.prepare(`SELECT role FROM user_profiles WHERE user_id = ?`)
+const loescheSessionsStmt = db.prepare(`DELETE FROM session WHERE userId = ?`)
+const loeschePasswortStmt = db.prepare(`DELETE FROM account WHERE userId = ? AND providerId = 'credential'`)
+
+export function verwerfeAltzugaengeVorVerknuepfung(account) {
+  if (!account?.userId || account.providerId === 'credential') return
+  if (!hatPasswortStmt.get(account.userId)) return
+  const sessions = loescheSessionsStmt.run(account.userId).changes
+  const istAdmin = rolleStmt.get(account.userId)?.role === 'admin'
+  const passwort = istAdmin ? 0 : loeschePasswortStmt.run(account.userId).changes
+  logger.info({ userId: account.userId, providerId: account.providerId, sessions, passwort },
+    'Konto-Verknüpfung: bisherige Sessions beendet, Passwort verworfen')
+}
+
 export const auth = betterAuth({
   appName: 'Signifikation',
   baseURL: process.env.BETTER_AUTH_URL || DEFAULT_BASE_URL,
@@ -194,6 +215,10 @@ export const auth = betterAuth({
   trustedOrigins,
   secret: AUTH_SECRET,
   advanced: {
+    // nginx setzt X-Real-IP auf $remote_addr (überschreibt Client-Werte). X-Forwarded-For
+    // hätte hinter nginx oft zwei Einträge; die wertet better-auth ohne trustedProxies
+    // nicht aus und zählt dann alle diese Clients in einem gemeinsamen Rate-Limit.
+    ipAddress: { ipAddressHeaders: ['x-real-ip'] },
     useSecureCookies: IS_PROD,
     defaultCookieAttributes: {
       // 'none' nötig für Capacitor-WKWebView: Requests kommen von capacitor://localhost
@@ -242,5 +267,12 @@ export const auth = betterAuth({
       sendVerificationEmail: sendWelcomeWithVerification,
     },
   } : {}),
+  databaseHooks: {
+    account: {
+      // before, nicht after: after-Hooks laufen erst nach der Transaktion und träfen
+      // dann auch die Session, die better-auth für den neuen Login anlegt.
+      create: { before: async (account) => { verwerfeAltzugaengeVorVerknuepfung(account) } },
+    },
+  },
   plugins: [bearer()],
 })
