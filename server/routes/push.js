@@ -109,6 +109,27 @@ const updateAndroidSubStmt = db.prepare(`
   UPDATE push_subscriptions SET user_id=?, updated_at=? WHERE fcm_token=?
 `)
 
+// Abos ohne Konto (Security-Audit run-1/run-2) bremst sonst nur das IP-Limit, und jedes
+// kostet beim täglichen Versand eine Anfrage. Neue gibt es nur bis zum Deckel; bekannte
+// dürfen sich weiter erneuern, angemeldete Nutzer sind nicht betroffen. Kein Ablauf über
+// updated_at: Die App meldet ihr Token nur beim Öffnen der Einstellungen neu, tote Abos
+// räumt der Versand ab (404/410, 5 Fehlversuche in notifications/sender.js).
+let MAX_ANONYME_ABOS = 20_000
+const countAnonymStmt = db.prepare(`SELECT COUNT(*) AS n FROM push_subscriptions WHERE user_id IS NULL`)
+
+export function setzeAnonymDeckelFuerTests(n) {
+  MAX_ANONYME_ABOS = n
+}
+
+function anonymVoll(userId) {
+  if (userId) return false
+  const { n } = countAnonymStmt.get()
+  if (n < MAX_ANONYME_ABOS) return false
+  logger.error({ anzahl: n, deckel: MAX_ANONYME_ABOS }, 'Push-Subscribe abgelehnt: Deckel für Abos ohne Konto erreicht')
+  return true
+}
+const ANONYM_VOLL = { error: 'Erinnerungen ohne Konto sind gerade nicht möglich. Mit Anmeldung geht es.' }
+
 // Lösch-Statements mit Owner-Filter: entweder anonym (user_id IS NULL) ODER
 // passend zum Aufrufer. Verhindert, dass beliebige bekannte Endpoints/Tokens
 // fremde Subscriptions entfernen.
@@ -221,6 +242,7 @@ router.post(
           }
           updateWebSubStmt.run(userId, p256dh, auth, now, endpoint)
         } else {
+          if (anonymVoll(userId)) return res.status(503).json(ANONYM_VOLL)
           insertWebSubStmt.run(randomUUID(), userId, endpoint, p256dh, auth, now, now)
         }
         logger.info({ userId, platform: 'web' }, 'Push-Subscription gespeichert (web)')
@@ -237,6 +259,7 @@ router.post(
           }
           updateAndroidSubStmt.run(userId, now, fcm_token)
         } else {
+          if (anonymVoll(userId)) return res.status(503).json(ANONYM_VOLL)
           insertAndroidSubStmt.run(randomUUID(), userId, fcm_token, now, now)
         }
         logger.info({ userId, platform: 'android' }, 'Push-Subscription gespeichert (android)')
@@ -253,6 +276,7 @@ router.post(
           }
           updateIosSubStmt.run(userId, now, apns_token)
         } else {
+          if (anonymVoll(userId)) return res.status(503).json(ANONYM_VOLL)
           insertIosSubStmt.run(randomUUID(), userId, apns_token, now, now)
         }
         logger.info({ userId, platform: 'ios' }, 'Push-Subscription gespeichert (ios)')
