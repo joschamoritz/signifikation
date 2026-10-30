@@ -92,6 +92,22 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Bekannte Lücken in den Produktionsabhängigkeiten. Vorerst nur Hinweis
+  # (continue-on-error): main hat noch offene Funde, bis der Branch
+  # deps-audit-2026-10 übernommen ist – danach continue-on-error entfernen,
+  # dann blockieren kritische Funde Verify und damit den Deploy.
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm audit --omit=dev --audit-level=critical
+
   e2e:
     runs-on: ubuntu-latest
     needs: verify
