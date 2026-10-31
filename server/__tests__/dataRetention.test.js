@@ -136,4 +136,17 @@ describe('runDataRetention – payments ohne Konto (8 Jahre, § 147 AO)', () => 
     expect(gibtEs('pay-test-alt')).toBe(false)
     expect(gibtEs('pay-test-laufend')).toBe(true)
   })
+
+  it('behält alte Sperreinträge und erstattete Käufe ohne Konto (Security-Audit run-2)', () => {
+    const now = Date.now()
+    const alt = paymentCutoffMs(now) - 24 * 60 * 60 * 1000
+    zahlung('pay-test-alt-gesperrt', alt)
+    zahlung('pay-test-alt-erstattet', alt)
+    db.prepare(`UPDATE payments SET status = 'gesperrt' WHERE id = ?`).run('pay-test-alt-gesperrt')
+    db.prepare(`UPDATE payments SET status = 'refunded' WHERE id = ?`).run('pay-test-alt-erstattet')
+
+    runDataRetention({ now })
+    expect(gibtEs('pay-test-alt-gesperrt')).toBe(true)
+    expect(gibtEs('pay-test-alt-erstattet')).toBe(true)
+  })
 })

@@ -202,6 +202,29 @@ describe('rejectReasonForPayload (Flag-Verhalten)', () => {
       VALID_PRODUCT_ID, 'user-x')
     expect(reason).toBeNull()
   })
+
+  it('Restore: fremdes Token nur für gelöschte Konten, nicht für bestehende (Security-Audit run-2)', () => {
+    const bestehend = `iap-bestehend-${Date.now()}`
+    db.prepare(`INSERT INTO user (id, email, name, emailVerified, createdAt, updatedAt) VALUES (?, ?, ?, 1, ?, ?)`)
+      .run(bestehend, `${bestehend}@test.local`, bestehend, Date.now(), Date.now())
+    try {
+      const opts = { allowUnclaimedForeignToken: true }
+      expect(rejectReasonForPayload(basePayload({ appAccountToken: deriveAppAccountToken(bestehend) }), VALID_PRODUCT_ID, 'user-x', opts))
+        .toMatch(/bestehenden anderen Account/)
+      expect(rejectReasonForPayload(basePayload({ appAccountToken: deriveAppAccountToken('geloeschtes-konto') }), VALID_PRODUCT_ID, 'user-x', opts))
+        .toBeNull()
+    } finally {
+      db.prepare('DELETE FROM user WHERE id = ?').run(bestehend)
+    }
+  })
+
+  it('Familienfreigabe wird abgelehnt, eigener Kauf passiert (Security-Audit run-2)', () => {
+    const eigenes = { appAccountToken: deriveAppAccountToken('user-x') }
+    expect(rejectReasonForPayload(basePayload({ ...eigenes, inAppOwnershipType: 'FAMILY_SHARED' }), VALID_PRODUCT_ID, 'user-x'))
+      .toMatch(/Familienfreigabe/)
+    expect(rejectReasonForPayload(basePayload({ ...eigenes, inAppOwnershipType: 'PURCHASED' }), VALID_PRODUCT_ID, 'user-x'))
+      .toBeNull()
+  })
 })
 
 describe('unlockForUser (Cross-Account-Replay)', () => {
@@ -442,6 +465,21 @@ describe('App-Store-Benachrichtigungen (Erstattung)', () => {
     expect(statusVon()).toBe('paid')
     expect(isEntitlementActive(user)).toBe(true)
     expect(rolleVon()).toBe('premium')
+  })
+
+  it('wiederholtes REFUND und dann REFUND_REVERSED lassen keinen Sperreintrag zurück (Security-Audit run-2)', () => {
+    const sperreVon = () => db.prepare('SELECT status FROM payments WHERE id = ?').get(txId)?.status
+    try {
+      expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx()).ergebnis).toBe('erstattet')
+      // Apples Wiederholung trifft den schon erstatteten Kauf nicht mehr und sperrt die transactionId
+      expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND'), tx()).ergebnis).toBe('kein passender Kauf')
+      expect(sperreVon()).toBe('gesperrt')
+      expect(verarbeiteAppStoreBenachrichtigung(meldung('REFUND_REVERSED'), tx()).ergebnis).toBe('zurückgenommen')
+      expect(statusVon()).toBe('paid')
+      expect(sperreVon()).toBeUndefined()
+    } finally {
+      db.prepare(`DELETE FROM payments WHERE id = ? AND status = 'gesperrt'`).run(txId)
+    }
   })
 
   it('findet den Kauf auch über die transactionId, wenn die Original-ID fehlt', () => {

@@ -10,7 +10,7 @@ import { sendPurchaseConfirmation } from '../mailer.js'
 import { auditSecurity } from '../audit.js'
 import { erfasseErstattung, sperreUnbekanntenKauf } from '../kaufErstattung.js'
 import defaultPlayApi, { PLAY_PACKAGE_NAME, PlayKaufUnbekannt } from '../playKauf.js'
-import { deriveAppAccountToken, unlockForUser, isEntitlementActive, PRODUCT_AMOUNTS } from './iap.js'
+import { deriveAppAccountToken, tokenEinesBestehendenKontos, unlockForUser, isEntitlementActive, PRODUCT_AMOUNTS } from './iap.js'
 
 // Google Play Billing (Android) – Gegenstück zu routes/iap.js (StoreKit).
 //
@@ -78,6 +78,7 @@ export function ablehnungsgrundPlay(kauf, userId, { allowUnclaimedForeignToken =
   if (!token) return 'obfuscatedExternalAccountId fehlt'
   if (token !== deriveAppAccountToken(userId)) {
     if (!allowUnclaimedForeignToken) return 'obfuscatedExternalAccountId gehört zu einem anderen Account'
+    if (tokenEinesBestehendenKontos(token)) return 'obfuscatedExternalAccountId gehört zu einem bestehenden anderen Account'
     logger.warn({ userId, orderId: kauf.orderId },
       'Google Play Restore: Token eines anderen Accounts – Freischaltung nur, wenn der Kauf unbeansprucht ist')
   }
@@ -108,7 +109,8 @@ export async function verarbeitePlayKauf(api, userId, productId, purchaseToken, 
   if (grund) return { ok: false, grund }
 
   const zahlungsId = zahlungsIdFuer(kauf, purchaseToken)
-  const neu = unlockForUser(userId, zahlungsId, null, productId, { quelle: QUELLE, store: STORE })
+  const neu = unlockForUser(userId, zahlungsId, null, productId,
+    { quelle: QUELLE, store: STORE, weitereIds: [tokenId(purchaseToken)] })
   const eigener = neu || zahlungInhaberStmt.get(zahlungsId)?.userId === userId
 
   // Gehört der Kauf einem anderen Konto, bleibt er unbestätigt: Google erstattet

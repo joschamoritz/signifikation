@@ -222,6 +222,34 @@ describe('Play-Routen', () => {
     }
   })
 
+  it('restore: ein unbeanspruchter Kauf eines bestehenden anderen Kontos bleibt bei diesem (Security-Audit run-2)', async () => {
+    const kauf = kaufFuer(a)
+    api.holeKauf.mockResolvedValue(kauf)
+    const res = await post('/api/v1/iap/play/restore', { transactions: [{ purchaseToken: token(8), productId: PRODUKT }] }, b)
+    expect(await res.json()).toEqual({ success: true, unlocked: false })
+    expect(zahlungVon(kauf.orderId)).toBeUndefined()
+    expect(api.bestaetige).not.toHaveBeenCalled()
+  })
+
+  it('verify: ein Storno ohne orderId sperrt auch den Kauf, den Google mit orderId liefert (Security-Audit run-2)', async () => {
+    const g = `play-storno-hash-${lauf}`
+    legeNutzerAn(g)
+    const tokenZeile = zahlungsIdFuer({}, token(9))
+    try {
+      const note = { packageName: 'de.signifikation.app', voidedPurchaseNotification: { purchaseToken: token(9), productType: 2 } }
+      expect(verarbeitePlayBenachrichtigung(note)).toBe('kein passender Kauf')
+      const kauf = kaufFuer(g)
+      api.holeKauf.mockResolvedValue(kauf)
+      const res = await post('/api/v1/iap/play/verify', { purchaseToken: token(9), productId: PRODUKT }, g)
+      expect(await res.json()).toEqual({ success: true, unlocked: false })
+      expect(zahlungVon(kauf.orderId)).toBeUndefined()
+      expect(isEntitlementActive(g)).toBe(false)
+    } finally {
+      db.prepare('DELETE FROM payments WHERE id = ?').run(tokenZeile)
+      raeumeAuf([g])
+    }
+  })
+
   describe('RTDN', () => {
     const oidc = (felder = {}, aud = AUDIENCE) => new SignJWT({ email: PUSH_SA, email_verified: true, ...felder })
       .setProtectedHeader({ alg: 'RS256', kid: 'k1' })

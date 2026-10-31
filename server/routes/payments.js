@@ -383,8 +383,9 @@ router.post(
 
       // Echter Fehler (DB-Problem, Netzwerk-Timeout, etc.)
       logger.error({ err, paymentId }, 'Mollie-Webhook-Verarbeitung fehlgeschlagen')
-      if (amLimit) return res.status(200).end()
-      
+      // Auch am Limit 500: Hier landen nur Fehler vor oder beim Erfassen einer Erstattung (am Limit wird
+      // nicht mehr freigeschaltet). Mit 200 gäbe Mollie auf und die Erstattung ginge verloren (Security-Audit run-2).
+
       // Retry-Counter erhöhen
       incrementWebhookRetryStmt.run(paymentId, Date.now())
       

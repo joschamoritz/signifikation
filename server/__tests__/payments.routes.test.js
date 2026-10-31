@@ -425,6 +425,20 @@ describe('payments routes integration', () => {
     db.prepare('DELETE FROM webhook_retries WHERE payment_id = ?').run(neueId)
   })
 
+  it('Webhook: ein Fehler am Limit lässt Mollie weiter wiederholen, die Erstattung kommt durch (Security-Audit run-2)', async () => {
+    const { userId, paymentId, zahlung } = await kaufeUeberWebhook()
+    db.prepare(`INSERT INTO webhook_retries (payment_id, attempts, last_retry) VALUES (?, 5, ?)
+      ON CONFLICT(payment_id) DO UPDATE SET attempts = 5`).run(paymentId, Date.now())
+    mollieMock.get.mockRejectedValueOnce(new Error('Mollie nicht erreichbar'))
+    expect((await webhook(paymentId)).status).toBe(500)
+    expect(statusVon(paymentId)).toBe('paid')
+
+    mollieMock.get.mockResolvedValue({ ...zahlung, amountRefunded: { value: '9.99', currency: 'EUR' } })
+    expect((await webhook(paymentId)).status).toBe(200)
+    expect(statusVon(paymentId)).toBe('refunded')
+    expect(freigeschaltet(userId)).toBe(0)
+  })
+
   it('Webhook: eine schon erstattete Zahlung ohne Kaufzeile schaltet nichts frei', async () => {
     const userId = createTestUser()
     testUserIds.add(userId)

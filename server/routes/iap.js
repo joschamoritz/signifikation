@@ -76,6 +76,21 @@ export function deriveAppAccountToken(userId) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
+const alleKontoIdsStmt = db.prepare(`SELECT id FROM user`)
+
+/**
+ * Gehört das Token zu einem bestehenden Konto? Der Restore lockert die Token-Bindung nur für Käufe
+ * gelöschter Konten; Käufe eines lebenden Kontos stellt nur dieses Konto wieder her (Security-Audit run-2:
+ * sonst könnte jemand mit einem fremden, noch nicht eingereichten Beleg den Kauf zuerst beanspruchen).
+ * Läuft nur im seltenen Fall eines fremden Tokens und rechnet je Konto einen SHA-1.
+ */
+export function tokenEinesBestehendenKontos(token) {
+  for (const { id } of alleKontoIdsStmt.iterate()) {
+    if (deriveAppAccountToken(id) === token) return true
+  }
+  return false
+}
+
 // ── Prepared Statements ────────────────────────────────────────
 
 // user_id IS NOT NULL: eine Transaktion gilt nur als "beansprucht", solange
@@ -302,6 +317,11 @@ export function rejectReasonForPayload(payload, claimedProductId, userId, { allo
   if (payload.revocationDate != null) {
     return `Transaktion widerrufen (${payload.revocationReason ?? 'ohne Grund'})`
   }
+  // Familienfreigabe ist für die Gesamtausgabe nicht eingeschaltet. Käme sie doch, liefe ein geteilter
+  // Kauf über die Restore-Lockerung und ihr Widerruf (REVOKE) bliebe unbeachtet (Security-Audit run-2).
+  if (payload.inAppOwnershipType === 'FAMILY_SHARED') {
+    return 'Familienfreigabe (FAMILY_SHARED) nicht vorgesehen'
+  }
   if (payload.environment !== 'Production') {
     if (!(payload.environment === 'Sandbox' && sandboxAllowed())) {
       return `environment ${payload.environment}`
@@ -316,6 +336,9 @@ export function rejectReasonForPayload(payload, claimedProductId, userId, { allo
     if (token !== deriveAppAccountToken(userId)) {
       if (!allowUnclaimedForeignToken) {
         return 'appAccountToken gehört zu einem anderen Account'
+      }
+      if (tokenEinesBestehendenKontos(token)) {
+        return 'appAccountToken gehört zu einem bestehenden anderen Account'
       }
       logger.warn({ userId, transactionId: payload.transactionId },
         'Apple IAP Restore: Token eines anderen Accounts – Freischaltung nur, wenn die Transaktion unbeansprucht ist')
@@ -336,8 +359,10 @@ export function rejectReasonForPayload(payload, claimedProductId, userId, { allo
 
 // Exportiert für Tests (Cross-Account-Replay-Szenario) und für Google Play
 // (routes/iapPlay.js: transactionId = orderId, kein Original, quelle 'google-play').
+// `weitereIds`: zusätzliche IDs desselben Kaufs, die nur geprüft, nie gespeichert werden (Play: Token-Hash
+// neben der orderId, damit ein Sperreintrag auch greift, wenn Storno-Meldung und Kauf die orderId verschieden führen).
 export function unlockForUser(userId, transactionId, originalTransactionId, productId,
-  { quelle = 'apple-iap', store = 'Apple IAP' } = {}) {
+  { quelle = 'apple-iap', store = 'Apple IAP', weitereIds = [] } = {}) {
   // .immediate() statt default-deferred: serialisiert parallele
   // verify/restore-Calls für dieselbe transactionId sauber. Siehe
   // payments.js-Webhook für ausführliche Begründung.
@@ -355,6 +380,11 @@ export function unlockForUser(userId, transactionId, originalTransactionId, prod
         && getTransactionStmt.get(originalTransactionId)) {
       logger.info({ transactionId, originalTransactionId, userId },
         `${store}: Original-Transaktion bereits verarbeitet`)
+      return
+    }
+    const belegt = weitereIds.find((id) => id && id !== transactionId && getTransactionStmt.get(id))
+    if (belegt) {
+      logger.info({ transactionId, belegt, userId }, `${store}: Kauf unter weiterer ID bereits verarbeitet oder gesperrt`)
       return
     }
     const now = Date.now()
@@ -506,27 +536,34 @@ export function verarbeiteAppStoreBenachrichtigung(notification, pruefeJws = ver
   // REFUND ein schon verarbeitetes REFUND_REVERSED).
   const gezeichnet = Number(notification.signedDate)
   const mitStand = Number.isFinite(gezeichnet) && gezeichnet > 0
-  const stand = mitStand ? meldungStandStmt.get(original)?.signedDate : null
-  if (stand != null && gezeichnet <= stand) {
-    logger.info({ typ, transactionId: transaktion, gezeichnet, stand }, 'App Store: veraltete Erstattungsmeldung ignoriert')
+  const erstattet = typ === 'REFUND'
+
+  // Stand prüfen, Kauf ändern und Stand merken in einer Transaktion (Security-Audit run-2): Bräche der
+  // Prozess dazwischen ab, liefe Apples Wiederholung ein zweites Mal und ließe einen Sperreintrag zurück.
+  const ergebnis = db.transaction(() => {
+    const stand = mitStand ? meldungStandStmt.get(original)?.signedDate : null
+    if (stand != null && gezeichnet <= stand) return { veraltet: stand }
+    // Gespeichert ist die originalTransactionId (unlockForUser), ältere Zeilen ggf. die transactionId
+    const zeile = erstattet
+      ? erfasseErstattung(original, { zweiteId: transaktion })
+      : nimmErstattungZurueck(original, { zweiteId: transaktion })
+    // Unbekannter Kauf: sperren, damit ein später eingereichter Beleg nichts freischaltet. Eine
+    // zurückgenommene Erstattung hebt Sperreinträge immer auf, auch neben einem bekannten Kauf.
+    const gesperrt = erstattet && !zeile ? sperreUnbekanntenKauf(original, { zweiteId: transaktion }) : 0
+    const entsperrt = erstattet ? 0 : hebeSperreAuf(original, { zweiteId: transaktion })
+    if (mitStand) merkeMeldungStandStmt.run(original, gezeichnet)
+    return { zeile, gesperrt, entsperrt }
+  }).immediate()
+
+  if (ergebnis.veraltet != null) {
+    logger.info({ typ, transactionId: transaktion, gezeichnet, stand: ergebnis.veraltet }, 'App Store: veraltete Erstattungsmeldung ignoriert')
     return { status: 200, ergebnis: 'veraltet' }
   }
-  const merkeStand = () => { if (mitStand) merkeMeldungStandStmt.run(original, gezeichnet) }
-
-  // Gespeichert ist die originalTransactionId (unlockForUser), ältere Zeilen ggf. die transactionId
-  const erstattet = typ === 'REFUND'
-  const zeile = erstattet
-    ? erfasseErstattung(original, { zweiteId: transaktion })
-    : nimmErstattungZurueck(original, { zweiteId: transaktion })
+  const { zeile, gesperrt, entsperrt } = ergebnis
   if (!zeile) {
-    // Unbekannter Kauf: sperren bzw. Sperre aufheben, damit ein später eingereichter Beleg passt
-    const gesperrt = erstattet ? sperreUnbekanntenKauf(original, { zweiteId: transaktion }) : 0
-    const entsperrt = erstattet ? 0 : hebeSperreAuf(original, { zweiteId: transaktion })
-    merkeStand()
     logger.info({ typ, transactionId: transaktion, gesperrt, entsperrt }, 'App Store: Erstattungsmeldung ohne passenden Kauf (unbekannt oder schon erfasst)')
     return { status: 200, ergebnis: 'kein passender Kauf' }
   }
-  merkeStand()
   logger.info({ typ, ...zeile }, erstattet ? 'App Store: Kauf als erstattet erfasst' : 'App Store: Erstattung zurückgenommen')
   auditSecurity(erstattet ? 'PAYMENT_REFUNDED' : 'PAYMENT_REFUND_REVERSED', {
     paymentId: zeile.paymentId, userId: zeile.userId ?? undefined, quelle: 'apple',

@@ -47,7 +47,9 @@ const deleteOldAuditStmt = db.prepare(`DELETE FROM audit_log WHERE timestamp < ?
 export const AUDIT_IP_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
 
 export const PAYMENT_RETENTION_YEARS = 8
-const deleteOldOrphanPaymentsStmt = db.prepare(`DELETE FROM payments WHERE user_id IS NULL AND processed_at < ?`)
+// Nur bezahlte Zeilen gelöschter Konten: Sperreinträge ('gesperrt') und erstattete Käufe bleiben, sonst ließe
+// sich ein alter Beleg nach der Frist wieder einlösen (Security-Audit run-2). Sie tragen kein Konto.
+const deleteOldOrphanPaymentsStmt = db.prepare(`DELETE FROM payments WHERE user_id IS NULL AND status = 'paid' AND processed_at < ?`)
 
 // Erster Moment des Jahres (aktuelles Berliner Jahr - 8) als Unix-Millis. Alles davor
 // gehoert zu einem Kalenderjahr, dessen Frist abgelaufen ist (Beleg 2025 → bis 31.12.2033).
