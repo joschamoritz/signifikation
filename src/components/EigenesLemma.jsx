@@ -80,7 +80,13 @@ export default function EigenesLemma({ mode = 'kollokationen', customLemma = nul
     if (status.state !== 'ok' || playing) return
     setPlaying(true)
     try {
-      const res = await apiFetch(`${API}/custom-lemma/play?${params}`, { credentials: 'include' })
+      // POST: verbraucht Kontingent, deshalb unter dem CSRF-Schutz (JSON + Header über apiFetch)
+      const res = await apiFetch(`${API}/custom-lemma/play`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new URLSearchParams(params))),
+      })
       const data = await res.json().catch(() => null)
       const payload = data?.mode === 'kollokationen' ? data?.lemma : data?.data
       if (!res.ok || !data?.usable || !payload) {

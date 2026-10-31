@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { bearer } from 'better-auth/plugins'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -218,6 +219,19 @@ function meldeSessionEnde(sessionId) {
 // Link aus einer alten, vielleicht weitergeleiteten Mail bis zum Ablauf nutzbar. better-auth speichert
 // den Eintrag als identifier 'reset-password:<token>' mit value = userId (storeIdentifier: plain).
 const loescheAlteResetLinksStmt = db.prepare(`DELETE FROM verification WHERE identifier LIKE 'reset-password:%' AND value = ?`)
+// Links in Reset- und Bestätigungsmails führen nur auf unsere Web-Adresse zurück (Security-Audit run-1/run-2): better-auth ließe sonst
+// jede trustedOrigin zu, auch https://localhost (Android-App). Wer dort lauscht, bekäme das Token aus einer
+// Mail, die er für ein fremdes Konto angefordert hat. Die App schickt immer WEB_ORIGIN (src/config.js).
+export function pruefeLinkZiel(redirectTo) {
+  if (redirectTo == null || redirectTo === '') return
+  if (typeof redirectTo === 'string' && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) return
+  let origin = null
+  try { origin = new URL(redirectTo).origin } catch { /* kein gültiges Ziel */ }
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    throw new APIError('BAD_REQUEST', { message: 'Ungültiges Ziel für den Link in der Mail' })
+  }
+}
+
 export function verwerfeAlteResetLinks(verification) {
   if (!verification?.identifier?.startsWith('reset-password:') || !verification.value) return
   const alt = loescheAlteResetLinksStmt.run(String(verification.value)).changes
@@ -295,6 +309,13 @@ export const auth = betterAuth({
       sendVerificationEmail: sendWelcomeWithVerification,
     },
   } : {}),
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/request-password-reset') pruefeLinkZiel(ctx.body?.redirectTo)
+      // Dieselbe Regel für den Link in der Bestätigungsmail (Sign-up schickt einen relativen Pfad)
+      if (ctx.path === '/send-verification-email' || ctx.path === '/sign-up/email') pruefeLinkZiel(ctx.body?.callbackURL)
+    }),
+  },
   databaseHooks: {
     account: {
       // before, nicht after: after-Hooks laufen erst nach der Transaktion und träfen
@@ -308,5 +329,7 @@ export const auth = betterAuth({
       create: { before: async (verification) => { verwerfeAlteResetLinks(verification) } },
     },
   },
-  plugins: [bearer()],
+  // requireSignature: nur das signierte Token aus set-auth-token gilt (das speichert die App), kein roher
+  // Session-Token aus der Datenbank (Security-Audit run-1).
+  plugins: [bearer({ requireSignature: true })],
 })

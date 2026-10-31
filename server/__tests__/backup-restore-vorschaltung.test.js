@@ -23,7 +23,7 @@ describe('Vorschaltung vor /admin/backup/restore', () => {
     headers: {
       'content-type': 'application/json',
       'x-forwarded-for': ip || `198.51.100.${(zaehler++ % 250) + 1}`,
-      ...(cookie ? { cookie: `better-auth.session_token=${cookie}` } : {}),
+      ...(cookie ? { cookie: `signifikation-admin=${cookie}` } : {}),
       ...(csrf ? { 'x-requested-with': 'signifikation-app' } : {}),
     },
     body,

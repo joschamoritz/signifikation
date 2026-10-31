@@ -24,7 +24,7 @@ const PREFIX = `push-send-${Date.now()}`
 const adminId = `${PREFIX}-admin`
 const angelegt = []   // ids der Vorlagen, die dieser Test angelegt hat
 
-const headers = (token) => ({ 'content-type': 'application/json', cookie: `better-auth.session_token=${token}` })
+const headers = (token) => ({ 'content-type': 'application/json', cookie: `signifikation-admin=${token}` })
 
 describe('admin push: Versand und Vorlagen (Sender gemockt)', () => {
   let server

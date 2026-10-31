@@ -48,7 +48,7 @@ function makeUser(role) {
   return id
 }
 
-const headers = (token) => ({ cookie: `better-auth.session_token=${token}`, 'x-forwarded-for': IP })
+const headers = (token) => ({ cookie: `signifikation-admin=${token}`, 'x-forwarded-for': IP })
 const jetzt = (iso) => vi.setSystemTime(new Date(iso))
 
 describe('Auswertung › Spiele', () => {

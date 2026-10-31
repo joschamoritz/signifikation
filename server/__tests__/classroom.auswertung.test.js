@@ -327,7 +327,7 @@ describe('Auswertung › Klassenraum (Telemetrie)', () => {
       trackJoinSucceeded(id, 'teilnehmer-geheim')
       trackSubmissionReceived(id, { mode: 'wortzwilling', correct: true, assignmentId: 'aufgabe-geheim' })
       sitzungsZeile(lehrkraft)
-      const res = await fetch(`${baseUrl}/admin/classroom/stats?days=30`, { headers: { cookie: `better-auth.session_token=${token}`, 'x-forwarded-for': IP } })
+      const res = await fetch(`${baseUrl}/admin/classroom/stats?days=30`, { headers: { cookie: `signifikation-admin=${token}`, 'x-forwarded-for': IP } })
       const text = await res.text()
       expect(res.status).toBe(200)
       const d = JSON.parse(text)
@@ -337,7 +337,7 @@ describe('Auswertung › Klassenraum (Telemetrie)', () => {
     })
 
     it('prüft den Zeitraum, verlangt eine Anmeldung, und /admin/classroom/teachers gibt es nicht mehr', async () => {
-      const kopf = { headers: { cookie: `better-auth.session_token=${token}`, 'x-forwarded-for': IP } }
+      const kopf = { headers: { cookie: `signifikation-admin=${token}`, 'x-forwarded-for': IP } }
       expect((await fetch(`${baseUrl}/admin/classroom/stats?days=0`, kopf)).status).toBe(400)
       expect((await fetch(`${baseUrl}/admin/classroom/stats?days=366`, kopf)).status).toBe(400)
       expect((await fetch(`${baseUrl}/admin/classroom/stats?days=30`)).status).toBe(401)

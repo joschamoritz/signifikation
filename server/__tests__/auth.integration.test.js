@@ -189,6 +189,20 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     expect(getIP(headers, options)).toBe('203.0.113.5')
   })
 
+  it('Reset-Link führt nur auf die Web-Adresse zurück, nicht auf https://localhost (Security-Audit)', async () => {
+    const anfordern = (redirectTo) => fetch(`${baseUrl}/api/v1/auth/request-password-reset`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: EMAIL, redirectTo }),
+    })
+    for (const fremd of ['https://localhost/?tab=konto', 'capacitor://localhost/', 'https://boese.example/', '//boese.example/']) {
+      const res = await anfordern(fremd)
+      expect(res.status).toBe(400)
+      expect(await res.text()).toContain('Ungültiges Ziel für den Link in der Mail')
+    }
+    const { ALLOWED_ORIGINS } = await import('../config/origins.js')
+    expect((await anfordern(`${ALLOWED_ORIGINS[0]}/?tab=konto`)).status).toBe(200)
+    expect((await anfordern('/?tab=konto')).status).toBe(200)
+  })
+
   it('ein neuer Reset-Link macht den älteren ungültig (Security-Audit run-1)', async () => {
     const user = db.prepare('SELECT id FROM user WHERE email = ?').get(EMAIL)
     const ctx = await auth.$context
@@ -227,6 +241,20 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     expect(token).toBeTruthy()
     const res = await fetch(`${baseUrl}/api/v1/auth/get-session`, { headers: { authorization: `Bearer ${token}` } })
     expect((await res.json())?.user?.email).toBe(EMAIL)
+
+    // requireSignature (Security-Audit run-1): der rohe Session-Token ohne Signatur gilt nicht
+    const roh = decodeURIComponent(token).split('.')[0]
+    const ohneSignatur = await fetch(`${baseUrl}/api/v1/auth/get-session`, { headers: { authorization: `Bearer ${roh}` } })
+    expect(await ohneSignatur.json()).toBeNull()
+  })
+
+  it('Bestätigungsmail führt nur auf die Web-Adresse zurück (Security-Audit)', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/auth/send-verification-email`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: EMAIL, callbackURL: 'https://localhost/?verified=1' }),
+    })
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('Ungültiges Ziel für den Link in der Mail')
   })
 
   it('Sign-out invalidiert die Session', async () => {

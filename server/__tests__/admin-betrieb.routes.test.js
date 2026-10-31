@@ -46,7 +46,7 @@ let anfrageZaehler = 0
 function adminHeaders(token) {
   return {
     'content-type': 'application/json',
-    cookie: `better-auth.session_token=${token}`,
+    cookie: `signifikation-admin=${token}`,
     // Jede Anfrage von einer anderen Adresse: Der Admin-Limiter erlaubt 60 Anfragen je Minute und Adresse.
     'x-forwarded-for': `203.0.113.${(anfrageZaehler++ % 250) + 1}`,
   }

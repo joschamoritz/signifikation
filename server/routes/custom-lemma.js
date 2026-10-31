@@ -39,11 +39,11 @@ function sendQuotaExhausted(res, allowance) {
   })
 }
 
-// play verbraucht Kontingent, ist aber ein GET: csrfProtect greift nicht, und das
-// Session-Cookie ist in Produktion SameSite=None. Fetch-Metadaten verraten, ob der
-// Browser den Aufruf als <img>, Seitenaufruf oder Formular schickt (no-cors, navigate)
-// statt als fetch der App (cors, same-origin). Ohne Header (alte Browser) durchlassen.
-// Umstellung auf POST erst mit einem App-Build, ältere App-Versionen senden noch GET.
+// play verbraucht Kontingent. Die App schickt seit 31.10.2026 POST (csrfProtect: JSON + eigener Header),
+// ältere App-Versionen noch GET – dort greift csrfProtect nicht, und das Session-Cookie ist in Produktion
+// SameSite=None. Fetch-Metadaten verraten, ob der Browser den GET als <img>, Seitenaufruf oder Formular
+// schickt (no-cors, navigate) statt als fetch der App (cors, same-origin). Ohne Header (alte Browser)
+// durchlassen. GET entfernen, wenn die alten App-Versionen ausgelaufen sind (Log „alter GET-Aufruf“).
 function nurFetchAufruf(req, res, next) {
   const modus = req.get('sec-fetch-mode')
   if (modus && modus !== 'cors' && modus !== 'same-origin') {
@@ -56,7 +56,8 @@ function nurFetchAufruf(req, res, next) {
 // deshalb höchstens eine Lückenfüller-Berechnung gleichzeitig (Security-Audit run-2).
 const laufendeLueckenfueller = new Set()
 function einLueckenfuellerProKonto(req, res, next) {
-  if (req.query.mode !== 'lueckenfueller') return next()
+  const { mode } = req.method === 'POST' ? req.body : req.query
+  if (mode !== 'lueckenfueller') return next()
   const id = req.user.id
   if (laufendeLueckenfueller.has(id)) {
     return res.status(429).json({ error: 'Deine vorige Lückenfüller-Prüfung läuft noch. Bitte kurz warten.' })
@@ -93,12 +94,55 @@ router.get(
 )
 
 /**
- * GET /api/v1/custom-lemma/play?mode=…&q=… → Spieldaten in Tageslemma-Form.
+ * POST /api/v1/custom-lemma/play { mode, q | a+b } → Spieldaten in Tageslemma-Form.
+ * (Übergangsweise auch GET mit denselben Angaben als Query, für ältere App-Versionen.)
  * Verbraucht bei Erfolg 1 Eigenes-Lemma-Spiel (außer Premium).
  *   200 { usable:true, mode, lemma|data, quota }  – spielbar
  *   429 { error, quota } + Retry-After            – Tageskontingent aufgebraucht
  *   422 { usable:false, reason }                  – Wort nicht geeignet
  */
+async function spieleEigenesLemma(req, res, angaben) {
+  try {
+    const date = todayBerlin()
+    const quota = getQuota({ userId: req.user.id, role: req.user.role, date })
+    if (!quota.unlimited && quota.remaining <= 0) {
+      return sendQuotaExhausted(res, quota.allowance)
+    }
+
+    const result = await buildCustomPlay(angaben)
+    if (result.notImplemented) return res.status(501).json({ error: result.reason })
+    if (!result.usable) return res.status(422).json({ error: result.reason, usable: false })
+
+    // Erst bei spielbarem Ergebnis verbrauchen — ATOMAR (zaehlen+pruefen in
+    // einem Statement). Der getQuota-Pre-Check oben ist nur der schnelle
+    // 403-Pfad; das Race zweier paralleler Requests bei remaining=1
+    // entscheidet sich hier.
+    const consume = tryConsume({ userId: req.user.id, role: req.user.role, date })
+    if (!consume.consumed) {
+      return sendQuotaExhausted(res, consume.allowance)
+    }
+
+    res.json({
+      ...result,
+      quota: consume.unlimited
+        ? { unlimited: true }
+        : { unlimited: false, allowance: consume.allowance, remaining: consume.remaining },
+    })
+  } catch (err) {
+    logger.error({ err, angaben }, 'Eigenes-Lemma-Spielaufbau fehlgeschlagen')
+    sendeFehler(res, err)
+  }
+}
+
+router.post(
+  '/api/v1/custom-lemma/play',
+  customLemmaLimiter,
+  requireAuthUser,
+  validate(customLemmaValidateSchema, 'body'),
+  einLueckenfuellerProKonto,
+  (req, res) => spieleEigenesLemma(req, res, req.body),
+)
+
 router.get(
   '/api/v1/custom-lemma/play',
   customLemmaLimiter,
@@ -106,37 +150,9 @@ router.get(
   requireAuthUser,
   validate(customLemmaValidateSchema, 'query'),
   einLueckenfuellerProKonto,
-  async (req, res) => {
-    try {
-      const date = todayBerlin()
-      const quota = getQuota({ userId: req.user.id, role: req.user.role, date })
-      if (!quota.unlimited && quota.remaining <= 0) {
-        return sendQuotaExhausted(res, quota.allowance)
-      }
-
-      const result = await buildCustomPlay(req.query)
-      if (result.notImplemented) return res.status(501).json({ error: result.reason })
-      if (!result.usable) return res.status(422).json({ error: result.reason, usable: false })
-
-      // Erst bei spielbarem Ergebnis verbrauchen — ATOMAR (zaehlen+pruefen in
-      // einem Statement). Der getQuota-Pre-Check oben ist nur der schnelle
-      // 403-Pfad; das Race zweier paralleler Requests bei remaining=1
-      // entscheidet sich hier.
-      const consume = tryConsume({ userId: req.user.id, role: req.user.role, date })
-      if (!consume.consumed) {
-        return sendQuotaExhausted(res, consume.allowance)
-      }
-
-      res.json({
-        ...result,
-        quota: consume.unlimited
-          ? { unlimited: true }
-          : { unlimited: false, allowance: consume.allowance, remaining: consume.remaining },
-      })
-    } catch (err) {
-      logger.error({ err, query: req.query }, 'Eigenes-Lemma-Spielaufbau fehlgeschlagen')
-      sendeFehler(res, err)
-    }
+  (req, res) => {
+    logger.info({ userId: req.user.id }, 'Eigenes Lemma: alter GET-Aufruf (App vor 31.10.2026)')
+    return spieleEigenesLemma(req, res, req.query)
   },
 )
 

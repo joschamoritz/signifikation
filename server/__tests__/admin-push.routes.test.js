@@ -23,7 +23,7 @@ const PREFIX = `push-test-${Date.now()}`
 let createdTemplateId = null
 
 function adminHeaders(token) {
-  return { 'content-type': 'application/json', cookie: `better-auth.session_token=${token}` }
+  return { 'content-type': 'application/json', cookie: `signifikation-admin=${token}` }
 }
 
 describe('admin push routes (Zod-Validierung)', () => {

@@ -124,7 +124,7 @@ describe('Auth-Middleware', () => {
 
     test('Token nicht in DB → 401', async () => {
       mockDbGet.mockReturnValueOnce(null)
-      const req  = mockReq({ cookies: { 'better-auth.session_token': 'unbekanntes-token' } })
+      const req  = mockReq({ cookies: { 'signifikation-admin': 'unbekanntes-token' } })
       const res  = mockRes()
       const next = vi.fn()
       await requireAuth(req, res, next)
@@ -136,7 +136,7 @@ describe('Auth-Middleware', () => {
       mockDbGet
         .mockReturnValueOnce({ id: 'sess-1', userId: 'user-1' })
         .mockReturnValueOnce(null)
-      const req  = mockReq({ cookies: { 'better-auth.session_token': 'valid-token' } })
+      const req  = mockReq({ cookies: { 'signifikation-admin': 'valid-token' } })
       const res  = mockRes()
       const next = vi.fn()
       await requireAuth(req, res, next)
@@ -148,7 +148,7 @@ describe('Auth-Middleware', () => {
       mockDbGet
         .mockReturnValueOnce({ id: 'sess-1', userId: 'user-1' })
         .mockReturnValueOnce({ role: 'user' })
-      const req  = mockReq({ cookies: { 'better-auth.session_token': 'valid-token' } })
+      const req  = mockReq({ cookies: { 'signifikation-admin': 'valid-token' } })
       const res  = mockRes()
       const next = vi.fn()
       await requireAuth(req, res, next)
@@ -160,7 +160,7 @@ describe('Auth-Middleware', () => {
       mockDbGet
         .mockReturnValueOnce({ id: 'sess-1', userId: 'user-1' })
         .mockReturnValueOnce({ role: 'admin' })
-      const req  = mockReq({ cookies: { 'better-auth.session_token': 'valid-token' } })
+      const req  = mockReq({ cookies: { 'signifikation-admin': 'valid-token' } })
       const res  = mockRes()
       const next = vi.fn()
       await requireAuth(req, res, next)
@@ -176,5 +176,15 @@ describe('Auth-Middleware', () => {
       await requireAuth(req, res, next)
       expect(next).toHaveBeenCalledOnce()
     })
+  })
+})
+
+describe('Admin-Cookie (Security-Audit run-1/run-2)', () => {
+  test('in Produktion mit __Host-Präfix, lokal ohne (__Host- verlangt Secure)', async () => {
+    // Nicht unter NODE_ENV=production neu laden: der NODE_ENV-Schutz in env.js bricht dann gegen die lokale .env ab
+    const { ADMIN_COOKIE, adminCookieName } = await import('./auth.js')
+    expect(adminCookieName(true)).toBe('__Host-signifikation-admin')
+    expect(adminCookieName(false)).toBe('signifikation-admin')
+    expect(ADMIN_COOKIE).toBe('signifikation-admin') // Tests laufen nicht als production
   })
 })

@@ -160,6 +160,46 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
     expect(used?.count).toBe(1)
   })
 
+  // ── play per POST (App ab 31.10.2026; GET bleibt für ältere App-Versionen) ──
+  const postPlay = (body, h) => fetch(`${baseUrl}/api/v1/custom-lemma/play`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...h },
+    body: JSON.stringify(body),
+  })
+
+  it('play per POST: verbraucht wie GET, fehlende Angaben → 400', async () => {
+    const userId = createTestUser(); userIds.add(userId)
+    const h = devHeaders(userId, 'user')
+    expect((await postPlay({ mode: 'wortzwilling', q: 'Archiv' }, h)).status).toBe(400)
+    const r = await postPlay({ mode: 'kollokationen', q: 'Archiv' }, h)
+    expect(r.status).toBe(200)
+    expect((await r.json()).quota).toEqual({ unlimited: false, allowance: 1, remaining: 0 })
+    expect((await postPlay({ mode: 'kollokationen', q: 'Archiv' }, h)).status).toBe(429)
+  })
+
+  it('play per POST steht hinter csrfProtect: ohne App-Header 403, nichts verbraucht', async () => {
+    const { csrfProtect } = await import('../middleware/auth.js')
+    const app = express()
+    app.use(express.json())
+    app.use('/api', csrfProtect)
+    app.use('/', customLemmaRouter)
+    const s = await new Promise((resolve) => { const x = app.listen(0, () => resolve(x)) })
+    try {
+      const userId = createTestUser(); userIds.add(userId)
+      const url = `http://127.0.0.1:${s.address().port}/api/v1/custom-lemma/play`
+      const anfrage = (extra) => fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...devHeaders(userId, 'user'), ...extra },
+        body: JSON.stringify({ mode: 'kollokationen', q: 'Archiv' }),
+      })
+      expect((await anfrage({})).status).toBe(403)
+      expect(db.prepare('SELECT count FROM custom_lemma_usage WHERE user_id = ?').get(userId)?.count ?? 0).toBe(0)
+      expect((await anfrage({ 'x-requested-with': 'signifikation-app' })).status).toBe(200)
+    } finally {
+      await new Promise((resolve) => s.close(resolve))
+    }
+  })
+
   it('play: Premium ist unbegrenzt (mehrfach 200, unlimited-Quota)', async () => {
     const userId = createTestUser(); userIds.add(userId)
     const h = devHeaders(userId, 'premium')

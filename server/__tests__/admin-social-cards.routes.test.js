@@ -23,7 +23,7 @@ const PREFIX = `sc-test-${Date.now()}`
 const DATUM = '2099-04-06'
 
 function adminHeaders(token) {
-  return { 'content-type': 'application/json', 'x-requested-with': 'signifikation-app', cookie: `better-auth.session_token=${token}` }
+  return { 'content-type': 'application/json', 'x-requested-with': 'signifikation-app', cookie: `signifikation-admin=${token}` }
 }
 
 describe('admin social-cards Postfach', () => {

@@ -57,7 +57,7 @@ function kauf(id, userId, betrag, ms, status = 'paid') {
   createdPaymentIds.push(id)
 }
 
-const headers = (token) => ({ cookie: `better-auth.session_token=${token}`, 'x-forwarded-for': IP })
+const headers = (token) => ({ cookie: `signifikation-admin=${token}`, 'x-forwarded-for': IP })
 
 describe('Auswertung › Kennzahlen', () => {
   let server

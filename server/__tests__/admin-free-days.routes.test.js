@@ -30,7 +30,7 @@ const gestern = () => {
 }
 
 function adminHeaders(token) {
-  return { 'content-type': 'application/json', cookie: `better-auth.session_token=${token}` }
+  return { 'content-type': 'application/json', cookie: `signifikation-admin=${token}` }
 }
 
 describe('admin free-days routes (Zod-Validierung)', () => {

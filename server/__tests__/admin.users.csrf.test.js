@@ -80,7 +80,7 @@ describe('Admin-Konten: DELETE und Sammel-Löschen durch csrfProtect, mit den Ko
     await new Promise((resolve) => server.close(resolve))
   })
 
-  const anmeldung = () => ({ cookie: `better-auth.session_token=${token}`, 'x-forwarded-for': IP })
+  const anmeldung = () => ({ cookie: `signifikation-admin=${token}`, 'x-forwarded-for': IP })
 
   it('DELETE /admin/users/:id ohne Content-Type und CSRF-Header wird abgelehnt (Ursache des Fehlers)', async () => {
     const id = neuesKonto()

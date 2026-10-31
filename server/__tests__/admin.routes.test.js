@@ -123,7 +123,7 @@ async function createCredentialUser({ role, password }) {
 function adminHeaders(token, ip = '198.51.100.50') {
   return {
     'content-type': 'application/json',
-    cookie: `better-auth.session_token=${token}`,
+    cookie: `signifikation-admin=${token}`,
     'x-forwarded-for': ip,
   }
 }
@@ -1376,6 +1376,6 @@ const NUTZER_IP = '198.51.100.61'
 
     expect(response.status).toBe(200)
     expect(payload).toEqual({ ok: true })
-    expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=')
+    expect(response.headers.get('set-cookie')).toContain('signifikation-admin=')
   })
 })

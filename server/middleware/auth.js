@@ -13,6 +13,13 @@ function hashEmail(email) {
 }
 
 const IS_PROD = process.env.NODE_ENV === 'production'
+
+// Eigenes Admin-Cookie (nicht das von better-auth). In Produktion mit __Host-: gilt nur für signifikation.de
+// selbst, Pfad /, Secure – keine Subdomain auf demselben Server (skireal., unterricht.) kann es setzen oder
+// überschreiben (Security-Audit run-1/run-2). __Host- verlangt Secure, deshalb lokal (http) ohne Präfix.
+export const adminCookieName = (prod) => (prod ? '__Host-signifikation-admin' : 'signifikation-admin')
+export const ADMIN_COOKIE = adminCookieName(IS_PROD)
+const ADMIN_COOKIE_OPTIONEN = { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' }
 // Strict-Mode-Check für Klartext-Fehlerausgabe: nur in echtem dev-Modus,
 // nicht in staging/test/sonstigem, damit interne Pfade nicht versehentlich
 // exposed werden.
@@ -104,10 +111,8 @@ export async function adminAuth(req, res) {
     `).run(sessionId, user.id, sessionToken, expiresAt, req.ip, req.headers['user-agent'] || '', now, now)
 
     // Setze Session-Cookie (httpOnly, secure, sameSite)
-    res.cookie('better-auth.session_token', sessionToken, {
-      httpOnly: true,
-      secure: IS_PROD,
-      sameSite: 'lax',
+    res.cookie(ADMIN_COOKIE, sessionToken, {
+      ...ADMIN_COOKIE_OPTIONEN,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 Tage
     })
 
@@ -130,7 +135,7 @@ export async function adminLogout(req, res) {
 
     logger.info({ userId: req.session?.userId }, 'Admin ausgeloggt')
     auditSecurity('LOGOUT', { userId: req.session?.userId || 'unknown' }, { ip: req.ip })
-    res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' })
+    res.clearCookie(ADMIN_COOKIE, ADMIN_COOKIE_OPTIONEN)
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err: sanitize(err) }, 'Admin-Logout-Fehler')
@@ -200,7 +205,7 @@ export async function requireAuth(req, res, next) {
       userId = req.session.userId
     } else {
       // Manuell validieren für /admin routes
-      sessionToken = req.cookies['better-auth.session_token']
+      sessionToken = req.cookies[ADMIN_COOKIE]
       if (!sessionToken) {
         logger.warn({ ip: req.ip }, 'Admin-Zugriff ohne Session-Token')
         return res.status(401).json({ error: 'Nicht autorisiert' })
