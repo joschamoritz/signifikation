@@ -92,13 +92,10 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Bekannte Lücken in den Produktionsabhängigkeiten. Vorerst nur Hinweis
-  # (continue-on-error): main hat noch offene Funde, bis der Branch
-  # deps-audit-2026-10 übernommen ist – danach continue-on-error entfernen,
-  # dann blockieren kritische Funde Verify und damit den Deploy.
+  # Bekannte Lücken in den Produktionsabhängigkeiten: Ein kritischer Fund lässt
+  # Verify scheitern und hält damit den Deploy auf (seit better-auth 1.7 ohne Funde).
   audit:
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
     steps:

@@ -181,11 +181,12 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
   })
 
   it('Rate-Limit-IP kommt aus X-Real-IP, nicht aus mehrteiligem X-Forwarded-For', async () => {
-    const { getIp } = await import('@better-auth/core/utils/ip')
+    // better-auth 1.7: getIp heißt getIP
+    const { getIP } = await import('@better-auth/core/utils/ip')
     const { options } = await auth.$context
     expect(options.advanced.ipAddress.ipAddressHeaders).toEqual(['x-real-ip'])
     const headers = new Headers({ 'x-real-ip': '203.0.113.5', 'x-forwarded-for': '198.51.100.1, 203.0.113.5' })
-    expect(getIp(headers, options)).toBe('203.0.113.5')
+    expect(getIP(headers, options)).toBe('203.0.113.5')
   })
 
   it('ein neuer Reset-Link macht den älteren ungültig (Security-Audit run-1)', async () => {
@@ -216,6 +217,16 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     await fetch(`${baseUrl}/api/v1/auth/sign-out`, { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: '{}' })
     await new Promise((r) => setTimeout(r, 20))
     expect(beendet).toEqual([sitzung.session.id])
+  })
+
+  it('Bearer-Token der App: Sign-in liefert set-auth-token, get-session nimmt es an', async () => {
+    const signIn = await fetch(`${baseUrl}/api/v1/auth/sign-in/email`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+    })
+    const token = signIn.headers.get('set-auth-token')
+    expect(token).toBeTruthy()
+    const res = await fetch(`${baseUrl}/api/v1/auth/get-session`, { headers: { authorization: `Bearer ${token}` } })
+    expect((await res.json())?.user?.email).toBe(EMAIL)
   })
 
   it('Sign-out invalidiert die Session', async () => {

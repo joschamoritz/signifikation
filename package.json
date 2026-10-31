@@ -48,7 +48,7 @@
     "@mollie/api-client": "^4.5.0",
     "@parse/node-apn": "^8.1.1",
     "bcryptjs": "^3.0.3",
-    "better-auth": "~1.6.33",
+    "better-auth": "~1.7.14",
     "better-sqlite3": "^12.8.0",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
