@@ -724,6 +724,31 @@ function dublettenPruefer(gewaehlt) {
   return (r) => gewaehlt.some(g => aehnlichkeit(tri(g), tri(r)) >= DUBLETTEN_SCHWELLE)
 }
 
+// Pool je Paar eine Stunde merken (Security-Audit run-2): `year` filtert erst danach in JavaScript, ein anderes
+// Jahr in /api/v1/belege kostete sonst jedes Mal eine neue FTS5-Stichprobe im Hauptthread.
+const POOL_MERKEN_MS = 60 * 60 * 1000
+const POOL_MERKEN_MAX = 500
+const gemerktePools = new Map()
+
+function zweiTermPoolGemerkt(lemma, collocate, ziel) {
+  const schluessel = `${lemma}\u0000${collocate}\u0000${ziel}`
+  const treffer = gemerktePools.get(schluessel)
+  if (treffer && treffer.bis > Date.now()) return treffer.zeilen
+  const zeilen = holeZweiTermPool(lemma, collocate, ziel)
+  gemerktePools.delete(schluessel)
+  gemerktePools.set(schluessel, { zeilen, bis: Date.now() + POOL_MERKEN_MS })
+  if (gemerktePools.size > POOL_MERKEN_MAX) gemerktePools.delete(gemerktePools.keys().next().value)
+  return zeilen
+}
+
+/** Nur für Tests: gemerkte Pools verwerfen bzw. zählen. */
+export function __vergissPoolsFuerTests() {
+  gemerktePools.clear()
+}
+export function __gemerktePoolsFuerTests() {
+  return gemerktePools.size
+}
+
 /**
  * Sucht bis zu `limit` Belegsätze für ein Kollokationspaar.
  *
@@ -750,7 +775,7 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null, satzIds 
     const geprueft = satzIds?.length ? holeSaetze(satzIds) : []
     const unique = geprueft.length
       ? dedupe(geprueft)
-      : dedupe(holeZweiTermPool(lemma, collocate, ziel))
+      : dedupe(zweiTermPoolGemerkt(lemma, collocate, ziel))
 
     let auswahl = unique
     if (year) {

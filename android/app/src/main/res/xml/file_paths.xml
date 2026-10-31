@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
+    <!-- Nur der Cache: PDFs und Teilbilder legt die App über Filesystem in Directory.Cache ab
+         (downloadPdf.js, shareImage.js). Den externen Speicher gibt sie nicht frei (Security-Audit run-1). -->
     <cache-path name="my_cache_images" path="." />
 </paths>

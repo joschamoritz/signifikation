@@ -48,7 +48,7 @@
 
 import cluster from 'node:cluster'
 import { fromNodeHeaders } from 'better-auth/node'
-import { auth } from '../auth/index.js'
+import { auth, beiSessionEnde } from '../auth/index.js'
 import logger from '../logger.js'
 import {
   findParticipantByToken,
@@ -181,12 +181,14 @@ async function resolveTeacherSubject(socket) {
   if (DEV_AUTH_ENABLED) {
     const devId = headers['x-dev-user-id']
     if (typeof devId === 'string' && devId.trim()) {
-      return { kind: 'teacher', id: devId.trim() }
+      return { kind: 'teacher', id: devId.trim(), authSessionId: headers['x-dev-session-id'] || null }
     }
   }
   try {
     const session = await auth.api.getSession({ headers: fromNodeHeaders(headers) })
-    if (session?.user?.id) return { kind: 'teacher', id: String(session.user.id) }
+    if (session?.user?.id) {
+      return { kind: 'teacher', id: String(session.user.id), authSessionId: session.session?.id ?? null }
+    }
   } catch (err) {
     logger.debug({ err }, 'classroom socket: getSession fehlgeschlagen')
   }
@@ -305,6 +307,7 @@ async function classroomSocketAuth(socket, next) {
       socket.data.role      = 'teacher'
       socket.data.sessionId = handshakeSessionId
       socket.data.subjectId = teacher.id
+      socket.data.authSessionId = teacher.authSessionId
       return next()
     }
 
@@ -364,6 +367,10 @@ export function setupClassroomSocket(io, options = {}) {
   nsp = io.of(CLASSROOM_NAMESPACE)
   nsp.use(classroomSocketAuth)
   nsp.on('connection', (socket) => onSocketConnected(socket))
+  if (!sessionEndeAngemeldet) {
+    beiSessionEnde((authSessionId) => trenneLehrerSockets(authSessionId))
+    sessionEndeAngemeldet = true
+  }
 
   logger.info({ namespace: CLASSROOM_NAMESPACE }, 'classroom socket namespace initialisiert')
   return nsp
@@ -461,7 +468,8 @@ function handleStudentHello(socket, payload) {
 function onSocketDisconnect(socket, reason) {
   if (socket.data?.helloWatchdog) clearTimeout(socket.data.helloWatchdog)
 
-  if (socket.data?.role !== 'student' || !socket.data.subjectId) {
+  // Gekickt oder selbst gegangen: Der Teilnehmer ist schon entfernt, kein Reconnect-Fenster
+  if (socket.data?.role !== 'student' || !socket.data.subjectId || socket.data.entfernt) {
     // Lehrer-/Pending-Disconnect: keine Aktion. Session laeuft serverseitig
     // weiter; T1 zeigt die Session als "live", Rejoin via Klick (Plan §UX).
     return
@@ -578,6 +586,30 @@ export function notifyAssignmentChanged(sessionId, payload) {
 export function notifyStudentViewUpdated(participantId, payload) {
   if (!nsp || !participantId) return
   emitToRoom(roomParticipant(participantId), 'view:updated', payload)
+}
+
+// Kick oder eigenes Verlassen (Security-Audit run-1/run-2): Die Sockets des Teilnehmers verlassen den
+// Namespace, sonst hörte ein Gekickter Pause, Weiter und Aufgabenwechsel weiter mit. disconnect(false)
+// trennt nur den Namespace und kommt nach einem vorher gesendeten view:updated an.
+export function trenneTeilnehmer(participantId) {
+  if (!nsp || !participantId) return
+  clearDisconnectTimer(participantId)
+  for (const id of [...(nsp.adapter?.rooms?.get(roomParticipant(participantId)) ?? [])]) {
+    const s = nsp.sockets.get(id)
+    if (!s) continue
+    s.data.entfernt = true
+    s.disconnect(false)
+  }
+}
+
+// Logout, Passwort-Reset, Kontolöschung: Lehrer-Sockets genau dieser Anmeldung trennen (eine
+// Abmeldung auf einem anderen Gerät lässt den Beamer verbunden).
+let sessionEndeAngemeldet = false
+function trenneLehrerSockets(authSessionId) {
+  if (!nsp || !authSessionId) return
+  for (const s of nsp.sockets.values()) {
+    if (s.data?.role === 'teacher' && s.data.authSessionId === authSessionId) s.disconnect(true)
+  }
 }
 
 

@@ -219,11 +219,18 @@ describe('belege.js – Jahr-Filter (läuft in JavaScript über den Pool)', () =
   it('bevorzugt Belege im Jahresband', () => {
     // 1880 gibt es nur im Mittelblock; 2015/2020 in den Randblöcken.
     for (let i = 0; i < 10; i++) {
+      belege.__vergissPoolsFuerTests() // jede Runde eine neue Zufallsstichprobe
       const rows = belege.fetchBelege('Haus', 'bauen', { limit: 5, year: 2018 })
       expect(rows.length).toBe(5)
       // Alle Quellen müssen aus den Blöcken mit Jahr 2015/2020 stammen.
       expect(rows.every(r => /oben_a|oben_b|unten_a/.test(r.quelle))).toBe(true)
     }
+  })
+
+  it('ein anderes Jahr nutzt denselben gemerkten Pool, keine neue Stichprobe (Security-Audit run-2)', () => {
+    belege.__vergissPoolsFuerTests()
+    for (const year of [1880, 1950, 2018, null]) belege.fetchBelege('Haus', 'bauen', { limit: 5, year })
+    expect(belege.__gemerktePoolsFuerTests()).toBe(1)
   })
 
   it('fällt auf den ungefilterten Pool zurück, wenn das Band zu wenig hergibt', () => {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 und älter (android:fullBackupContent). Gesichert wird alles außer dem Anmelde-Token:
+     SecureStorage verschlüsselt es mit einem Schlüssel aus dem Android Keystore, der das Gerät nie
+     verlässt – auf einem neuen Gerät wäre es unlesbar, und es gehört nicht in ein Backup (Security-Audit run-1). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="WSSecureStorageSharedPreferences.xml" />
+</full-backup-content>

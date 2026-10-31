@@ -69,6 +69,17 @@ const PFLICHTTEILE = [
 
 const istObjekt = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
 
+// Links aus einer Sicherungsdatei gelten wie im Tag-Editor (LINK_HTTP in middleware/validate.js): leer oder
+// http(s)://…, sonst wird der Link geleert statt die Datei abzuweisen – ältere Sicherungen enthalten Links
+// ohne Schema (Security-Audit run-1: das Wiederherstellen umging die Prüfung).
+const WEB_LINK = /^https?:\/\/\S+$/i
+function mitWebLink(eintrag) {
+  if (!istObjekt(eintrag) || typeof eintrag.link !== 'string') return eintrag
+  const link = eintrag.link.trim()
+  return { ...eintrag, link: link && WEB_LINK.test(link) && link.length <= 500 ? link : '' }
+}
+const mapWerte = (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v)]))
+
 /**
  * Prüft die Sicherungsdatei und bringt sie in die Form, die der Store erwartet.
  *
@@ -95,11 +106,11 @@ export function sanitizeBackupBundle(payload) {
     }
   }
 
-  const lemmata = files['lemmata.json']
+  const lemmata = files['lemmata.json'].map(mitWebLink)
   // Alte Backup-Formate (datum → id[]) auf neue Shape (datum → { ids, thema }) normalisieren
   const kalender = normalizeDateKeyedMap(normalizeKalenderShape(files['kalender.json']))
-  const wortzwilling = normalizeDateKeyedMap(files['wortzwilling.json'])
-  const zeitenwende = normalizeDateKeyedMap(files['zeitenwende.json'])
+  const wortzwilling = mapWerte(normalizeDateKeyedMap(files['wortzwilling.json']), mitWebLink)
+  const zeitenwende = mapWerte(normalizeDateKeyedMap(files['zeitenwende.json']), mitWebLink)
 
   const rawStatsRows = (() => {
     if (Array.isArray(files['stats-rows.json'])) return files['stats-rows.json']

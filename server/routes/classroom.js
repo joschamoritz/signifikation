@@ -101,6 +101,7 @@ import {
   notifySessionResumed,
   notifyAssignmentChanged,
   notifyStudentViewUpdated,
+  trenneTeilnehmer,
 } from '../realtime/classroomSocket.js'
 import {
   classroomJoinLimiter,
@@ -1226,6 +1227,7 @@ router.post(
         reason:        'self',
         at:            Date.now(),
       })
+      trenneTeilnehmer(participant.id)
       return res.status(204).end()
     } catch (err) {
       logger.error({ err }, 'classroom leave crashed')
@@ -1255,6 +1257,8 @@ router.post(
       notifyStudentViewUpdated(participantId, { reason: 'kicked' })
       // Lehrer-Dashboard/Lobby aktualisieren.
       notifyStudentLeft(sessionId, { participantId, reason: 'kicked', at: Date.now() })
+      // Danach aus dem Raum: sonst hörte der Gekickte Pause, Weiter und Aufgabenwechsel weiter mit
+      trenneTeilnehmer(participantId)
       logger.info({ sessionId, participantId, teacherUserId }, 'classroom participant kicked')
       return res.json({ ok: true })
     } catch (err) {

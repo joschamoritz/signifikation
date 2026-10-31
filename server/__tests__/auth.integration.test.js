@@ -6,7 +6,7 @@
 import express from 'express'
 import { toNodeHandler } from 'better-auth/node'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { auth, verwerfeAltzugaengeVorVerknuepfung } from '../auth/index.js'
+import { auth, beiSessionEnde, verwerfeAltzugaengeVorVerknuepfung } from '../auth/index.js'
 import db from '../db.js'
 
 const EMAIL = `auth-int-${Date.now()}@test.local`
@@ -186,6 +186,36 @@ describe('better-auth Integration (ohne Dev-Header)', () => {
     expect(options.advanced.ipAddress.ipAddressHeaders).toEqual(['x-real-ip'])
     const headers = new Headers({ 'x-real-ip': '203.0.113.5', 'x-forwarded-for': '198.51.100.1, 203.0.113.5' })
     expect(getIp(headers, options)).toBe('203.0.113.5')
+  })
+
+  it('ein neuer Reset-Link macht den älteren ungültig (Security-Audit run-1)', async () => {
+    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(EMAIL)
+    const ctx = await auth.$context
+    const lege = (token) => ctx.internalAdapter.createVerificationValue({
+      value: user.id, identifier: `reset-password:${token}`, expiresAt: new Date(Date.now() + 60_000),
+    })
+    const alt = `test-reset-alt-${Date.now()}`
+    const neu = `test-reset-neu-${Date.now()}`
+    await lege(alt)
+    await lege(neu)
+    const setze = (token) => fetch(`${baseUrl}/api/v1/auth/reset-password`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token, newPassword: PASSWORD }),
+    })
+    expect((await setze(alt)).status).toBe(400)
+    expect((await setze(neu)).status).toBe(200)
+  })
+
+  it('Sign-out meldet das Ende genau dieser Anmeldung (Klassenraum-Sockets, Security-Audit run-2)', async () => {
+    const beendet = []
+    beiSessionEnde((id) => beendet.push(id))
+    const signIn = await fetch(`${baseUrl}/api/v1/auth/sign-in/email`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+    })
+    const cookie = (signIn.headers.get('set-cookie') || '').split(';')[0]
+    const sitzung = await (await fetch(`${baseUrl}/api/v1/auth/get-session`, { headers: { cookie } })).json()
+    await fetch(`${baseUrl}/api/v1/auth/sign-out`, { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: '{}' })
+    await new Promise((r) => setTimeout(r, 20))
+    expect(beendet).toEqual([sitzung.session.id])
   })
 
   it('Sign-out invalidiert die Session', async () => {

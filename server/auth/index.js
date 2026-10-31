@@ -195,13 +195,37 @@ export const googleWebClientId = socialProviders.google ? GOOGLE_CLIENT_ID : nul
 // Admin-Konten behalten ihr Passwort (eigener Admin-Login, angelegt per setup-admin).
 const hatPasswortStmt = db.prepare(`SELECT 1 FROM account WHERE userId = ? AND providerId = 'credential'`)
 const rolleStmt = db.prepare(`SELECT role FROM user_profiles WHERE user_id = ?`)
-const loescheSessionsStmt = db.prepare(`DELETE FROM session WHERE userId = ?`)
+const loescheSessionsStmt = db.prepare(`DELETE FROM session WHERE userId = ? RETURNING id`)
 const loeschePasswortStmt = db.prepare(`DELETE FROM account WHERE userId = ? AND providerId = 'credential'`)
+
+// Wer wissen muss, dass eine Anmeldung endet (Klassenraum-Sockets der Lehrkraft, Security-Audit run-2).
+// Als Liste statt Import, weil realtime/classroomSocket.js seinerseits auth importiert.
+const sessionEndeHoerer = new Set()
+export function beiSessionEnde(hoerer) {
+  sessionEndeHoerer.add(hoerer)
+}
+function meldeSessionEnde(sessionId) {
+  for (const hoerer of sessionEndeHoerer) {
+    try { hoerer(sessionId) } catch (err) { logger.warn({ err }, 'Session-Ende: Hörer fehlgeschlagen') }
+  }
+}
+
+// Ein neuer Reset-Link macht ältere desselben Kontos ungültig (Security-Audit run-1): Sonst bliebe ein
+// Link aus einer alten, vielleicht weitergeleiteten Mail bis zum Ablauf nutzbar. better-auth speichert
+// den Eintrag als identifier 'reset-password:<token>' mit value = userId (storeIdentifier: plain).
+const loescheAlteResetLinksStmt = db.prepare(`DELETE FROM verification WHERE identifier LIKE 'reset-password:%' AND value = ?`)
+export function verwerfeAlteResetLinks(verification) {
+  if (!verification?.identifier?.startsWith('reset-password:') || !verification.value) return
+  const alt = loescheAlteResetLinksStmt.run(String(verification.value)).changes
+  if (alt) logger.info({ userId: verification.value, alt }, 'Passwort-Reset: ältere Links verworfen')
+}
 
 export function verwerfeAltzugaengeVorVerknuepfung(account) {
   if (!account?.userId || account.providerId === 'credential') return
   if (!hatPasswortStmt.get(account.userId)) return
-  const sessions = loescheSessionsStmt.run(account.userId).changes
+  const beendet = loescheSessionsStmt.all(account.userId)
+  for (const { id } of beendet) meldeSessionEnde(id)
+  const sessions = beendet.length
   const istAdmin = rolleStmt.get(account.userId)?.role === 'admin'
   const passwort = istAdmin ? 0 : loeschePasswortStmt.run(account.userId).changes
   logger.info({ userId: account.userId, providerId: account.providerId, sessions, passwort },
@@ -272,6 +296,12 @@ export const auth = betterAuth({
       // before, nicht after: after-Hooks laufen erst nach der Transaktion und träfen
       // dann auch die Session, die better-auth für den neuen Login anlegt.
       create: { before: async (account) => { verwerfeAltzugaengeVorVerknuepfung(account) } },
+    },
+    session: {
+      delete: { after: async (session) => { meldeSessionEnde(session?.id) } },
+    },
+    verification: {
+      create: { before: async (verification) => { verwerfeAlteResetLinks(verification) } },
     },
   },
   plugins: [bearer()],

@@ -23,8 +23,11 @@ import db from '../db.js'
 
 // Better-Auth Session-Mock — Tests fokussieren auf Capability-Logik,
 // nicht auf Cookie-Handling. Tatsaechliche Auth laeuft ueber Dev-Header.
+// beiSessionEnde: setupClassroomSocket meldet hier seinen Hörer an; die Tests rufen ihn direkt auf.
+const sessionEnde = vi.hoisted(() => ({ hoerer: null }))
 vi.mock('../auth/index.js', () => ({
   auth: { api: { getSession: vi.fn(async () => null) } },
+  beiSessionEnde: vi.fn((hoerer) => { sessionEnde.hoerer = hoerer }),
 }))
 
 const {
@@ -258,6 +261,50 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
 
     const payload = await heard
     expect(payload.sessionId).toBe(session.id)
+  })
+
+  it('Kick: Schueler bekommt view:updated, wird getrennt und hoert danach nichts mehr (Security-Audit run-2)', async () => {
+    const { session, participant } = setupSessionWithStudent()
+    const student = connectStudent(baseUrl, participant.token)
+    openSockets.push(student)
+    await awaitConnect(student)
+
+    const { notifyStudentViewUpdated, trenneTeilnehmer, notifySessionPaused } = await import('../realtime/classroomSocket.js')
+    const gehoert = []
+    student.on('view:updated', (p) => gehoert.push(['view:updated', p.reason]))
+    student.on('session:paused', () => gehoert.push(['session:paused']))
+    const getrennt = new Promise((resolve) => student.once('disconnect', resolve))
+    await sleep(50) // view:updated vom Verbinden abwarten
+    gehoert.length = 0
+    // Disconnects voriger Tests können nach clearAllTimers() noch Timer anlegen: nur die Differenz zählt
+    const timerVorher = __getTimerCountForTests()
+
+    notifyStudentViewUpdated(participant.id, { reason: 'kicked' })
+    trenneTeilnehmer(participant.id)
+    expect(await getrennt).toBe('io server disconnect')
+    notifySessionPaused(session.id, { sessionId: session.id })
+    await sleep(50)
+
+    expect(gehoert).toEqual([['view:updated', 'kicked']])
+    expect(__getTimerCountForTests()).toBe(timerVorher) // kein Reconnect-Fenster für einen Gekickten
+  })
+
+  it('Ende einer Anmeldung trennt nur die Lehrer-Sockets dieser Anmeldung (Security-Audit run-2)', async () => {
+    const { session } = setupSessionWithStudent()
+    const verbinde = (authSessionId) => ioClient(`${baseUrl}/classroom`, {
+      transports: ['websocket'], forceNew: true, auth: { sessionId: session.id },
+      extraHeaders: { 'x-dev-user-id': TEACHER, 'x-dev-session-id': authSessionId }, timeout: 4000,
+    })
+    const beamer = verbinde('anmeldung-beamer')
+    const handy = verbinde('anmeldung-handy')
+    openSockets.push(beamer, handy)
+    await Promise.all([awaitConnect(beamer), awaitConnect(handy)])
+
+    const handyGetrennt = new Promise((resolve) => handy.once('disconnect', resolve))
+    sessionEnde.hoerer('anmeldung-handy')
+    expect(await handyGetrennt).toBe('io server disconnect')
+    await sleep(50)
+    expect(beamer.connected).toBe(true)
   })
 
   // ── W4-S2: Namespace /classroom (Legacy-Alias /cr2 entfallen 2026-08-10) ──

@@ -22,6 +22,25 @@ describe('admin calendar utils', () => {
     expect(bundle.statsRows[0].datum).toBe(isoDatum)
   })
 
+  it('leert Links ohne http(s) beim Wiederherstellen, gültige bleiben (Security-Audit run-1)', () => {
+    const bundle = sanitizeBackupBundle({
+      files: {
+        'lemmata.json': [
+          { id: 'a', link: 'https://www.dwds.de/wb/Haus' },
+          { id: 'b', link: 'javascript:alert(1)' },
+          { id: 'c', link: 'wetteronline.de/' },
+          { id: 'd' },
+        ],
+        'kalender.json': {},
+        'wortzwilling.json': { '2026-04-24': { wortA: 'Tag', link: 'katholisch.de/' } },
+        'zeitenwende.json': { '2026-04-24': { lemma: 'Zeit', link: ' http://religion.de ' } },
+      },
+    })
+    expect(bundle.lemmata.map((l) => l.link)).toEqual(['https://www.dwds.de/wb/Haus', '', '', undefined])
+    expect(bundle.wortzwilling['2026-04-24'].link).toBe('')
+    expect(bundle.zeitenwende['2026-04-24'].link).toBe('http://religion.de')
+  })
+
   it('weist eine Datei ab, der ein Inhaltsteil fehlt (fehlend ist nicht leer)', () => {
     const files = { 'lemmata.json': [], 'kalender.json': {}, 'wortzwilling.json': {}, 'zeitenwende.json': {} }
     expect(() => sanitizeBackupBundle({ files })).not.toThrow()

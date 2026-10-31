@@ -69,6 +69,9 @@ export async function createRenderer() {
     async render(html) {
       const page = await browser.newPage()
       try {
+        // Kein Netz wie beim Social-Card-Renderer (Security-Audit run-1): Schriften kommen als data:-URI,
+        // das Arbeitsblatt kann aber ein Eigenes Lemma enthalten, und Chromium läuft mit --no-sandbox.
+        await page.route('**/*', (route) => route.abort())
         await page.setContent(injectFonts(html), { waitUntil: 'networkidle' })
         return await page.pdf({ printBackground: true, preferCSSPageSize: true })
       } finally {

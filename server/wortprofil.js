@@ -1042,9 +1042,9 @@ const ZW_WORD_REGEX    = /^[a-zäöüß][a-zA-ZäöüÄÖÜß]*$/
  * Gibt { lemma, words: [{wort, periode}] } mit 10 gemischten Einträgen zurück,
  * oder null wenn nicht genug distinkte Kollokatoren gefunden werden.
  */
-export async function fetchZeitenwende(lemma) {
+export async function fetchZeitenwende(lemma, { zeilen = null } = {}) {
   try {
-    const rows = stmts().zeitreise.all(kanonischesLemma(lemma), ZW_MIN_JAHRZEHNT)
+    const rows = zeilen ?? stmts().zeitreise.all(kanonischesLemma(lemma), ZW_MIN_JAHRZEHNT)
 
     if (!rows.length) return null
 
@@ -1154,7 +1154,8 @@ export async function fetchZeitenwendeAnalyze(lemma) {
   const preCandidates  = allCandidates.filter(c => c.distPre  > 0 && c.avgPre  >= ZW_MIN_SCORE).sort((a, b) => b.distPre  - a.distPre).slice(0, 10)
   const postCandidates = allCandidates.filter(c => c.distPost > 0 && c.avgPost >= ZW_MIN_SCORE).sort((a, b) => b.distPost - a.distPost).slice(0, 10)
 
-  const result = await fetchZeitenwende(lemma)
+  // Dieselben Zeilen weiterreichen statt die zeitreise-Abfrage ein zweites Mal zu stellen (Security-Audit run-2)
+  const result = await fetchZeitenwende(lemma, { zeilen: rows })
   return { lemma, usable: !!result, preCandidates, postCandidates, words: result?.words ?? null }
 }
 
