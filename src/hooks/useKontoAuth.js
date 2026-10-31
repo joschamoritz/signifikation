@@ -624,12 +624,14 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setEmail('')
     setPassword('')
     setShowPassword(false)
-    setResetEmail('')
+    // Angemeldet gilt der Reset dem eigenen Konto: Adresse vorbelegen (bei Apple oft eine
+    // Relay-Adresse, die niemand auswendig kennt). Ändern lässt sie sich weiterhin.
+    setResetEmail(nextMode === 'reset-request' ? (sessionData?.user?.email ?? '') : '')
     setResetPassword('')
     setResetPasswordConfirm('')
     setShowResetPassword(false)
     if (nextMode !== 'reset-complete') setResetToken('')
-  }, [isBusy, mode])
+  }, [isBusy, mode, sessionData])
 
   return {
     mode,

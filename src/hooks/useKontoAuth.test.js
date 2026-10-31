@@ -98,6 +98,24 @@ describe('useKontoAuth – switchMode', () => {
 
     expect(result.current.email).toBe('abc@example.com') // nicht geleert
   })
+
+  it('belegt beim Passwort-Reset angemeldet die eigene Adresse vor', async () => {
+    mockSession({ user: { id: 'u1', email: 'abc123@privaterelay.appleid.com' } })
+    const { result } = renderHook(() => useKontoAuth({ onAuthStateChange: () => {} }))
+    await waitFor(() => expect(result.current.isLoggedIn).toBe(true))
+
+    act(() => result.current.switchMode('reset-request'))
+    expect(result.current.resetEmail).toBe('abc123@privaterelay.appleid.com')
+  })
+
+  it('lässt die Adresse beim Passwort-Reset abgemeldet leer', async () => {
+    mockSession(null)
+    const { result } = renderHook(() => useKontoAuth({ onAuthStateChange: () => {} }))
+    await waitFor(() => expect(result.current.isChecking).toBe(false))
+
+    act(() => result.current.switchMode('reset-request'))
+    expect(result.current.resetEmail).toBe('')
+  })
 })
 
 describe('useKontoAuth – Fehlerübersetzung (über handleAuthSubmit)', () => {
