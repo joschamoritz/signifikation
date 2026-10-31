@@ -87,3 +87,30 @@ describe('CORS-Ausnahme für Apples Web-Login-Callback', () => {
     }
   })
 })
+
+describe('better-auth vertraut appleid.apple.com nur bei aktivem Apple-Login', () => {
+  // Der Apple-Callback kommt per form_post mit Origin appleid.apple.com; mit Cookies prüft better-auth sie.
+  // Im Test (NODE_ENV=test) überspringt better-auth diese Prüfung, deshalb wird die Liste geprüft.
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  it('mit Apple-Login: appleid.apple.com in trustedOrigins, CORS bleibt streng', async () => {
+    vi.stubEnv('BETTER_AUTH_APPLE_CLIENT_ID', 'de.signifikation.web')
+    vi.stubEnv('BETTER_AUTH_APPLE_CLIENT_SECRET', 'platzhalter')
+    vi.resetModules()
+    const { trustedOrigins: mitApple } = await import('../auth/index.js')
+    const { APPLE_ORIGIN, isAllowedOrigin: erlaubt } = await import('../config/origins.js')
+    expect(mitApple).toContain(APPLE_ORIGIN)
+    expect(erlaubt(APPLE_ORIGIN)).toBe(false)
+  })
+
+  it('ohne Apple-Login bleibt appleid.apple.com draußen', async () => {
+    vi.stubEnv('BETTER_AUTH_APPLE_CLIENT_ID', '')
+    vi.stubEnv('BETTER_AUTH_APPLE_CLIENT_SECRET', '')
+    vi.resetModules()
+    const { trustedOrigins: ohneApple } = await import('../auth/index.js')
+    expect(ohneApple).not.toContain('https://appleid.apple.com')
+  })
+})

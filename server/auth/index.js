@@ -3,7 +3,7 @@ import { bearer } from 'better-auth/plugins'
 import db from '../db.js'
 import logger from '../logger.js'
 import { initAppleClientSecret } from './apple-client-secret.js'
-import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS } from '../config/origins.js'
+import { ALLOWED_ORIGINS, APPLE_ORIGIN, CAPACITOR_ORIGINS } from '../config/origins.js'
 import { isMailConfigured, sendPasswordResetMail, sendWelcomeMail } from '../mailer.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
@@ -137,9 +137,13 @@ async function sendPasswordReset({ user, url }) {
 // (origins.js schliesst das mit Begruendung aus) und https://localhost
 // (Capacitor-Android) fehlte, was Android-Sign-in brechen konnte.
 // Exportiert fuer den Paritaetstest (origins.test.js).
+// Dazu appleid.apple.com, solange Apple-Login aktiv ist: Apple schickt den Web-Login per form_post von dort,
+// und mit Cookies prüft better-auth die Origin jedes POST gegen diese Liste (Doku zum Apple-Provider). Nur
+// für better-auth – die CORS-Prüfung bleibt streng und lässt nur diesen einen Callback durch (config/origins.js).
 export const trustedOrigins = Array.from(new Set([
   ...ALLOWED_ORIGINS,
   ...CAPACITOR_ORIGINS,
+  ...(socialProviders.apple ? [APPLE_ORIGIN] : []),
 ]))
 
 const AUTH_SECRET = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET
