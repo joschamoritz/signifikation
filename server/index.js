@@ -52,7 +52,7 @@ import { startInactiveAccounts } from './jobs/inactiveAccounts.js'
 import { startZeitenwendePrefetch } from './jobs/zeitenwendePrefetch.js'
 import { startSocialCardDrafts } from './jobs/socialCardDrafts.js'
 import { startSocialPosting } from './jobs/socialPosting.js'
-import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
+import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin, corsAusserAppleCallback } from './config/origins.js'
 import { buildAssetLinks } from './appLinks.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
@@ -112,7 +112,8 @@ app.use(helmet({
 }))
 
 // ── CORS ─────────────────────────────────────────────────────
-app.use(cors({
+// Ausnahme: Apples Formular-POST an den Web-Login-Callback (config/origins.js)
+app.use(corsAusserAppleCallback(cors({
       origin: IS_PROD
     ? (origin, cb) => {
         if (isAllowedOrigin(origin)) cb(null, true)
@@ -122,7 +123,7 @@ app.use(cors({
       }
     : true,
   credentials: true,
-}))
+})))
 
 app.use(cookieParser())
 app.post('/api/v1/auth/sign-in/email', loginLimiter)
