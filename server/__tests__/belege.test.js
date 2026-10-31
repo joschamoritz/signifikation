@@ -140,6 +140,7 @@ describe('belege.js – Fenstersuche', () => {
   it('liefert höchstens einen Beleg je Dokument', () => {
     // 20 Läufe, weil die Fensterlage gewürfelt wird – ein Einzellauf beweist nichts.
     for (let i = 0; i < 20; i++) {
+      belege.__vergissPoolsFuerTests() // jede Runde eine neue Zufallsstichprobe (Pool-Cache)
       const rows = belege.fetchBelege('Haus', 'bauen', { limit: 5 })
       const fundstellen = new Set(rows.map(r => r.quelle))
       expect(fundstellen.size).toBe(rows.length)
@@ -149,6 +150,7 @@ describe('belege.js – Fenstersuche', () => {
   it('streut über mehrere Korpora statt nur über das zuerst importierte', () => {
     const gesehen = new Set()
     for (let i = 0; i < 20; i++) {
+      belege.__vergissPoolsFuerTests() // jede Runde eine neue Zufallsstichprobe (Pool-Cache)
       for (const r of belege.fetchBelege('Haus', 'bauen', { limit: 5 })) {
         gesehen.add(r.quelle.match(/Zitation (\w+)/)?.[1])
       }
@@ -163,6 +165,7 @@ describe('belege.js – Fenstersuche', () => {
     // Der Kehrpfad ab rowid 0 ist die einzige Chance – ohne ihn wäre der Beleg
     // je nach Würfel unauffindbar. Deshalb 30 Läufe, alle müssen treffen.
     for (let i = 0; i < 30; i++) {
+      belege.__vergissPoolsFuerTests() // jede Runde eine neue Zufallsstichprobe (Pool-Cache)
       const rows = belege.fetchBelege('Kobold', 'tanzen', { limit: 5 })
       expect(rows).toHaveLength(1)
     }
