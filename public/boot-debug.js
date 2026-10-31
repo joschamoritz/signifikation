@@ -25,7 +25,8 @@
         source: String(source || 'unknown').slice(0, 200),
         message: String(message || '').slice(0, 2000),
         stack: stack ? String(stack).slice(0, 4000) : undefined,
-        url: String(location.href).slice(0, 500),
+        // Ohne Query und Hash: dort kann das Reset-Token stehen (Security-Audit run-1)
+        url: String(location.origin + location.pathname).slice(0, 500),
         ua: String(navigator.userAgent || '').slice(0, 300),
         ts: Date.now(),
       })

@@ -177,7 +177,7 @@ export function csrfProtect(req, res, next) {
   if (req.originalUrl?.startsWith('/api/v1/iap/play/notifications')) {
     return next()
   }
-  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     const contentType = req.headers['content-type'] || ''
     if (!contentType.includes('application/json')) {
       logger.warn({ method: req.method, contentType }, 'CSRF-Schutz: falscher Content-Type')

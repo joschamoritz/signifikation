@@ -54,7 +54,9 @@ router.get('/health', (_req, res) => {
     db.prepare('SELECT 1').get()
     checks.db = 'ok'
   } catch (err) {
-    checks.db = `error: ${err.message}`
+    // Fehlertext nur ins Log: /health ist öffentlich (Security-Audit run-1)
+    logger.error({ err }, 'Healthcheck: DB nicht erreichbar')
+    checks.db = 'error'
     status = 'error'
   }
 

@@ -2,7 +2,7 @@
 // Das Backend (server/middleware/auth.js) verlangt für POST/PUT/DELETE/PATCH
 // den Header X-Requested-With: signifikation-app. Cross-Origin-Scripts können
 // diesen Custom-Header ohne CORS-Preflight nicht setzen → echter CSRF-Schutz.
-// Zusätzlich verlangt csrfProtect für POST/PUT/DELETE Content-Type: application/json (auch ohne Body); der Wrapper
+// Zusätzlich verlangt csrfProtect für POST/PUT/PATCH/DELETE Content-Type: application/json (auch ohne Body); der Wrapper
 // ergänzt ihn, wo er fehlt (server/__tests__/admin.users.csrf.test.js führt genau diesen Code aus).
 //
 // Pendant in der React-App: src/utils/installCsrfFetch.js. Hier ist alles

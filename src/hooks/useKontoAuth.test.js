@@ -60,6 +60,16 @@ describe('useKontoAuth – Initialisierung', () => {
     await waitFor(() => expect(result.current.mode).toBe('reset-complete'))
     expect(result.current.resetToken).toBe('abc123')
   })
+
+  it('nimmt das Reset-Token sofort aus der Adresszeile, andere Parameter bleiben', async () => {
+    mockSession(null)
+    window.history.replaceState(null, '', '/?tab=konto&token=abc123')
+
+    const { result } = renderHook(() => useKontoAuth({ onAuthStateChange: () => {} }))
+
+    await waitFor(() => expect(result.current.resetToken).toBe('abc123'))
+    expect(window.location.search).toBe('?tab=konto')
+  })
 })
 
 describe('useKontoAuth – switchMode', () => {

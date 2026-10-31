@@ -89,6 +89,15 @@ describe('Auth-Middleware', () => {
       expect(res.status).toHaveBeenCalledWith(403)
     })
 
+    test('PATCH ohne CSRF-Header → 403 (Security-Audit run-1)', () => {
+      const req  = mockReq({ method: 'PATCH', headers: { 'content-type': 'application/json' } })
+      const res  = mockRes()
+      const next = vi.fn()
+      csrfProtect(req, res, next)
+      expect(res.status).toHaveBeenCalledWith(403)
+      expect(next).not.toHaveBeenCalled()
+    })
+
     test('POST ohne Content-Type → 403', () => {
       const req  = mockReq({ method: 'POST', headers: {} })
       const res  = mockRes()

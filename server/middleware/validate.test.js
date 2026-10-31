@@ -189,6 +189,11 @@ describe('qQuerySchema', () => {
   it('lehnt fehlendes q ab', () => {
     expect(qQuerySchema.safeParse({}).success).toBe(false)
   })
+
+  it('lehnt q über 100 Zeichen ab (Security-Audit run-1)', () => {
+    expect(qQuerySchema.safeParse({ q: 'a'.repeat(100) }).success).toBe(true)
+    expect(qQuerySchema.safeParse({ q: 'a'.repeat(101) }).success).toBe(false)
+  })
 })
 
 // ── adminTagSchema ───────────────────────────────────────────

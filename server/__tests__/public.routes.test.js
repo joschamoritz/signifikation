@@ -164,6 +164,23 @@ describe('public routes integration', () => {
       expect(['ok', 'degraded']).toContain(body.status)
       expect(body.checks.db).toBe('ok')
     })
+
+    it('DB-Fehler: 503 ohne Fehlertext (Security-Audit run-1)', async () => {
+      const original = db.prepare.bind(db)
+      const spy = vi.spyOn(db, 'prepare').mockImplementation((sql) => {
+        if (sql === 'SELECT 1') throw new Error('SQLITE_CANTOPEN: /geheim/pfad/signifikation.db')
+        return original(sql)
+      })
+      try {
+        const res = await fetch(`${baseUrl}/health`)
+        expect(res.status).toBe(503)
+        const text = await res.text()
+        expect(JSON.parse(text).checks.db).toBe('error')
+        expect(text).not.toContain('geheim')
+      } finally {
+        spy.mockRestore()
+      }
+    })
   })
 
   // ── /api/v1/heute ──────────────────────────────────────────────

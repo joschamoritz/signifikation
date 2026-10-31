@@ -106,7 +106,7 @@ export const archivQuerySchema = z.object({
 
 /** GET /api/ipa, /admin/debug-diacollo (query: q=) */
 export const qQuerySchema = z.object({
-  q: z.string().min(1, 'q erforderlich'),
+  q: z.string().min(1, 'q erforderlich').max(100, 'q zu lang'),
 })
 
 /** GET /api/v1/woerter (Archiv-Tab-Liste, optionale Suche q=) */

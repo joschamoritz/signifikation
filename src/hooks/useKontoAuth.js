@@ -219,6 +219,11 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       setMode('reset-complete')
       setResetToken(token)
       setNotice({ type: 'success', text: 'Bitte neues Passwort setzen.' })
+      // Sofort aus der Adresszeile: Sonst landet das Token in Verlauf, Lesezeichen und
+      // den Fehlerberichten aus boot-debug.js (Security-Audit run-1). Es lebt nur im State.
+      params.delete('token')
+      const nextSearch = params.toString()
+      window.history.replaceState(null, '', `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`)
       return
     }
 
@@ -427,14 +432,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       setShowResetPassword(false)
       setMode('login')
       setNotice({ type: 'success', text: 'Passwort erfolgreich geaendert. Bitte anmelden.' })
-
-      const params = new URLSearchParams(window.location.search)
-      if (params.has('token')) {
-        params.delete('token')
-        const nextSearch = params.toString()
-        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`
-        window.history.replaceState(null, '', nextUrl)
-      }
     } catch {
       setNotice({ type: 'error', text: 'Netzwerkfehler. Bitte erneut versuchen.' })
     } finally {
