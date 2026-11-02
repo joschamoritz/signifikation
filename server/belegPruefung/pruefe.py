@@ -6,7 +6,7 @@ Aufgerufen von server/belegPruefung/index.js, ein Prozess je Prüflauf:
   stdout {"paare": [{"schluessel": str, "bestanden": [satz_id, ...],
                      "details": {"<satz_id>": {"rel": ["ATTR"], "start": int, "ende": int}}},
                     ...],
-          "saetze": int, "sekunden": float}
+          "saetze": int, "fehlerhaft": int, "sekunden": float}
 
 `details` sagt je bestandenem Satz, in welcher Relation Basis und Kollokator stehen (aus
 Sicht der Basis wie im Wortprofil: „ATTR“ bei „süßer Traum“ für Traum, „~ATTR“ für süß) und
@@ -23,6 +23,15 @@ fielen in der Messung vom 29.10.2026 gerade solche korrekten Sätze durch.
 
 Ohne dwdsmor (BELEGPRUEFUNG_DWDSMOR=1 schaltet es zu): In der Messung unterschieden
 sich 3 von 1.915 Urteilen, der Server spart die Installation des Transducers.
+
+Mit `--roh` lädt das Skript kein Modell: Die Sätze hat der Parser-Dienst des Satzkastens
+geparst (server/belegPruefung/parserDienst.js), stdin trägt zusätzlich deren Rohtokens
+  {"paare": [...], "roh": [[satz, [token, ...] | null], ...]}
+Token wie `satzanalyse-stapel/1`, davon gelesen: text, leer, upos, stts, lemma, morph{}, kopf
+(docweit, null = Wurzel), rel. Daraus entsteht mit `spacy.blank("de")` dasselbe Doc, das das Modell
+geliefert hätte; die Prüfung darauf ist unverändert. Ein Satz ohne Tokens oder mit anderem
+Text (`doc.text != satz`) besteht nicht und zählt in der Ausgabe unter "fehlerhaft".
+BELEGPRUEFUNG_DWDSMOR gilt hier nicht (der Dienst liefert das spaCy-Lemma).
 """
 import contextlib
 import json
@@ -129,15 +138,52 @@ def treffer_im_satz(satz_boegen, basis, kollokator):
     return {"rel": sorted(set(relationen)), "start": token.idx, "ende": token.idx + len(token.text)}
 
 
-def main():
-    eingabe = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+def doc_aus_roh(vocab, satz, tokens):
+    """spaCy-Doc aus den Rohtokens des Parser-Dienstes; None, wenn es nicht genau `satz` ergibt."""
+    from spacy.tokens import Doc
+    if not tokens:
+        return None
+    try:
+        doc = Doc(
+            vocab,
+            words=[t["text"] for t in tokens],
+            spaces=[bool(t["leer"]) for t in tokens],
+            tags=[t["stts"] for t in tokens],
+            pos=[t["upos"] for t in tokens],
+            morphs=["|".join(f"{k}={v}" for k, v in t["morph"].items()) for t in tokens],
+            lemmas=[t["lemma"] for t in tokens],
+            heads=[k if t["kopf"] is None else t["kopf"] for k, t in enumerate(tokens)],
+            deps=[t["rel"] for t in tokens],
+        )
+    except (KeyError, TypeError, ValueError, IndexError):
+        return None
+    return doc if doc.text == satz else None
+
+
+def geparste_docs(eingabe):
+    """(Satz, Doc oder None) je eindeutigem Satz, erst beim Durchlaufen erzeugt: mit `--roh` aus
+    den Rohtokens, sonst mit dem Modell (das hier schon lädt)."""
+    if "--roh" in sys.argv[1:]:
+        import spacy
+        vocab = spacy.blank("de").vocab
+        return ((satz, doc_aus_roh(vocab, satz, tokens)) for satz, tokens in eingabe["roh"])
     # lade_modell() schreibt Fortschritt nach stdout – das gehört zur Antwort
     with contextlib.redirect_stdout(sys.stderr):
         nlp = pd.lade_modell(use_dwdsmor=os.environ.get("BELEGPRUEFUNG_DWDSMOR") == "1")
-
     texte = list(dict.fromkeys(satz for p in eingabe["paare"] for _id, satz in p["saetze"]))
+    return zip(texte, nlp.pipe(texte, batch_size=64))
+
+
+def main():
+    eingabe = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+    docs = geparste_docs(eingabe)
     t0 = time.perf_counter()
-    boegen_je_satz = {text: boegen(doc) for text, doc in zip(texte, nlp.pipe(texte, batch_size=64))}
+    boegen_je_satz = {}
+    fehlerhaft = 0
+    for text, doc in docs:
+        if doc is None:
+            fehlerhaft += 1
+        boegen_je_satz[text] = boegen(doc) if doc is not None else []
     sekunden = time.perf_counter() - t0
 
     ausgabe = []
@@ -145,7 +191,8 @@ def main():
         basis, kollokator = p["basis"].lower(), p["kollokator"].lower()
         details = {}
         for sid, satz in p["saetze"]:
-            treffer = treffer_im_satz(boegen_je_satz[satz], basis, kollokator)
+            # Fehlt ein Satz in den Rohdaten, besteht er nicht (wie ein fehlerhafter)
+            treffer = treffer_im_satz(boegen_je_satz.get(satz, []), basis, kollokator)
             if treffer:
                 details[str(sid)] = treffer
         ausgabe.append({
@@ -155,7 +202,12 @@ def main():
         })
 
     sys.stdout.buffer.write(json.dumps(
-        {"paare": ausgabe, "saetze": len(texte), "sekunden": round(sekunden, 1)},
+        {
+            "paare": ausgabe,
+            "saetze": len(boegen_je_satz),
+            "fehlerhaft": fehlerhaft,
+            "sekunden": round(sekunden, 1),
+        },
         ensure_ascii=False,
     ).encode("utf-8"))
 

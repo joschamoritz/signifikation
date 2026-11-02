@@ -8,12 +8,20 @@
  * `fetchBelegeGeprueft()` zeigt danach nur noch diese; ungeprüfte Paare laufen wie bisher.
  *
  * Ablauf: Admin speichert einen Tag → `planePruefung()` reiht dessen Paare ein → Kandidaten im
- * Worker-Thread (belege_v2.db ist synchron) → ein Python-Prozess je Lauf (lädt das Modell, ~1,7 GB RAM,
- * beendet sich danach; nie zwei gleichzeitig) → Ergebnis in `beleg_pruefung`.
+ * Worker-Thread (belege_v2.db ist synchron) → Parsen → ein Python-Prozess je Lauf prüft → Ergebnis in
+ * `beleg_pruefung`.
+ *
+ * Geparst wird auf einem von zwei Wegen:
+ * - **Dienst** (SATZANALYSE_INTERN_URL gesetzt, G15): Der Parser-Dienst des Satzkastens liefert Rohtokens
+ *   (parserDienst.js), pruefe.py --roh baut daraus die Docs, ohne Modell. Ist der Dienst nicht erreichbar,
+ *   bleiben die Paare eingereiht und der Lauf wird mit wachsendem Abstand wiederholt.
+ * - **Modell** (ohne URL, oder als Rückfall nur mit BELEGPRUEFUNG_RUECKFALL=modell und genug freiem
+ *   Speicher): pruefe.py lädt de_zdl_lg selbst (~1,7 GB RAM, beendet sich danach; nie zwei gleichzeitig).
  *
  * Aus, solange BELEGPRUEFUNG_PYTHON nicht gesetzt ist (Pfad zum Python der Prüf-Umgebung, OPS.md).
  */
 import { spawn } from 'node:child_process'
+import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -25,15 +33,20 @@ import { buildLueckenfuellerImWorker } from '../lueckenfuellerImWorker.js'
 import { holeKandidatenImWorker } from './kandidatenImWorker.js'
 import { paarSchluessel, paareFuerDatum } from './paare.js'
 import { gepruefteSatzIds } from './details.js'
+import { DienstFehler, dienstEingerichtet, modellName, parseUeberDienst, pruefeDienstBereit } from './parserDienst.js'
 import { kursBelegPaare } from '../course/belegPaare.js'
 import { clearResolveCache } from '../course/resolveCache.js'
 
 const SKRIPT = fileURLToPath(new URL('./pruefe.py', import.meta.url))
 // Kandidaten je Paar: gemessen bestehen ~70 %, jedes Paar behielt mindestens 11 Sätze
-const KANDIDATEN_JE_PAAR = 80
+export const KANDIDATEN_JE_PAAR = 80
 // Paare je Python-Lauf: ein Tag hat ~40–60, das Modell soll nicht für jeden einzeln laden
-const PAARE_JE_LAUF = 80
+export const PAARE_JE_LAUF = 80
 const PYTHON_ZEITLIMIT_MS = 20 * 60_000
+// Rückfall aufs volle Modell nur mit genug freiem Speicher: genau diese 1,7 GB soll der Dienst einsparen
+const RUECKFALL_MIN_FREI = 2 * 1024 ** 3
+// Dienst nicht erreichbar: neuer Versuch nach 1, 5, 15 Minuten, danach stündlich
+const WIEDERHOLEN_MS = [1, 5, 15, 60].map(min => min * 60_000)
 
 const stmts = {
   holen: db.prepare('SELECT * FROM beleg_pruefung WHERE basis = ? AND kollokator = ?'),
@@ -53,9 +66,21 @@ const warteschlange = new Map()   // paarSchluessel → { basis, kollokator }
 const neubau = new Set()          // Lemma-IDs, deren Lückenfüller nach dem Lauf neu gebaut werden
 let laeuft = false
 let letzterLauf = null
+let dienst = null                 // { status: 'ok'|'nicht erreichbar'|'konfiguration'|'rueckfall', fehler, versuche, naechsterVersuch, modell }
+let wiederholTimer = null
 
 export function pruefungAktiv() {
   return Boolean(process.env.BELEGPRUEFUNG_PYTHON)
+}
+
+/** 'dienst' (Parser-Dienst des Satzkastens) oder 'modell' (pruefe.py lädt de_zdl_lg selbst). */
+export function pruefWeg() {
+  return dienstEingerichtet() ? 'dienst' : 'modell'
+}
+
+/** Darf ein Lauf bei ausgefallenem Dienst das volle Modell laden? Nur mit Schalter und genug freiem Speicher. */
+export function rueckfallErlaubt(frei = os.freemem()) {
+  return process.env.BELEGPRUEFUNG_RUECKFALL === 'modell' && frei >= RUECKFALL_MIN_FREI
 }
 
 /** fetchBelege() mit den geprüften Sätzen des Paars, falls es welche gibt. */
@@ -91,10 +116,8 @@ export function planePruefung(paare, { erneut = false, lueckenfueller = [] } = {
   for (const { id, paare: lfPaare } of lueckenfueller) {
     if (lfPaare.some(p => warteschlange.has(paarSchluessel(p.basis, p.kollokator)))) neubau.add(id)
   }
-  if (neu && !laeuft) {
-    laeuft = true
-    arbeiteAb().finally(() => { laeuft = false })
-  }
+  // Auch ohne neue Paare: Wartet die Schlange auf den Dienst, ist das ein sofortiger neuer Versuch
+  starteLauf()
   return { status: 'geplant', neu }
 }
 
@@ -105,6 +128,15 @@ export function planePruefung(paare, { erneut = false, lueckenfueller = [] } = {
  */
 export async function planePruefungFuerTage(daten, { kurs = false, ...opts } = {}) {
   if (!pruefungAktiv()) return { status: 'aus', neu: 0 }
+  const { paare, lueckenfueller } = await belegPaareFuerTage(daten, { kurs })
+  return planePruefung(paare, { ...opts, lueckenfueller })
+}
+
+/**
+ * Die Belegpaare der Spieltage, wie die Prüfung sie einreiht (auch für den Vergleichslauf).
+ * `lueckenfueller`: Lückenfüller zukünftiger Tage mit ihren Paaren (für den Neubau nach dem Lauf).
+ */
+export async function belegPaareFuerTage(daten, { kurs = false } = {}) {
   const maps = loadDailyContentMaps()
   const { byId } = getLemmataIndex()
   const heute = berlinTag()
@@ -123,7 +155,7 @@ export async function planePruefungFuerTage(daten, { kurs = false, ...opts } = {
   }
   // Der Kurs hat ~30 feste Paare; schon geprüfte überspringt planePruefung ohnehin
   if (kurs) paare.push(...kursBelegPaare())
-  return planePruefung(paare, { ...opts, lueckenfueller })
+  return { paare, lueckenfueller }
 }
 
 /**
@@ -158,7 +190,35 @@ async function baueLueckenfuellerNeu(lauf) {
 }
 
 export function pruefungStatus() {
-  return { aktiv: pruefungAktiv(), laeuft, wartend: warteschlange.size, letzterLauf }
+  const weg = pruefWeg()
+  return {
+    aktiv: pruefungAktiv(),
+    quelle: weg,
+    dienst: weg === 'dienst' ? dienst : null,
+    laeuft,
+    wartend: warteschlange.size,
+    letzterLauf,
+  }
+}
+
+function starteLauf() {
+  clearTimeout(wiederholTimer)
+  wiederholTimer = null
+  if (laeuft || !warteschlange.size) return
+  laeuft = true
+  arbeiteAb().finally(() => {
+    laeuft = false
+    // Während des Lückenfüller-Neubaus eingereihte Paare; nicht bei geplanter Wiederholung oder falscher Einrichtung
+    if (!wiederholTimer && dienst?.status !== 'konfiguration') starteLauf()
+  })
+}
+
+function planeWiederholung(err) {
+  const versuche = (dienst?.status === 'nicht erreichbar' ? dienst.versuche : 0) + 1
+  const warte = WIEDERHOLEN_MS[Math.min(versuche, WIEDERHOLEN_MS.length) - 1]
+  dienst = { status: 'nicht erreichbar', fehler: err.message, versuche, naechsterVersuch: new Date(Date.now() + warte).toISOString() }
+  wiederholTimer = setTimeout(starteLauf, warte)
+  wiederholTimer.unref?.()
 }
 
 async function arbeiteAb() {
@@ -169,8 +229,23 @@ async function arbeiteAb() {
     letzterLauf = lauf
     try {
       await pruefeStapel(stapel, lauf, holeKandidatenImWorker)
+      if (lauf.quelle === 'dienst') dienst = { status: 'ok', versuche: 0, modell: lauf.modell }
+      else if (lauf.rueckfall) dienst = { status: 'rueckfall', fehler: lauf.rueckfall, versuche: 0 }
+      else if (dienst?.status !== 'ok') dienst = null   // ohne Sätze: Dienst nicht gefragt, alter Fehler gilt nicht mehr
     } catch (err) {
       lauf.fehler = err?.message || String(err)
+      if (err instanceof DienstFehler) {
+        // Die Paare bleiben eingereiht; die Lückenfüller baut erst der vollständige Lauf neu
+        lauf.ende = new Date().toISOString()
+        for (const p of stapel) warteschlange.set(paarSchluessel(p.basis, p.kollokator), p)
+        if (err.art === 'nicht-erreichbar') planeWiederholung(err)
+        else dienst = { status: 'konfiguration', fehler: err.message, versuche: 0 }
+        const weiter = err.art === 'nicht-erreichbar' ? `neuer Versuch ${dienst.naechsterVersuch}` : 'Konfiguration prüfen'
+        logger.warn(`Belegprüfung: ${err.message} – ${warteschlange.size} Paare warten, ${weiter}`)
+        return
+      }
+      // Anderer Fehler: Ein gemeldeter Dienstausfall ist damit veraltet (kein Timer mehr)
+      if (dienst?.status !== 'ok') dienst = null
       logger.error({ err }, `Belegprüfung: Lauf mit ${stapel.length} Paaren fehlgeschlagen`)
     }
     lauf.ende = new Date().toISOString()
@@ -179,22 +254,48 @@ async function arbeiteAb() {
 }
 
 /**
- * Ein Prüflauf: Kandidaten holen, in Python prüfen, speichern. Auch vom Nachprüf-Skript
+ * Parst und prüft Kandidatensätze, ohne zu speichern (auch für den Vergleichslauf alt gegen neu).
+ *
+ * @param {Array<{schluessel, basis, kollokator, saetze: Array<[number, string]>}>} paare
+ * @param {{weg?: 'dienst'|'modell', rueckfall?: boolean}} opts  `rueckfall: false` verbietet den
+ *   Rückfall aufs eigene Modell auch mit BELEGPRUEFUNG_RUECKFALL (Vergleichslauf)
+ * @returns {Promise<{paare, saetze, fehlerhaft, sekunden, quelle: 'dienst'|'modell', modell: string|null}>}
+ * @throws {DienstFehler} Dienst nicht erreichbar (ohne erlaubten Rückfall) oder falsch eingerichtet
+ */
+export async function pruefeKandidaten(paare, { weg = pruefWeg(), rueckfall: rueckfallOk = true } = {}) {
+  let rueckfall = null
+  if (weg === 'dienst') {
+    try {
+      const { roh, modell } = await parseUeberDienst(paare.flatMap(p => p.saetze.map(([, satz]) => satz)))
+      const antwort = await rufePython({ paare, roh }, ['--roh'])
+      return { ...antwort, quelle: 'dienst', modell: modellName(modell) }
+    } catch (err) {
+      if (!(rueckfallOk && err instanceof DienstFehler && err.art === 'nicht-erreichbar' && rueckfallErlaubt())) throw err
+      logger.warn(`Belegprüfung: ${err.message} – Rückfall auf das eigene Modell (BELEGPRUEFUNG_RUECKFALL=modell)`)
+      rueckfall = err.message
+    }
+  }
+  const antwort = await rufePython({ paare })
+  return { ...antwort, quelle: 'modell', modell: 'de_zdl_lg (eigenes Modell)', rueckfall }
+}
+
+/**
+ * Ein Prüflauf: Kandidaten holen, parsen und prüfen, speichern. Auch vom Nachprüf-Skript
  * genutzt (dort ohne Worker, mit `holeKandidaten` im selben Thread).
  */
-export async function pruefeStapel(stapel, lauf, holeKandidaten) {
+export async function pruefeStapel(stapel, lauf, holeKandidaten, opts = {}) {
+  // Die Kandidatensuche kostet Minuten Last auf belege_v2.db – nicht für einen Dienst, der gerade nicht antwortet
+  if ((opts.weg ?? pruefWeg()) === 'dienst' && !(opts.rueckfall !== false && rueckfallErlaubt())) await pruefeDienstBereit()
   const { stand, paare } = await holeKandidaten(stapel, KANDIDATEN_JE_PAAR)
   const mitSaetzen = paare.filter(p => p.saetze.length)
   const antwort = mitSaetzen.length
-    ? await rufePython({
-      paare: mitSaetzen.map(p => ({
-        schluessel: paarSchluessel(p.basis, p.kollokator),
-        basis: p.basis,
-        kollokator: p.kollokator,
-        saetze: p.saetze,
-      })),
-    })
-    : { paare: [], saetze: 0, sekunden: 0 }
+    ? await pruefeKandidaten(mitSaetzen.map(p => ({
+      schluessel: paarSchluessel(p.basis, p.kollokator),
+      basis: p.basis,
+      kollokator: p.kollokator,
+      saetze: p.saetze,
+    })), opts)
+    : { paare: [], saetze: 0, fehlerhaft: 0, sekunden: 0, quelle: null, modell: null }
 
   const ergebnisJe = new Map(antwort.paare.map(p => [p.schluessel, p]))
   const jetzt = new Date().toISOString()
@@ -216,9 +317,14 @@ export async function pruefeStapel(stapel, lauf, holeKandidaten) {
     }
   })()
   lauf.saetze = antwort.saetze
+  lauf.fehlerhaft = antwort.fehlerhaft ?? 0
   lauf.sekunden = antwort.sekunden
+  lauf.quelle = antwort.quelle
+  lauf.modell = antwort.modell
+  if (antwort.rueckfall) lauf.rueckfall = antwort.rueckfall
   leereBelegCache(paare)
-  logger.info(`Belegprüfung: ${paare.length} Paare, ${antwort.saetze} Sätze in ${antwort.sekunden} s, ${lauf.bestanden} bestanden`)
+  const fehlerhaft = lauf.fehlerhaft ? `, ${lauf.fehlerhaft} nicht auswertbar` : ''
+  logger.info(`Belegprüfung: ${paare.length} Paare, ${antwort.saetze} Sätze in ${antwort.sekunden} s (${antwort.quelle ?? '–'}), ${lauf.bestanden} bestanden${fehlerhaft}`)
 }
 
 /** Zwischengespeicherte Belege der Paare verwerfen, damit die geprüften sofort gelten. */
@@ -233,9 +339,9 @@ function leereBelegCache(paare) {
   clearResolveCache()
 }
 
-function rufePython(eingabe) {
+function rufePython(eingabe, argumente = []) {
   return new Promise((resolve, reject) => {
-    const kind = spawn(process.env.BELEGPRUEFUNG_PYTHON, ['-I', SKRIPT], { stdio: ['pipe', 'pipe', 'pipe'] })
+    const kind = spawn(process.env.BELEGPRUEFUNG_PYTHON, ['-I', SKRIPT, ...argumente], { stdio: ['pipe', 'pipe', 'pipe'] })
     const aus = []
     let fehlerText = ''
     const timer = setTimeout(() => {
