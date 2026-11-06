@@ -1955,9 +1955,21 @@ function belegPruefungZeile(bp = {}) {
     const inArbeit = anzahlText(lauf?.paare || 0, 'Paar', 'Paare')
     return betriebZeile('Belegprüfung', betriebWert('läuft'), esc(bp.wartend ? `${inArbeit} in Arbeit, ${anzahlText(bp.wartend, 'weiteres wartet', 'weitere warten')}` : `${inArbeit} in Arbeit`))
   }
+  // Parser-Dienst des Satzkastens: Ausfall wartet und wiederholt, Konfigurationsfehler braucht Hand
+  const warten = anzahlText(bp.wartend || 0, 'Paar wartet', 'Paare warten')
+  if (bp.dienst?.status === 'nicht erreichbar') {
+    return betriebZeile('Belegprüfung', betriebWert('Parser-Dienst nicht erreichbar', 'warn'), `${esc(`${warten}, nächster Versuch ${wannText(bp.dienst.naechsterVersuch)} Uhr`)} · ${knopf}`)
+  }
+  if (bp.dienst?.status === 'konfiguration') {
+    return betriebZeile('Belegprüfung', betriebWert('Parser-Dienst: Einrichtung prüfen', 'warn'), `${esc(`${bp.dienst.fehler}; ${warten}`)} · ${knopf}`)
+  }
   if (lauf?.fehler) return betriebZeile('Belegprüfung', betriebWert('letzter Lauf fehlgeschlagen', 'warn'), `${esc(lauf.fehler)} ${knopf}`)
+  if (bp.dienst?.status === 'rueckfall') {
+    return betriebZeile('Belegprüfung', betriebWert('Rückfall aufs eigene Modell', 'warn'), `${esc(`${bp.dienst.fehler}; zuletzt ${wannText(lauf?.ende)} Uhr`)} · ${knopf}`)
+  }
   const lf = lauf?.lueckenfueller ? `, ${anzahlText(lauf.lueckenfueller, 'Lückenfüller', 'Lückenfüller')} neu gebaut` : ''
-  const zuletzt = lauf?.ende ? `zuletzt ${wannText(lauf.ende)} Uhr, ${anzahlText(lauf.paare, 'Paar', 'Paare')}${lf} · ` : ''
+  const weg = lauf?.quelle === 'dienst' ? ', über den Parser-Dienst' : lauf?.quelle === 'modell' ? ', eigenes Modell' : ''
+  const zuletzt = lauf?.ende ? `zuletzt ${wannText(lauf.ende)} Uhr, ${anzahlText(lauf.paare, 'Paar', 'Paare')}${weg}${lf} · ` : ''
   return betriebZeile('Belegprüfung', betriebWert('bereit'), `${esc(zuletzt)}${knopf}`)
 }
 

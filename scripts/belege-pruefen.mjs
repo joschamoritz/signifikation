@@ -5,10 +5,15 @@
 //   node scripts/belege-pruefen.mjs --alle         # alle Spieltage im Kalender
 //   node scripts/belege-pruefen.mjs --von 2026-01-01 --bis 2026-06-30
 //   node scripts/belege-pruefen.mjs --alle --erneut  # auch schon geprüfte Paare
+//   node scripts/belege-pruefen.mjs --lokal          # eigenes Modell statt Parser-Dienst
 //
-// Braucht BELEGPRUEFUNG_PYTHON (.env) wie der Server. Läuft im eigenen Prozess neben
-// dem Server; dessen Belege-Zwischenspeicher (6 h) bemerkt die neuen Ergebnisse erst
-// nach Ablauf oder einem Neustart. Pro Spieltag etwa eine Minute, ~1,7 GB RAM.
+// Braucht BELEGPRUEFUNG_PYTHON (.env) wie der Server und parst auf demselben Weg: über den
+// Parser-Dienst des Satzkastens, wenn SATZANALYSE_INTERN_URL gesetzt ist (ist er nicht
+// erreichbar, bricht das Skript ab – mit BELEGPRUEFUNG_RUECKFALL=modell und genug Speicher nimmt
+// es stattdessen das eigene Modell), sonst bzw. mit --lokal das eigene Modell (~1,7 GB RAM).
+// Nicht parallel zu einem Prüflauf des Servers starten: Der Dienst nimmt nur einen Stapel an.
+// Läuft im eigenen Prozess neben dem Server; dessen Belege-Zwischenspeicher (6 h) bemerkt
+// die neuen Ergebnisse erst nach Ablauf oder einem Neustart. Pro Spieltag etwa eine Minute.
 import '../server/env.js'
 
 import { parseArgs } from 'node:util'
@@ -16,7 +21,8 @@ import logger from '../server/logger.js'
 import { loadDailyContentMaps, getLemmataIndex } from '../server/store.js'
 import { berlinTag } from '../server/date-utils.js'
 import { fetchBelegKandidaten, belegeStand } from '../server/belege.js'
-import { pruefungAktiv, pruefeStapel, gepruefteSatzIds } from '../server/belegPruefung/index.js'
+import { pruefungAktiv, pruefeStapel, pruefWeg, gepruefteSatzIds } from '../server/belegPruefung/index.js'
+import { DienstFehler } from '../server/belegPruefung/parserDienst.js'
 import { paareFuerDatum, paarSchluessel } from '../server/belegPruefung/paare.js'
 import db from '../server/db.js'
 
@@ -28,8 +34,10 @@ const { values } = parseArgs({
     von: { type: 'string' },
     bis: { type: 'string' },
     erneut: { type: 'boolean', default: false },
+    lokal: { type: 'boolean', default: false },
   },
 })
+const weg = values.lokal ? 'modell' : pruefWeg()
 
 if (!pruefungAktiv()) {
   logger.error('BELEGPRUEFUNG_PYTHON ist nicht gesetzt – siehe OPS.md „Belegprüfung“.')
@@ -54,7 +62,7 @@ for (const datum of daten) {
 }
 
 const paare = [...offen.values()]
-logger.info(`Belegprüfung: ${daten.length} Spieltage (${daten[0] ?? '–'} bis ${daten.at(-1) ?? '–'}), ${paare.length} offene Paare`)
+logger.info(`Belegprüfung: ${daten.length} Spieltage (${daten[0] ?? '–'} bis ${daten.at(-1) ?? '–'}), ${paare.length} offene Paare, ${weg === 'dienst' ? 'über den Parser-Dienst' : 'mit eigenem Modell'}`)
 
 const holeKandidaten = async (stapel, ziel) => ({
   stand,
@@ -70,10 +78,16 @@ for (let i = 0; i < paare.length; i += STAPEL) {
   const stapel = paare.slice(i, i + STAPEL)
   const lauf = { paare: stapel.length, saetze: 0, bestanden: 0 }
   try {
-    await pruefeStapel(stapel, lauf, holeKandidaten)
+    await pruefeStapel(stapel, lauf, holeKandidaten, { weg })
     const mitTreffern = stapel.filter(p => gepruefteSatzIds(p.basis, p.kollokator)).length
-    logger.info(`  ${Math.min(i + STAPEL, paare.length)}/${paare.length}: ${lauf.saetze} Sätze in ${lauf.sekunden} s, ${mitTreffern} von ${stapel.length} Paaren mit geprüften Belegen`)
+    const fehlerhaft = lauf.fehlerhaft ? `, ${lauf.fehlerhaft} Sätze nicht auswertbar` : ''
+    logger.info(`  ${Math.min(i + STAPEL, paare.length)}/${paare.length}: ${lauf.saetze} Sätze in ${lauf.sekunden} s, ${mitTreffern} von ${stapel.length} Paaren mit geprüften Belegen${fehlerhaft}`)
   } catch (err) {
+    if (err instanceof DienstFehler) {
+      // Jeder weitere Stapel scheiterte genauso; schon geprüfte Paare überspringt ein neuer Start
+      logger.error(`${err.message} – Abbruch nach ${i} von ${paare.length} Paaren. Dienst prüfen (OPS.md „Belegprüfung“) oder mit --lokal das eigene Modell nehmen.`)
+      process.exit(1)
+    }
     fehler++
     logger.error({ err }, `  Stapel ab Paar ${i + 1} fehlgeschlagen`)
   }

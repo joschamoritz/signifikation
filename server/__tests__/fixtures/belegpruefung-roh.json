@@ -1,0 +1,1468 @@
+{
+ "paare": [
+  {
+   "schluessel": "tuer|oeffnen",
+   "basis": "Tür",
+   "kollokator": "öffnen",
+   "saetze": [
+    [
+     1,
+     "Sie öffnete die Tür."
+    ],
+    [
+     2,
+     "Die Tür war offen, und sie öffnete das Fenster."
+    ]
+   ]
+  },
+  {
+   "schluessel": "traum|suess",
+   "basis": "Traum",
+   "kollokator": "süß",
+   "saetze": [
+    [
+     3,
+     "Er hatte einen süßen Traum."
+    ],
+    [
+     4,
+     "Der Traum war süß."
+    ]
+   ]
+  },
+  {
+   "schluessel": "tisch|legen",
+   "basis": "legen",
+   "kollokator": "Tisch",
+   "saetze": [
+    [
+     5,
+     "Sie legte das Buch auf den Tisch."
+    ]
+   ]
+  },
+  {
+   "schluessel": "geschichte|auftischen",
+   "basis": "auftischen",
+   "kollokator": "Geschichte",
+   "saetze": [
+    [
+     6,
+     "Er tischte uns eine wilde Geschichte auf."
+    ]
+   ]
+  },
+  {
+   "schluessel": "mandat|niederlegen",
+   "basis": "niederlegen",
+   "kollokator": "Mandat",
+   "saetze": [
+    [
+     7,
+     "Er hat alle Ämter und Mandate niedergelegt."
+    ]
+   ]
+  },
+  {
+   "schluessel": "heer|gewaltig",
+   "basis": "Heer",
+   "kollokator": "gewaltig",
+   "saetze": [
+    [
+     8,
+     "Ihr irrt gewaltig, wenn ihr glaubt, das Heer sei besiegt."
+    ],
+    [
+     9,
+     "Ein  gewaltiges Heer zog über die Alpen."
+    ]
+   ]
+  }
+ ],
+ "roh": [
+  [
+   "Sie öffnete die Tür.",
+   [
+    {
+     "i": 0,
+     "text": "Sie",
+     "start": 0,
+     "ende": 3,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "sie",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Fem",
+      "Number": "Sing",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 1,
+     "rel": "nsubj"
+    },
+    {
+     "i": 1,
+     "text": "öffnete",
+     "start": 4,
+     "ende": 11,
+     "leer": true,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "öffnen",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 2,
+     "text": "die",
+     "start": 12,
+     "ende": 15,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Acc",
+      "Definite": "Def",
+      "Gender": "Fem",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 3,
+     "rel": "det"
+    },
+    {
+     "i": 3,
+     "text": "Tür",
+     "start": 16,
+     "ende": 19,
+     "leer": false,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Tür",
+     "morph": {
+      "Gender": "Fem",
+      "Number": "Sing"
+     },
+     "kopf": 1,
+     "rel": "obj"
+    },
+    {
+     "i": 4,
+     "text": ".",
+     "start": 19,
+     "ende": 20,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 1,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Die Tür war offen, und sie öffnete das Fenster.",
+   [
+    {
+     "i": 0,
+     "text": "Die",
+     "start": 0,
+     "ende": 3,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Nom",
+      "Definite": "Def",
+      "Gender": "Fem",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 1,
+     "rel": "det"
+    },
+    {
+     "i": 1,
+     "text": "Tür",
+     "start": 4,
+     "ende": 7,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Tür",
+     "morph": {
+      "Gender": "Fem",
+      "Number": "Sing"
+     },
+     "kopf": 3,
+     "rel": "nsubj"
+    },
+    {
+     "i": 2,
+     "text": "war",
+     "start": 8,
+     "ende": 11,
+     "leer": true,
+     "upos": "AUX",
+     "stts": "VAFIN",
+     "lemma": "sein",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": 3,
+     "rel": "cop"
+    },
+    {
+     "i": 3,
+     "text": "offen",
+     "start": 12,
+     "ende": 17,
+     "leer": false,
+     "upos": "ADJ",
+     "stts": "ADJD",
+     "lemma": "offen",
+     "morph": {
+      "Degree": "Pos",
+      "Variant": "Short"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 4,
+     "text": ",",
+     "start": 17,
+     "ende": 18,
+     "leer": true,
+     "upos": "PUNCT",
+     "stts": "$,",
+     "lemma": ",",
+     "morph": {
+      "PunctType": "Comm"
+     },
+     "kopf": 7,
+     "rel": "punct"
+    },
+    {
+     "i": 5,
+     "text": "und",
+     "start": 19,
+     "ende": 22,
+     "leer": true,
+     "upos": "CCONJ",
+     "stts": "KON",
+     "lemma": "und",
+     "morph": {},
+     "kopf": 7,
+     "rel": "cc"
+    },
+    {
+     "i": 6,
+     "text": "sie",
+     "start": 23,
+     "ende": 26,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "sie",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Fem",
+      "Number": "Sing",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 7,
+     "rel": "nsubj"
+    },
+    {
+     "i": 7,
+     "text": "öffnete",
+     "start": 27,
+     "ende": 34,
+     "leer": true,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "öffnen",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": 3,
+     "rel": "conj"
+    },
+    {
+     "i": 8,
+     "text": "das",
+     "start": 35,
+     "ende": 38,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Acc",
+      "Definite": "Def",
+      "Gender": "Neut",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 9,
+     "rel": "det"
+    },
+    {
+     "i": 9,
+     "text": "Fenster",
+     "start": 39,
+     "ende": 46,
+     "leer": false,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Fenster",
+     "morph": {
+      "Gender": "Neut",
+      "Number": "Sing"
+     },
+     "kopf": 7,
+     "rel": "obj"
+    },
+    {
+     "i": 10,
+     "text": ".",
+     "start": 46,
+     "ende": 47,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 3,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Er hatte einen süßen Traum.",
+   [
+    {
+     "i": 0,
+     "text": "Er",
+     "start": 0,
+     "ende": 2,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "er",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Masc",
+      "Number": "Sing",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 1,
+     "rel": "nsubj"
+    },
+    {
+     "i": 1,
+     "text": "hatte",
+     "start": 3,
+     "ende": 8,
+     "leer": true,
+     "upos": "AUX",
+     "stts": "VAFIN",
+     "lemma": "haben",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 2,
+     "text": "einen",
+     "start": 9,
+     "ende": 14,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "eine",
+     "morph": {
+      "Case": "Acc",
+      "Definite": "Ind",
+      "Gender": "Masc",
+      "NumType": "Card",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 4,
+     "rel": "det"
+    },
+    {
+     "i": 3,
+     "text": "süßen",
+     "start": 15,
+     "ende": 20,
+     "leer": true,
+     "upos": "ADJ",
+     "stts": "ADJA",
+     "lemma": "süß",
+     "morph": {
+      "Case": "Acc",
+      "Degree": "Pos",
+      "Gender": "Masc",
+      "Number": "Sing"
+     },
+     "kopf": 4,
+     "rel": "amod"
+    },
+    {
+     "i": 4,
+     "text": "Traum",
+     "start": 21,
+     "ende": 26,
+     "leer": false,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Traum",
+     "morph": {
+      "Gender": "Masc",
+      "Number": "Sing"
+     },
+     "kopf": 1,
+     "rel": "obj"
+    },
+    {
+     "i": 5,
+     "text": ".",
+     "start": 26,
+     "ende": 27,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 1,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Der Traum war süß.",
+   [
+    {
+     "i": 0,
+     "text": "Der",
+     "start": 0,
+     "ende": 3,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Nom",
+      "Definite": "Def",
+      "Gender": "Masc",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 1,
+     "rel": "det"
+    },
+    {
+     "i": 1,
+     "text": "Traum",
+     "start": 4,
+     "ende": 9,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Traum",
+     "morph": {
+      "Gender": "Masc",
+      "Number": "Sing"
+     },
+     "kopf": 3,
+     "rel": "nsubj"
+    },
+    {
+     "i": 2,
+     "text": "war",
+     "start": 10,
+     "ende": 13,
+     "leer": true,
+     "upos": "AUX",
+     "stts": "VAFIN",
+     "lemma": "sein",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": 3,
+     "rel": "cop"
+    },
+    {
+     "i": 3,
+     "text": "süß",
+     "start": 14,
+     "ende": 17,
+     "leer": false,
+     "upos": "ADJ",
+     "stts": "ADJD",
+     "lemma": "süß",
+     "morph": {
+      "Degree": "Pos",
+      "Variant": "Short"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 4,
+     "text": ".",
+     "start": 17,
+     "ende": 18,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 3,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Sie legte das Buch auf den Tisch.",
+   [
+    {
+     "i": 0,
+     "text": "Sie",
+     "start": 0,
+     "ende": 3,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "sie",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Fem",
+      "Number": "Sing",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 1,
+     "rel": "nsubj"
+    },
+    {
+     "i": 1,
+     "text": "legte",
+     "start": 4,
+     "ende": 9,
+     "leer": true,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "legen",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 2,
+     "text": "das",
+     "start": 10,
+     "ende": 13,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Acc",
+      "Definite": "Def",
+      "Gender": "Neut",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 3,
+     "rel": "det"
+    },
+    {
+     "i": 3,
+     "text": "Buch",
+     "start": 14,
+     "ende": 18,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Buch",
+     "morph": {
+      "Gender": "Neut",
+      "Number": "Sing"
+     },
+     "kopf": 1,
+     "rel": "obj"
+    },
+    {
+     "i": 4,
+     "text": "auf",
+     "start": 19,
+     "ende": 22,
+     "leer": true,
+     "upos": "ADP",
+     "stts": "APPR",
+     "lemma": "auf",
+     "morph": {
+      "AdpType": "Prep",
+      "Case": "Acc"
+     },
+     "kopf": 6,
+     "rel": "case"
+    },
+    {
+     "i": 5,
+     "text": "den",
+     "start": 23,
+     "ende": 26,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Acc",
+      "Definite": "Def",
+      "Gender": "Masc",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 6,
+     "rel": "det"
+    },
+    {
+     "i": 6,
+     "text": "Tisch",
+     "start": 27,
+     "ende": 32,
+     "leer": false,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Tisch",
+     "morph": {
+      "Gender": "Masc",
+      "Number": "Sing"
+     },
+     "kopf": 1,
+     "rel": "obl"
+    },
+    {
+     "i": 7,
+     "text": ".",
+     "start": 32,
+     "ende": 33,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 1,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Er tischte uns eine wilde Geschichte auf.",
+   [
+    {
+     "i": 0,
+     "text": "Er",
+     "start": 0,
+     "ende": 2,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "er",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Masc",
+      "Number": "Sing",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 1,
+     "rel": "nsubj"
+    },
+    {
+     "i": 1,
+     "text": "tischte",
+     "start": 3,
+     "ende": 10,
+     "leer": true,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "tischen",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Pres",
+      "VerbForm": "Fin"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 2,
+     "text": "uns",
+     "start": 11,
+     "ende": 14,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "uns",
+     "morph": {
+      "Case": "Acc",
+      "Number": "Plur",
+      "Person": "1",
+      "PronType": "Prs"
+     },
+     "kopf": 1,
+     "rel": "obl:arg"
+    },
+    {
+     "i": 3,
+     "text": "eine",
+     "start": 15,
+     "ende": 19,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "eine",
+     "morph": {
+      "Case": "Nom",
+      "Definite": "Ind",
+      "Gender": "Fem",
+      "NumType": "Card",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 5,
+     "rel": "det"
+    },
+    {
+     "i": 4,
+     "text": "wilde",
+     "start": 20,
+     "ende": 25,
+     "leer": true,
+     "upos": "ADJ",
+     "stts": "ADJA",
+     "lemma": "wild",
+     "morph": {
+      "Degree": "Pos",
+      "Gender": "Fem",
+      "Number": "Sing"
+     },
+     "kopf": 5,
+     "rel": "amod"
+    },
+    {
+     "i": 5,
+     "text": "Geschichte",
+     "start": 26,
+     "ende": 36,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Geschichte",
+     "morph": {
+      "Gender": "Fem",
+      "Number": "Sing"
+     },
+     "kopf": 1,
+     "rel": "obj"
+    },
+    {
+     "i": 6,
+     "text": "auf",
+     "start": 37,
+     "ende": 40,
+     "leer": false,
+     "upos": "ADP",
+     "stts": "PTKVZ",
+     "lemma": "auf",
+     "morph": {
+      "PartType": "Vbp"
+     },
+     "kopf": 1,
+     "rel": "compound:prt"
+    },
+    {
+     "i": 7,
+     "text": ".",
+     "start": 40,
+     "ende": 41,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 1,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Er hat alle Ämter und Mandate niedergelegt.",
+   [
+    {
+     "i": 0,
+     "text": "Er",
+     "start": 0,
+     "ende": 2,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "er",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Masc",
+      "Number": "Sing",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 6,
+     "rel": "nsubj"
+    },
+    {
+     "i": 1,
+     "text": "hat",
+     "start": 3,
+     "ende": 6,
+     "leer": true,
+     "upos": "AUX",
+     "stts": "VAFIN",
+     "lemma": "haben",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Pres",
+      "VerbForm": "Fin"
+     },
+     "kopf": 6,
+     "rel": "aux"
+    },
+    {
+     "i": 2,
+     "text": "alle",
+     "start": 7,
+     "ende": 11,
+     "leer": true,
+     "upos": "DET",
+     "stts": "PIDAT",
+     "lemma": "alle",
+     "morph": {
+      "Case": "Acc",
+      "Number": "Plur",
+      "PronType": "Tot"
+     },
+     "kopf": 3,
+     "rel": "det"
+    },
+    {
+     "i": 3,
+     "text": "Ämter",
+     "start": 12,
+     "ende": 17,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Amt",
+     "morph": {
+      "Gender": "Neut",
+      "Number": "Plur"
+     },
+     "kopf": 6,
+     "rel": "obj"
+    },
+    {
+     "i": 4,
+     "text": "und",
+     "start": 18,
+     "ende": 21,
+     "leer": true,
+     "upos": "CCONJ",
+     "stts": "KON",
+     "lemma": "und",
+     "morph": {},
+     "kopf": 5,
+     "rel": "cc"
+    },
+    {
+     "i": 5,
+     "text": "Mandate",
+     "start": 22,
+     "ende": 29,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Mandat",
+     "morph": {
+      "Gender": "Neut",
+      "Number": "Plur"
+     },
+     "kopf": 3,
+     "rel": "conj"
+    },
+    {
+     "i": 6,
+     "text": "niedergelegt",
+     "start": 30,
+     "ende": 42,
+     "leer": false,
+     "upos": "VERB",
+     "stts": "VVPP",
+     "lemma": "niederlegen",
+     "morph": {
+      "Aspect": "Perf",
+      "VerbForm": "Part"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 7,
+     "text": ".",
+     "start": 42,
+     "ende": 43,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 6,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Ihr irrt gewaltig, wenn ihr glaubt, das Heer sei besiegt.",
+   [
+    {
+     "i": 0,
+     "text": "Ihr",
+     "start": 0,
+     "ende": 3,
+     "leer": true,
+     "upos": "DET",
+     "stts": "PPER",
+     "lemma": "sie",
+     "morph": {
+      "Case": "Nom",
+      "Gender": "Neut",
+      "Gender[psor]": "Fem",
+      "Number": "Sing",
+      "Number[psor]": "Sing",
+      "Person": "3",
+      "Poss": "Yes",
+      "PronType": "Prs"
+     },
+     "kopf": 1,
+     "rel": "nsubj"
+    },
+    {
+     "i": 1,
+     "text": "irrt",
+     "start": 4,
+     "ende": 8,
+     "leer": true,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "irren",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Pres",
+      "VerbForm": "Fin"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 2,
+     "text": "gewaltig",
+     "start": 9,
+     "ende": 17,
+     "leer": false,
+     "upos": "ADJ",
+     "stts": "ADJD",
+     "lemma": "gewaltig",
+     "morph": {
+      "Degree": "Pos",
+      "Variant": "Short"
+     },
+     "kopf": 1,
+     "rel": "advmod"
+    },
+    {
+     "i": 3,
+     "text": ",",
+     "start": 17,
+     "ende": 18,
+     "leer": true,
+     "upos": "PUNCT",
+     "stts": "$,",
+     "lemma": ",",
+     "morph": {
+      "PunctType": "Comm"
+     },
+     "kopf": 6,
+     "rel": "punct"
+    },
+    {
+     "i": 4,
+     "text": "wenn",
+     "start": 19,
+     "ende": 23,
+     "leer": true,
+     "upos": "SCONJ",
+     "stts": "KOUS",
+     "lemma": "wenn",
+     "morph": {},
+     "kopf": 6,
+     "rel": "mark"
+    },
+    {
+     "i": 5,
+     "text": "ihr",
+     "start": 24,
+     "ende": 27,
+     "leer": true,
+     "upos": "PRON",
+     "stts": "PPER",
+     "lemma": "sie",
+     "morph": {
+      "Case": "Nom",
+      "Number": "Plur",
+      "Person": "3",
+      "PronType": "Prs"
+     },
+     "kopf": 6,
+     "rel": "nsubj"
+    },
+    {
+     "i": 6,
+     "text": "glaubt",
+     "start": 28,
+     "ende": 34,
+     "leer": false,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "glauben",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Pres",
+      "VerbForm": "Fin"
+     },
+     "kopf": 1,
+     "rel": "advcl"
+    },
+    {
+     "i": 7,
+     "text": ",",
+     "start": 34,
+     "ende": 35,
+     "leer": true,
+     "upos": "PUNCT",
+     "stts": "$,",
+     "lemma": ",",
+     "morph": {
+      "PunctType": "Comm"
+     },
+     "kopf": 11,
+     "rel": "punct"
+    },
+    {
+     "i": 8,
+     "text": "das",
+     "start": 36,
+     "ende": 39,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Nom",
+      "Definite": "Def",
+      "Gender": "Neut",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 9,
+     "rel": "det"
+    },
+    {
+     "i": 9,
+     "text": "Heer",
+     "start": 40,
+     "ende": 44,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Heer",
+     "morph": {
+      "Gender": "Neut",
+      "Number": "Sing"
+     },
+     "kopf": 11,
+     "rel": "nsubj:pass"
+    },
+    {
+     "i": 10,
+     "text": "sei",
+     "start": 45,
+     "ende": 48,
+     "leer": true,
+     "upos": "AUX",
+     "stts": "VAFIN",
+     "lemma": "sein",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Pres",
+      "VerbForm": "Fin"
+     },
+     "kopf": 11,
+     "rel": "aux:pass"
+    },
+    {
+     "i": 11,
+     "text": "besiegt",
+     "start": 49,
+     "ende": 56,
+     "leer": false,
+     "upos": "VERB",
+     "stts": "VVPP",
+     "lemma": "besiegen",
+     "morph": {
+      "Aspect": "Perf",
+      "VerbForm": "Part"
+     },
+     "kopf": 6,
+     "rel": "conj"
+    },
+    {
+     "i": 12,
+     "text": ".",
+     "start": 56,
+     "ende": 57,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 1,
+     "rel": "punct"
+    }
+   ]
+  ],
+  [
+   "Ein  gewaltiges Heer zog über die Alpen.",
+   [
+    {
+     "i": 0,
+     "text": "Ein",
+     "start": 0,
+     "ende": 3,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "eine",
+     "morph": {
+      "Case": "Nom",
+      "Definite": "Ind",
+      "Gender": "Masc",
+      "NumType": "Card",
+      "Number": "Sing",
+      "PronType": "Art"
+     },
+     "kopf": 1,
+     "rel": "det"
+    },
+    {
+     "i": 1,
+     "text": " ",
+     "start": 4,
+     "ende": 5,
+     "leer": false,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": " ",
+     "morph": {
+      "Gender": "Masc",
+      "Number": "Sing"
+     },
+     "kopf": 4,
+     "rel": "nsubj"
+    },
+    {
+     "i": 2,
+     "text": "gewaltiges",
+     "start": 5,
+     "ende": 15,
+     "leer": true,
+     "upos": "ADJ",
+     "stts": "ADJA",
+     "lemma": "gewaltig",
+     "morph": {
+      "Degree": "Pos",
+      "Gender": "Neut",
+      "Number": "Sing"
+     },
+     "kopf": 3,
+     "rel": "amod"
+    },
+    {
+     "i": 3,
+     "text": "Heer",
+     "start": 16,
+     "ende": 20,
+     "leer": true,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Heer",
+     "morph": {
+      "Gender": "Neut",
+      "Number": "Sing"
+     },
+     "kopf": 1,
+     "rel": "appos"
+    },
+    {
+     "i": 4,
+     "text": "zog",
+     "start": 21,
+     "ende": 24,
+     "leer": true,
+     "upos": "VERB",
+     "stts": "VVFIN",
+     "lemma": "ziehen",
+     "morph": {
+      "Mood": "Ind",
+      "Number": "Sing",
+      "Person": "3",
+      "Tense": "Past",
+      "VerbForm": "Fin"
+     },
+     "kopf": null,
+     "rel": "ROOT"
+    },
+    {
+     "i": 5,
+     "text": "über",
+     "start": 25,
+     "ende": 29,
+     "leer": true,
+     "upos": "ADP",
+     "stts": "APPR",
+     "lemma": "über",
+     "morph": {
+      "AdpType": "Prep",
+      "Case": "Acc"
+     },
+     "kopf": 7,
+     "rel": "case"
+    },
+    {
+     "i": 6,
+     "text": "die",
+     "start": 30,
+     "ende": 33,
+     "leer": true,
+     "upos": "DET",
+     "stts": "ART",
+     "lemma": "die",
+     "morph": {
+      "Case": "Acc",
+      "Definite": "Def",
+      "Number": "Plur",
+      "PronType": "Art"
+     },
+     "kopf": 7,
+     "rel": "det"
+    },
+    {
+     "i": 7,
+     "text": "Alpen",
+     "start": 34,
+     "ende": 39,
+     "leer": false,
+     "upos": "NOUN",
+     "stts": "NN",
+     "lemma": "Alpe",
+     "morph": {},
+     "kopf": 4,
+     "rel": "obl"
+    },
+    {
+     "i": 8,
+     "text": ".",
+     "start": 39,
+     "ende": 40,
+     "leer": false,
+     "upos": "PUNCT",
+     "stts": "$.",
+     "lemma": ".",
+     "morph": {
+      "PunctType": "Peri"
+     },
+     "kopf": 4,
+     "rel": "punct"
+    }
+   ]
+  ]
+ ],
+ "erwartet": [
+  {
+   "schluessel": "tuer|oeffnen",
+   "bestanden": [
+    1
+   ],
+   "details": {
+    "1": {
+     "rel": [
+      "~OBJA"
+     ],
+     "start": 4,
+     "ende": 11
+    }
+   }
+  },
+  {
+   "schluessel": "traum|suess",
+   "bestanden": [
+    3
+   ],
+   "details": {
+    "3": {
+     "rel": [
+      "ATTR"
+     ],
+     "start": 15,
+     "ende": 20
+    }
+   }
+  },
+  {
+   "schluessel": "tisch|legen",
+   "bestanden": [
+    5
+   ],
+   "details": {
+    "5": {
+     "rel": [
+      "PP"
+     ],
+     "start": 27,
+     "ende": 32
+    }
+   }
+  },
+  {
+   "schluessel": "geschichte|auftischen",
+   "bestanden": [
+    6
+   ],
+   "details": {
+    "6": {
+     "rel": [
+      "OBJA"
+     ],
+     "start": 26,
+     "ende": 36
+    }
+   }
+  },
+  {
+   "schluessel": "mandat|niederlegen",
+   "bestanden": [
+    7
+   ],
+   "details": {
+    "7": {
+     "rel": [
+      "OBJA"
+     ],
+     "start": 22,
+     "ende": 29
+    }
+   }
+  },
+  {
+   "schluessel": "heer|gewaltig",
+   "bestanden": [
+    9
+   ],
+   "details": {
+    "9": {
+     "rel": [
+      "ATTR"
+     ],
+     "start": 5,
+     "ende": 15
+    }
+   }
+  }
+ ]
+}
