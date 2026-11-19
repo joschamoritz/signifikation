@@ -4,6 +4,7 @@ import { useBelege } from '../hooks/useBelege'
 import { lsGet, lsSet } from '../utils/storage'
 import BelegePanel from './BelegePanel'
 import Sheet from './ui/Sheet'
+import { kennzahlText, hatBelege, RANG_LEGENDE } from '../utils/kennzahlen'
 import '../styles/quiz.css'
 
 const BELEG_HINT_KEY = 'sig_beleg_hint'
@@ -70,7 +71,9 @@ export default function Quiz({
   const options        = useMemo(() => getRoundOptions(kollokatoren), [kollokatoren])
   const displayOptions = useMemo(
     () => submitted
-      ? [...options].sort((a, b) => (b.log_dice ?? 0) - (a.log_dice ?? 0))
+      // Nach Rang, nicht nach logDice: Die Rangfolge ist frequency × logDice
+      // (Blindvergleich 2026-11-19), ein Ablenker kann höheres logDice haben als eine Lösung.
+      ? [...options].sort((a, b) => (a.rang ?? 99) - (b.rang ?? 99))
       : options,
     [options, submitted]
   )
@@ -182,7 +185,7 @@ export default function Quiz({
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
         <p id="quiz-instruction" className="quiz-instruction">
-          Wähle die 3 stärksten Kollokatoren zu <strong>{lemma.lemma}</strong>
+          Wähle die 3 typischsten Kollokatoren zu <strong>{lemma.lemma}</strong>
           {!submitted && !jokerUsed && jokerVisible && (
             <button className="joker-btn" type="button" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
           )}
@@ -233,8 +236,8 @@ export default function Quiz({
                 <span className="option-rank" aria-hidden="true">{rank}</span>
               )}
               {opt.wort}
-              {submitted && opt.log_dice != null && (
-                <span className="logdice" aria-hidden="true">{opt.log_dice}</span>
+              {submitted && kennzahlText(opt.log_dice, opt.frequenz) && (
+                <span className="logdice" aria-hidden="true">{kennzahlText(opt.log_dice, opt.frequenz)}</span>
               )}
             </button>
           )
@@ -307,7 +310,7 @@ export default function Quiz({
                       #{k.rang}
                     </span>
                     {k.wort}
-                    <span className="logdice">{k.log_dice}</span>
+                    <span className="logdice">{kennzahlText(k.log_dice, k.frequenz)}</span>
                     {pts !== null && <span className="feedback-pts">+{pts}</span>}
                   </span>
                 )
@@ -321,7 +324,7 @@ export default function Quiz({
                 <span key={k.wort} className="feedback-word">
                   <span className="feedback-rang feedback-rang--off">#{k.rang}</span>
                   {k.wort}
-                  <span className="logdice">{k.log_dice}</span>
+                  <span className="logdice">{kennzahlText(k.log_dice, k.frequenz)}</span>
                   <span className="feedback-pts">+2</span>
                 </span>
               ))
@@ -334,7 +337,7 @@ export default function Quiz({
                 <span key={k.wort} className="feedback-word">
                   <span className="feedback-rang feedback-rang--off">#{k.rang}</span>
                   {k.wort}
-                  <span className="logdice">{k.log_dice}</span>
+                  <span className="logdice">{kennzahlText(k.log_dice, k.frequenz)}</span>
                   <span className="feedback-pts">+1</span>
                 </span>
               ))
@@ -350,6 +353,7 @@ export default function Quiz({
               </span>
             )}
           </div>
+          {hatBelege(kollokatoren) && <p className="round-feedback-legende">{RANG_LEGENDE}</p>}
           <p className="results-medal">{medal.emoji}&thinsp;{medal.label}</p>
         </div>
       )}

@@ -11,11 +11,12 @@
 import { Fragment } from 'react'
 import { useStudentKiosk, KIOSK_STATES } from '../StudentKioskContext'
 import { navigate } from '../../routing'
+import { kennzahlText, RANG_LEGENDE } from '../../../../utils/kennzahlen'
 
 function safeArr(v) { return Array.isArray(v) ? v : [] }
 
-// logDice komma-formatiert (deutsch), null → leer.
-function fmtDice(v) { return v == null ? null : String(v).replace('.', ',') }
+// logDice komma-formatiert, mit Belegen, wo der Snapshot sie hat („7,4 · 8.594 Belege“).
+const fmtDice = (v, f) => kennzahlText(v, f)
 
 function CollocationsRecap({ rawAnswer }) {
   const picked = safeArr(rawAnswer?.selected)
@@ -91,6 +92,7 @@ function RevealItems({ entry }) {
   const items = Array.isArray(entry?.items) ? entry.items : []
   if (items.length === 0) return null
   const hasDice = items.some((it) => it.logDice != null)
+  const hasBelege = items.some((it) => it.frequenz != null)
   return (
     <>
       <ul className="classroom-kiosk__reveal" data-testid="classroom-kiosk-reveal-items">
@@ -104,7 +106,7 @@ function RevealItems({ entry }) {
               <span className="classroom-kiosk__reveal-word">
                 {it.label}
                 {it.logDice != null && (
-                  <span className="classroom-kiosk__reveal-ld"> · {fmtDice(it.logDice)}</span>
+                  <span className="classroom-kiosk__reveal-ld"> · {fmtDice(it.logDice, it.frequenz)}</span>
                 )}
                 <span className="sr-only"> – {srStatus}</span>
                 {it.you && it.you !== it.label && (
@@ -125,7 +127,7 @@ function RevealItems({ entry }) {
       )}
       {hasDice && (
         <p className="classroom-kiosk__reveal-legend">
-          logDice: je höher, desto typischer die Wortverbindung.
+          {hasBelege ? RANG_LEGENDE : 'logDice: je höher, desto typischer die Wortverbindung.'}
         </p>
       )}
     </>

@@ -25,6 +25,12 @@ export default function KollokationNote({ footnotesClass }) {
         Wortprofil<sup>3</sup>, berechnet aus rund 2,2 Milliarden Textwörtern
         freier deutschsprachiger Korpora.
       </p>
+      <p>
+        Im Spiel entscheidet nicht der logDice-Wert allein. Er bevorzugt seltene,
+        exklusive Partner (<em>Kaffee – Arabica</em>). Die Reihenfolge ergibt sich
+        deshalb aus Häufigkeit × logDice. So stehen oben die Verbindungen, die zugleich
+        fest und gebräuchlich sind (<em>Kaffee trinken</em>, <em>starker Kaffee</em>).
+      </p>
       <ol className={footnotesClass}>
         <li>Hausmann, F.&thinsp;J. (2004): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen – mehr oder weniger fest</em> (IDS-Jahrbuch 2003). de Gruyter, S.&thinsp;309–334.</li>
         <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>

@@ -31,6 +31,9 @@ import { dirname, resolve } from 'path'
 import logger from './logger.js'
 import { getCachedQuery } from './query-cache.js'
 import { pruefeVollstaendigkeit, fasseSummenZusammen, baueProfil } from './register.js'
+import {
+  FUNKTIONSWOERTER, quellenProfil, istFachsprache, korrigiere, fuehreZusammen, schreibweise,
+} from './kollokatorKorrektur.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -273,6 +276,29 @@ function stmts() {
       // alle. Wird einmalig beim Start über waermeRegisterAuf() gezogen.
       korpusSummen: schema() === 'v2'
         ? database.prepare('SELECT quelle, SUM(freq) AS f FROM lemma_corpus_freq GROUP BY quelle')
+        : null,
+      // Kollokationen-Rangfolge (kollokatorRangfolge). Kandidaten ohne logDice-
+      // Deckel: Die Auswahl leistet frequency × logDice, nicht ein LIMIT nach logDice.
+      rangKandidaten: database.prepare(`
+        SELECT dep_lemma, dep_pos, relation, frequency, logDice
+        FROM collocations
+        WHERE lemma = ? AND pos = ? AND relation = ? AND frequency >= ? AND logDice >= ?
+      `),
+      // Gegenrichtung: Summe aller Partner des Kollokators in der Gegenrelation
+      // und der Eintrag der Basis darin (idx_collocations_lookup-Präfix).
+      rangGegenSumme: database.prepare(`
+        SELECT SUM(frequency) AS s FROM collocations
+        WHERE lemma = ? AND pos = ? AND relation = ? AND frequency >= ?
+      `),
+      rangGegenBasis: database.prepare(`
+        SELECT MAX(frequency) AS f FROM collocations
+        WHERE lemma = ? AND pos = ? AND relation = ? AND dep_lemma = ?
+      `),
+      rangQuellen: schema() === 'v2'
+        ? database.prepare('SELECT quelle, SUM(freq) AS f FROM lemma_corpus_freq WHERE lemma = ? GROUP BY quelle')
+        : null,
+      rangPosFreq: schema() === 'v2'
+        ? database.prepare('SELECT SUM(freq) AS f FROM lemma_corpus_freq WHERE lemma = ? AND pos = ?')
         : null,
       // POS-Häufigkeit eines Lemmas („Elend"-Fix, siehe bestPosByFrequency).
       // v2 nutzt lemma_corpus_freq: höchstens ~25 Zeilen je (lemma, pos), damit
@@ -676,6 +702,7 @@ export const MIN_KOLLOKATOREN = 10
 function waehleOptionen(items) {
   const mitPlatz = items.map((item, i) => ({ item, platz: i + 1 }))
   const top3 = mitPlatz.slice(0, 3)
+  const nachPlatz = (a, b) => a.platz - b.platz
   // 4 zufällige Distraktoren aus Platz 4–12 (starke Kollokate, schwer zu unterscheiden)
   const nearPool = shuffle(mitPlatz.slice(3, 12))
   // 3 zufällige Distraktoren aus Platz 13–25 (mittlere, etwas leichter erkennbar)
@@ -689,21 +716,150 @@ function waehleOptionen(items) {
     ? shuffle([...nearPool.slice(nearCount), ...midPool.slice(midCount)]).slice(0, remaining)
     : []
 
-  return [...top3, ...nearPool.slice(0, nearCount), ...midPool.slice(0, midCount), ...extra]
+  // Ablenker nach Platz ordnen, damit `rang` 4–10 die echte Reihenfolge abbildet
+  // (Auflösung zeigt sie so an). Die Punktegruppen bleiben gleich: Alle gezogenen
+  // Ablenker aus Platz 4–12 liegen vor denen aus Platz 13–25.
+  return [...top3, ...[...nearPool.slice(0, nearCount), ...midPool.slice(0, midCount), ...extra].sort(nachPlatz)]
 }
 
 function buildOptions(items) {
   return waehleOptionen(items).map(({ item }, i) => ({
     wort:     item.lemma,
     log_dice: parseFloat(parseFloat(item.logDice).toFixed(1)),
+    frequenz: item.frequency ?? null,
     rang:     i + 1,
   }))
 }
 
+// ── Kollokationen-Rangfolge (Blindvergleich 2026-11-19, planning/Kollokationen-Umkehr.md) ──
+// Die Top 3 nach logDice waren oft seltene Wörter, die niemand als typisch empfindet.
+// Im Blindvergleich gewann frequency × logDice mit Filtern klar (26 von 41 Wahlen,
+// logDice heute 10). Filter allein (logDice + Filter) waren nicht besser als heute.
+//
+// Filter: Funktionswörter, Kollokator ≥ 1.000 Korpusvorkommen, ≥ 8 % aus modernen
+// Quellen (sonst Weib, isolirt, Reineke), Anteil der Basis unter den Partnern des
+// Kollokators ≥ 0,3 % (sonst groß/neu/machen), keine Fachsprache aus Gerichtskorpora,
+// keine Komposita mit der Basis. Dazu die Korrekturschicht (kollokatorKorrektur.js).
+// Verben bekommen Subjekte statt Adverbien (einstürzen ← Dach, Turm, Gebäude statt
+// beschädigen, begraben, ausbrennen).
+//
+// Rückfall auf die alte logDice-Sortierung: bei < MIN_KOLLOKATOREN Treffern (seltene
+// Wörter wie keimfrei, kuscheln), bei v1-Schema und mit KOLLOKATIONEN_RANGFOLGE=alt.
+const RANG = {
+  minFreq: 5, minDice: 3, minKorpus: 1000, minModern: 0.08, minAnteil: 0.003, plaetze: 25,
+}
+const KOLLOKATOR_POS = new Set(['Substantiv', 'Verb', 'Adjektiv', 'Adverb'])
+const GEGENRELATION = {
+  KON: 'KON', ATTR: '~ATTR', '~ATTR': 'ATTR', OBJA: '~OBJA', '~OBJA': 'OBJA',
+  ADV: '~ADV', '~ADV': 'ADV', '~PRED': 'PRED', PRED: '~PRED', SUBJA: '~SUBJA', '~SUBJA': 'SUBJA',
+}
+
+/** Relationen der Rangfolge als [Wortart der Basis, Relation]; PRED_REV wie in fetchRelation. */
+function rangRelationen(pos) {
+  if (pos === 'Verb') return [['Verb', 'OBJA'], ['Verb', 'SUBJA'], ['Verb', 'KON']]
+  return (POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv).flatMap(({ relCode }) => {
+    const rel = normalizeRel(relCode)
+    if (rel === 'PRED_REV') return [['Adjektiv', '~ADV'], ['Adverb', '~ADV'], ['Adjektiv', '~PRED']]
+    return [[pos, rel]]
+  })
+}
+
+// Kleine, gedeckelte Zwischenspeicher: dieselben Kollokatoren (groß, Mensch, Haus)
+// kommen bei vielen Basen vor. Die DB ist statisch, daher ohne Ablaufzeit.
+const RANG_CACHE_MAX = 20000
+function gedeckelt(map, key, wert) {
+  if (map.size >= RANG_CACHE_MAX) map.delete(map.keys().next().value)
+  map.set(key, wert)
+  return wert
+}
+const _quellen = new Map()
+function quellenVon(lemma) {
+  const k = lemma.toLowerCase()
+  return _quellen.get(k) ?? gedeckelt(_quellen, k, quellenProfil(stmts().rangQuellen.all(k)))
+}
+const _gegenSumme = new Map()
+/** Anteil der Basis unter allen Partnern des Kollokators in der Gegenrelation (Tee → Kaffee 33 %). */
+function anteilGegenrichtung(basis, r) {
+  const rel = GEGENRELATION[r.relation]
+  if (!rel) return null
+  const key = `${r.dep_lemma}|${r.dep_pos}|${rel}`
+  const summe = _gegenSumme.get(key)
+    ?? gedeckelt(_gegenSumme, key, stmts().rangGegenSumme.get(r.dep_lemma, r.dep_pos, rel, RANG.minFreq)?.s ?? 0)
+  if (!summe) return null
+  const f = stmts().rangGegenBasis.get(r.dep_lemma, r.dep_pos, rel, basis)?.f
+  return f == null ? null : f / summe
+}
+/** Ortsadjektiv: Der Name ohne „-er“ ist ein bekanntes Substantiv (weimarer ← Weimar) oder häufiger als das Adjektiv. */
+function istOrtsadjektiv(w) {
+  const name = stmts().rangPosFreq.get(w.slice(0, -2), 'Substantiv')?.f ?? 0
+  return name >= 1000 || name > (stmts().rangPosFreq.get(w, 'Adjektiv')?.f ?? 0)
+}
+
 /**
- * Gemischte Runde: Alle Relationen zusammenführen, nach logDice deduplizieren und
- * die stärksten 3 Kollokate (über alle Wortarten) als Top-3 verwenden.
- * Gibt 10 Optionen zurück (Top-3 + 7 Distraktoren), genau wie buildOptions().
+ * Kollokatoren eines Lemmas in der neuen Rangfolge (bis zu 25), im Format von
+ * queryRelation (lemma, logDice als String, frequency, pos, relation).
+ * Leeres Array = Rückfall auf die alte Sortierung (v1-Schema, Schalter, Fehler).
+ */
+export function kollokatorRangfolge(lemma, pos = 'Substantiv') {
+  if (process.env.KOLLOKATIONEN_RANGFOLGE === 'alt' || schema() !== 'v2') return []
+  return getCachedQuery(`rang:${lemma}:${pos}`, () => {
+    const s = stmts()
+    const basisLow = String(lemma).toLowerCase()
+    const roh = []
+    for (const [bPos, rel] of rangRelationen(pos)) {
+      const basis = kanonischesLemma(lemma, bPos)
+      for (const r of s.rangKandidaten.all(basis, bPos, rel, RANG.minFreq, RANG.minDice)) {
+        if (!KOLLOKATOR_POS.has(r.dep_pos)) continue
+        if (pos === 'Verb' && r.dep_pos === 'Adverb') continue
+        const k = r.dep_lemma.toLowerCase()
+        if (FUNKTIONSWOERTER.has(k) || (k !== basisLow && k.includes(basisLow))) continue
+        if (istVersteckterAux(r.dep_lemma, r.dep_pos)) continue
+        if (istFachsprache(quellenVon(r.dep_lemma))) continue
+        const kor = korrigiere(basisLow, r.dep_lemma, r.dep_pos)
+        if (!kor) continue
+        roh.push({ lemma: kor.lemma, pos: r.dep_pos, f: r.frequency, d: r.logDice, db: r.dep_lemma, basis, relation: r.relation })
+      }
+    }
+    const out = []
+    for (const e of fuehreZusammen(roh).sort((a, b) => b.f * b.d - a.f * a.d)) {
+      if (out.length >= RANG.plaetze) break
+      // Bekanntheit, Quellen und Gegenrichtung am DB-Lemma messen: das korrigierte
+      // Lemma („Preis“ statt „Preisen“) steht so evtl. gar nicht in der DB.
+      const q = quellenVon(e.db)
+      if (q.summe < RANG.minKorpus || q.modern < RANG.minModern) continue
+      const a = anteilGegenrichtung(e.basis, { dep_lemma: e.db, dep_pos: e.pos, relation: e.relation })
+      if (a != null && a < RANG.minAnteil) continue
+      out.push({
+        lemma:     schreibweise(e.lemma, e.pos, { istOrtsadjektiv }),
+        frequency: e.f,
+        logDice:   String(e.d.toFixed(4)),
+        pos:       e.pos,
+        relation:  e.relation,
+      })
+    }
+    return out
+  })
+}
+
+/**
+ * Sortierte Liste für die Kollokationen-Runde: neue Rangfolge, bei zu wenig
+ * Treffern die alte (logDice über die POS_ROUNDS-Relationen).
+ * @returns {{ pool: object[], rangfolge: 'neu'|'alt' }}
+ */
+function kollokationenPool(lemma, pos, allItems) {
+  let neu = []
+  try {
+    neu = kollokatorRangfolge(lemma, pos)
+  } catch (err) {
+    logger.warn({ err, lemma, pos }, 'kollokatorRangfolge fehlgeschlagen, alte Sortierung')
+  }
+  if (neu.length >= MIN_KOLLOKATOREN) return { pool: neu, rangfolge: 'neu' }
+  return { pool: mixedPool(allItems), rangfolge: 'alt' }
+}
+
+/**
+ * Alte Sortierung der Kollokationen-Runde (Rückfall der neuen Rangfolge): alle
+ * Relationen zusammenführen, nach logDice deduplizieren und absteigend sortieren.
  */
 function mixedPool(allItems) {
   // Deduplizieren nach lemma (lowercase), höchstes logDice gewinnt
@@ -716,10 +872,6 @@ function mixedPool(allItems) {
     }
   }
   return [...seen.values()].sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
-}
-
-function buildMixedRound(allItems) {
-  return buildOptions(mixedPool(allItems))
 }
 
 // ── Öffentliche API (identisch mit dwds.js) ──────────────────────────────────
@@ -780,11 +932,11 @@ export async function fetchRelation(lemma, pos, relCode) {
 }
 
 /**
- * Admin-Prüfung „Wort prüfen › Kollokationen“ auf dem Spielweg: dieselben Relationen,
- * dieselbe Zusammenführung (mixedPool) und dieselbe Auswahl der Ablenker wie
+ * Admin-Prüfung „Wort prüfen › Kollokationen“ auf dem Spielweg: dieselbe Rangfolge
+ * (kollokationenPool, mit Rückfall) und dieselbe Auswahl der Ablenker wie
  * fetchLemma → runden.kollokatoren. Ohne Mehrwort-Filter, wie im Spiel.
  *
- * @returns {Promise<{ lemma: string, pos: string, pool: number,
+ * @returns {Promise<{ lemma: string, pos: string, rangfolge: 'neu'|'alt', pool: number,
  *   gesucht: Array<{wort: string, logDice: number, platz: number}>,
  *   ablenker: Array<{wort: string, logDice: number, platz: number}>,
  *   kollokatoren: Array<{wort: string, logDice: number, platz: number}> }>}
@@ -799,12 +951,15 @@ export async function fetchKollokatorenAnalyse(lemma, pos = 'Substantiv') {
     if (results[i].status === 'fulfilled') allItems.push(...results[i].value)
     else logger.warn({ err: results[i].reason }, `fetchKollokatorenAnalyse: Relation ${rounds[i].relCode} fehlgeschlagen`)
   }
-  const pool = mixedPool(allItems)
-  const eintrag = ({ item, platz }) => ({ wort: item.lemma, logDice: parseFloat(parseFloat(item.logDice).toFixed(2)), platz })
+  const { pool, rangfolge } = kollokationenPool(lemma, pos, allItems)
+  const eintrag = ({ item, platz }) => ({
+    wort: item.lemma, logDice: parseFloat(parseFloat(item.logDice).toFixed(2)), frequenz: item.frequency ?? null, platz,
+  })
   const auswahl = waehleOptionen(pool)
   return {
     lemma,
     pos,
+    rangfolge,
     pool: pool.length,
     gesucht: auswahl.slice(0, 3).map(eintrag),
     ablenker: auswahl.slice(3).sort((a, b) => a.platz - b.platz).map(eintrag),
@@ -829,8 +984,8 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
     if (r.status === 'rejected')
       logger.warn({ err: r.reason }, `fetchLemma: Relation ${rounds[i].relCode} fehlgeschlagen`)
   }
-  // Kollokationen-Runde: stärkste Kollokate über alle Wortarten
-  runden.kollokatoren = buildMixedRound(allItems)
+  // Kollokationen-Runde: neue Rangfolge (frequency × logDice + Filter), Rückfall alt
+  runden.kollokatoren = buildOptions(kollokationenPool(lemma, pos, allItems).pool)
   return {
     id:         toId(lemma),
     lemma,
