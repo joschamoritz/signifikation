@@ -17,8 +17,8 @@ export function createKollokationAnalyse({ fetchKollokatorenAnalyse, MIN_KOLLOKA
     return {
       lemma,
       pos,
-      // Platz 1 ist die stärkste Verbindung (die Lösung im Rätsel), wie im Spiel
-      kollokatoren: a.kollokatoren.map(({ wort, logDice }) => ({ wort, logDice })),
+      // Platz 1 ist die typischste Verbindung (die Lösung im Rätsel), wie im Spiel
+      kollokatoren: a.kollokatoren.map(({ wort, logDice, frequenz }) => ({ wort, logDice, frequenz: frequenz ?? null })),
       pool: a.pool,
       usable: a.pool >= MIN_KOLLOKATOREN,
     }

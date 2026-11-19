@@ -253,7 +253,7 @@ function Home({
                   <span className="test-entry-category">täglich</span>
                 </div>
                 <p className="test-definition">
-                  Welche Wörter binden sich am stärksten aneinander? Bestimme die typischsten Kollokatoren des Tages aus eigenen Korpusdaten.
+                  Welche Wörter gehören fest zusammen? Bestimme die typischsten Kollokatoren des Tages aus eigenen Korpusdaten.
                 </p>
 
                 {/* Gespielte Wörter */}

@@ -17,7 +17,7 @@ const MODES = [
     label: 'Kollokationen',
     ipa: '[kɔlokaˈtsi̯oːnən]',
     cat: 'Lexik',
-    desc: 'Welche Wörter verbinden sich am stärksten mit dem Tageswort? Bestimme die stärksten Kollokationen des Tages aus eigenen Korpusdaten.',
+    desc: 'Welche Wörter gehören fest zum Tageswort? Bestimme die typischsten Kollokatoren aus eigenen Korpusdaten.',
   },
   {
     id: 'wortzwilling',

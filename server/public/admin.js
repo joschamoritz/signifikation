@@ -4601,7 +4601,7 @@ async function analyzeEntryKollokation() {
 
   schreibeErgebnis(out, ergebnisMeldung(kopf, alle ? 'ok' : 'warn')
     + `<ul class="tag-erg-liste">${zeilen}</ul>`
-    + '<p class="tag-erg-fuss">Je Wort die fünf stärksten Kollokatoren im eigenen Korpus; Zahl = logDice (Assoziationsmaß). Geeignet ab zehn Kollokatoren: drei gesuchte und sieben Ablenker.</p>')
+    + '<p class="tag-erg-fuss">Je Wort die fünf typischsten Kollokatoren im eigenen Korpus (Reihenfolge nach Häufigkeit × logDice); Zahl = logDice (Assoziationsmaß). Geeignet ab zehn Kollokatoren: drei gesuchte und sieben Ablenker.</p>')
 }
 
 // Vorschau eines der drei Kollokationen-Wörter (Nr. 1–3) als Wörterbuch-Eintrag.
@@ -8978,6 +8978,8 @@ const soEl = (id) => document.getElementById(id)
 const soWert = (id) => soEl(id)?.value ?? ''
 const soRadio = (name) => document.querySelector(`input[name="${CSS.escape(name)}"]:checked`)?.value
 const soZahlDe = (n) => Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+// „logDice 9,6 · 57.501 Belege“ wie im Spiel; ohne Häufigkeit nur logDice
+const soKennzahl = (k) => `logDice ${soZahlDe(k.logDice)}${k.frequenz != null ? ` · ${Number(k.frequenz).toLocaleString('de-DE')} Belege` : ''}`
 
 // ── Zeichenmodul ──
 let kartenModul = null
@@ -9834,7 +9836,11 @@ async function ladeSocialWort() {
     try {
       const daten = await holeJson(`/admin/analyze-kollokation?q=${encodeURIComponent(l.lemma)}`)
       if (lauf !== soEd.wortLauf) return
-      soEd.koll = (daten.kollokatoren || []).map((k) => ({ wort: k.wort, logDice: Number(k.logDice) || 0 })).sort((a, b) => b.logDice - a.logDice)
+      // Reihenfolge des Servers übernehmen (Rangfolge wie im Spiel: Häufigkeit × logDice);
+      // früher nach logDice umsortiert, das wählte seit 2026-11-20 eine andere Lösung als das Spiel
+      soEd.koll = (daten.kollokatoren || []).map((k) => ({
+        wort: k.wort, logDice: Number(k.logDice) || 0, frequenz: k.frequenz == null ? null : Number(k.frequenz),
+      }))
       setMeldung('so-wort-hinweis', soEd.koll.length ? '' : 'Zu diesem Wort gibt es keine Kollokatoren.')
     } catch (err) {
       if (lauf !== soEd.wortLauf) return
@@ -9843,10 +9849,10 @@ async function ladeSocialWort() {
   }
   const [antwort, ...rest] = soEd.koll
   soEl('so-a-antwort').innerHTML = antwort
-    ? `${esc(antwort.wort)} <span class="so-zusatz">stärkster Kollokator · logDice ${soZahlDe(antwort.logDice)}</span>`
+    ? `${esc(antwort.wort)} <span class="so-zusatz">typischster Kollokator · ${soKennzahl(antwort)}</span>`
     : '<span class="so-zusatz">–</span>'
   // Ablenker wie bisher vorbelegt: Rang 5 und Rang 10, sonst die nächsten
-  const opts = rest.map((k, i) => [k.wort, `${k.wort} – Rang ${i + 2} · logDice ${soZahlDe(k.logDice)}`])
+  const opts = rest.map((k, i) => [k.wort, `${k.wort} – Rang ${i + 2} · ${soKennzahl(k)}`])
   soOptionen(soEl('so-a-abl1'), opts, (rest[3] ?? rest[0])?.wort)
   soOptionen(soEl('so-a-abl2'), opts, (rest[8] ?? rest[1])?.wort)
   const kopts = soEd.koll.slice(0, 25).map((k) => [k.wort, `${k.wort} · logDice ${soZahlDe(k.logDice)}`])
@@ -9972,7 +9978,7 @@ function socialEdSpec() {
 function socialKartenText(spec, farbe = document.querySelector('input[name="so-farbe"]:checked')?.closest('label')?.textContent.trim().replace(/\s+/g, ' ') || '') {
   const d = spec.data
   const kopf = `${SO_KARTENART[spec.format]}-Karte${spec.reveal ? ' mit Auflösung' : ''}, ${farbe}, ${spec.ratio.replace(':', ' : ')}`
-  if (spec.format === 'A') return `${kopf}: Welches Wort ist am stärksten mit „${d.lemma}“ verbunden? ${d.options.map((o, i) => `${'ABC'[i]} ${o.text}${spec.reveal && o.correct ? ' (richtig)' : ''}`).join(', ')}.`
+  if (spec.format === 'A') return `${kopf}: Welches Wort gehört am typischsten zu „${d.lemma}“? ${d.options.map((o, i) => `${'ABC'[i]} ${o.text}${spec.reveal && o.correct ? ' (richtig)' : ''}`).join(', ')}.`
   if (spec.format === 'B') return `${kopf}: „${spec.reveal ? d.quoteText.replace(/______/g, d.collocate) : d.quoteText.replace(/______/g, 'Lücke')}“ – ${d.quelle || 'ohne Quelle'}.`
   if (spec.format === 'C') return `${kopf}: ${d.wortA} und ${d.wortB}; Kollokatoren ${d.chips.map((c) => c.w).join(', ')}.`
   if (spec.format === 'X') return `${kopf}: ${d.subtype || 'Wortgeschichte'}${d.xLemma ? ` – ${d.xLemma}` : ''}. ${d.headline} ${d.body}`.trim()
