@@ -12,7 +12,7 @@
 import { scoreKollokationen } from '../scoring/index.js'
 import { resolveKollokatoren } from '../content.js'
 import { parseJsonSafe } from '../json-safe.js'
-import { lemmaLogDice, fmtDice } from './_format.js'
+import { lemmaLogDice, lemmaFrequenz, fmtKennzahl } from './_format.js'
 
 export default {
   id: 'kollokationen',
@@ -24,7 +24,7 @@ export default {
 
   // ── Content-Snapshot (eingefroren beim Anlegen, D4) ───────────────
   async buildSnapshotEntry(lemma, deps) {
-    // Kollokatoren IMMER live aus wortprofil.db (fetchLemma → buildMixedRound),
+    // Kollokatoren IMMER live aus wortprofil.db (fetchLemma → kollokationenPool),
     // Fallback auf gespeichertes Feld. Gemischt (Top-3 nicht oben).
     const kollokatoren = await resolveKollokatoren(lemma, {
       fetchLemma: deps.fetchLemma,
@@ -94,6 +94,7 @@ export default {
           label, rang, correct: rang <= 3, count,
           pct: Math.round((count / denom) * 100),
           logDice: lemmaLogDice(k),
+          frequenz: lemmaFrequenz(k),
           kind: 'option',
         }
       })
@@ -108,6 +109,7 @@ export default {
   buildRevealItems(detail, snapshot) {
     const koll = Array.isArray(snapshot?.kollokatoren) ? snapshot.kollokatoren : []
     const diceByWord = new Map(koll.map((k) => [String(k.wort), lemmaLogDice(k)]))
+    const freqByWord = new Map(koll.map((k) => [String(k.wort), lemmaFrequenz(k)]))
     const hits = Array.isArray(detail.hits) ? detail.hits : []
     const items = hits.map((h) => ({
       label: String(h.word),
@@ -115,13 +117,14 @@ export default {
       correct: (Number(h.points) || 0) >= 3,
       partial: (Number(h.points) || 0) > 0 && (Number(h.points) || 0) < 3,
       logDice: diceByWord.has(String(h.word)) ? diceByWord.get(String(h.word)) : null,
+      frequenz: freqByWord.get(String(h.word)) ?? null,
     }))
     const top3 = koll
       .filter((k) => (Number(k.rang) || 99) <= 3)
       .sort((a, b) => (Number(a.rang) || 99) - (Number(b.rang) || 99))
       .map((k) => {
-        const d = lemmaLogDice(k)
-        return d != null ? `${k.wort} (${fmtDice(d)})` : String(k.wort)
+        const z = fmtKennzahl(lemmaLogDice(k), lemmaFrequenz(k))
+        return z != null ? `${k.wort} (${z})` : String(k.wort)
       })
     return { items, solution: top3.length ? top3.join(', ') : null }
   },

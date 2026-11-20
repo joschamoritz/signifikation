@@ -25,6 +25,19 @@ export function fmtDice(d) {
   return String(d).replace('.', ',')
 }
 
+// Paarfrequenz als Zahl (Snapshot-Feld `frequenz`, seit der Rangfolge
+// Häufigkeit × logDice; ältere Snapshots haben es nicht → null).
+export function lemmaFrequenz(k) {
+  const v = Number(k?.frequenz)
+  return k?.frequenz != null && Number.isFinite(v) ? v : null
+}
+
+// „7,4 · 8.594 Belege“ bzw. nur „7,4“ ohne Frequenz (wie src/utils/kennzahlen.js).
+export function fmtKennzahl(d, f) {
+  if (d == null) return null
+  return f != null ? `${fmtDice(d)} · ${Number(f).toLocaleString('de-DE')} Belege` : fmtDice(d)
+}
+
 export function zwPeriodLabel(p) {
   return p === 'pre' ? 'vor 2000' : p === 'post' ? 'nach 2000' : '—'
 }

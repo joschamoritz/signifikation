@@ -71,3 +71,38 @@ describe('0027_push_vorlagen_texte', () => {
     expect(zeile(db, 1)).toEqual(nachErstem)
   })
 })
+
+// 0037: „am stärksten“ → „typisch“ (neue Rangfolge Häufigkeit × logDice, 2026-11-20)
+describe('0037_push_vorlagen_typisch', () => {
+  const ALT1 = ['Heute: »{lemma}«', 'Welche Wörter verbinden sich am stärksten damit?']
+  const ALT2 = ['{lemma} wartet auf dich', 'Kennst du die stärksten Kollokatoren?']
+
+  function neueDb() {
+    const db = new Database(':memory:')
+    db.exec('CREATE TABLE push_templates (id INTEGER PRIMARY KEY, title TEXT, body TEXT, enabled INTEGER DEFAULT 1, category TEXT DEFAULT \'daily\', created_at INTEGER, updated_at INTEGER)')
+    return db
+  }
+  const zeile = (db, id) => db.prepare('SELECT title, body, updated_at FROM push_templates WHERE id = ?').get(id)
+
+  it('ändert die beiden Texte, wenn sie noch exakt dem Stand nach 0027 entsprechen', () => {
+    const db = neueDb()
+    const ins = db.prepare('INSERT INTO push_templates (id, title, body, created_at, updated_at) VALUES (?, ?, ?, 1, 1)')
+    ins.run(1, ...ALT1)
+    ins.run(2, ...ALT2)
+    ins.run(3, ALT1[0], 'Eigener Text')
+    db.exec(sql('0037_push_vorlagen_typisch.sql'))
+    expect(zeile(db, 1)).toMatchObject({ body: 'Welche Wörter gehören fest dazu?' })
+    expect(zeile(db, 2)).toMatchObject({ body: 'Kennst du die typischsten Kollokatoren?' })
+    expect(zeile(db, 1).updated_at).toBeGreaterThan(1)
+    expect(zeile(db, 3)).toMatchObject({ body: 'Eigener Text', updated_at: 1 })
+  })
+
+  it('greift nach 0027 auf alten Datenbanken in einem Durchlauf', () => {
+    const db = neueDb()
+    db.prepare('INSERT INTO push_templates (id, title, body, created_at, updated_at) VALUES (1, ?, ?, 1, 1)')
+      .run('Heute: »{lemma}«', 'Welche Wörter treten am häufigsten gemeinsam auf?')
+    db.exec(sql('0027_push_vorlagen_texte.sql'))
+    db.exec(sql('0037_push_vorlagen_typisch.sql'))
+    expect(zeile(db, 1).body).toBe('Welche Wörter gehören fest dazu?')
+  })
+})

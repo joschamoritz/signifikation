@@ -186,7 +186,7 @@ describe('postFaellige', () => {
     await postFaellige({ now: UM_18_40(DI), env: { SOCIAL_POSTEN: 'on', ...ENV }, client, bildPfad })
     const { bild } = client.poste.mock.calls[0][0]
     expect(bild).toMatchObject({ breite: 1080, hoehe: 1350 })
-    expect(bild.alt).toContain('Welches Wort ist am stärksten mit „Haus“ verbunden?')
+    expect(bild.alt).toContain('Welches Wort gehört am typischsten zu „Haus“?')
   })
 
   it('Auflösung erscheint als Antwort auf den Beitrag vom Vortag – ohne ihn bleibt sie liegen', async () => {

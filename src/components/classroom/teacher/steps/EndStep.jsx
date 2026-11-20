@@ -15,6 +15,7 @@ import { getDashboard, getSessionResults, duplicateSession } from '../hooks/useT
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
 import { buildResultsCsv, resultsCsvFilename, downloadCsv } from '../exportResults'
 import { MODE_LABEL as MODE_LABELS } from '../../modeLabels'
+import { kennzahlText } from '../../../../utils/kennzahlen'
 
 function modeLabel(mode) {
   return MODE_LABELS[mode] || mode || '—'
@@ -28,10 +29,8 @@ function rateClass(pct) {
   return 'classroom-rate--high'
 }
 
-// logDice komma-formatiert (deutsche Schreibweise), null → leer.
-function fmtDice(v) {
-  return v == null ? null : String(v).replace('.', ',')
-}
+// logDice komma-formatiert, mit Belegen, wo der Snapshot sie hat („7,4 · 8.594 Belege“).
+const fmtDice = (v, f) => kennzahlText(v, f)
 
 // Modus-Pille in der Marken-Optik aus design.md (Farbe je Modus).
 function ModeBadge({ mode }) {
@@ -67,7 +66,7 @@ function LemmaEntry({ row, showBadge }) {
             <span key={o.label}>
               <strong>{o.label}</strong>
               {o.logDice != null && (
-                <span className="classroom-result-card__ld"> ({fmtDice(o.logDice)})</span>
+                <span className="classroom-result-card__ld"> ({fmtDice(o.logDice, o.frequenz)})</span>
               )}
               {i < arr.length - 1 ? ' · ' : ''}
             </span>
@@ -112,7 +111,7 @@ function LemmaEntry({ row, showBadge }) {
                     {o.label}
                     {o.sub && <span className="classroom-dist__sub"> · {o.sub}</span>}
                     {isOption && o.logDice != null && (
-                      <span className="classroom-dist__ld"> · {fmtDice(o.logDice)}</span>
+                      <span className="classroom-dist__ld"> · {fmtDice(o.logDice, o.frequenz)}</span>
                     )}
                   </span>
                   <span className="classroom-dist__bar" role="img" aria-label={`${o.label}: ${ariaVerb}`}>

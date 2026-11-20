@@ -173,7 +173,15 @@
   background: var(--bonus-bg-lt);
   color: var(--warn);
 }
-.option .logdice { margin-left: auto; }
+.option .logdice { margin-left: auto; padding-left: 8px; flex-shrink: 0; }
+/* Erklärzeile unter der Auflösung: wie die Reihenfolge entsteht (Häufigkeit × logDice) */
+.round-feedback-legende {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-wrap: pretty;
+}
 
 /* Aktive Belege-Option (nach Auswertung angeklickt) */
 .option--beleg-active { outline: 2px solid var(--primary); outline-offset: -1px }
@@ -482,4 +490,6 @@
   background: var(--bg);
   border-radius: 3px;
   padding: 1px 5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }

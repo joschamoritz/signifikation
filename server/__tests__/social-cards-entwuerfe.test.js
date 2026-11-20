@@ -110,7 +110,7 @@ describe('baueEntwuerfe – Wochenplan', () => {
     // Auflösung: Buchstabe der richtigen Antwort, keine Tags. Gedächtnis ist am
     // Donnerstag erneut geplant → Archivseite gesperrt → kein Link.
     const buchstabe = 'ABC'[opts.findIndex((o) => o.correct)]
-    expect(aufloesung.caption).toBe(`Auflösung: Am stärksten mit „Gedächtnis“ verbunden ist „kolloK1“ (${buchstabe}).`)
+    expect(aufloesung.caption).toBe(`Auflösung: Am typischsten zu „Gedächtnis“ gehört „kolloK1“ (${buchstabe}).`)
     expect(aufloesung.hashtags).toBe('')
   })
 
@@ -483,7 +483,7 @@ describe('erzeugeEntwuerfe / erneuereEntwurf', () => {
     expect(e.spec).toMatchObject({ format: 'A', datum: DI, reveal: false })
     expect(a.spec).toMatchObject({ datum: MI, reveal: true })
     // Gedächtnis ist am Donnerstag erneut geplant → Archivseite gesperrt → kein Link
-    expect(a.caption).toBe('Auflösung: Am stärksten mit „Gedächtnis“ verbunden ist „kollektiv“ (B).')
+    expect(a.caption).toBe('Auflösung: Am typischsten zu „Gedächtnis“ gehört „kollektiv“ (B).')
     expect(a.hashtags).toBe('')
     expect(existsSync(join(bildDir, e.bild))).toBe(true)
     // Das Rätsel des Plans am selben Tag steht weiter da, und der nächste Lauf räumt den eigenen Entwurf nicht ab

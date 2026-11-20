@@ -12,7 +12,7 @@ describe('createKollokationAnalyse (Spielweg)', () => {
     const { analyzeKollokationen } = createKollokationAnalyse({ fetchKollokatorenAnalyse, MIN_KOLLOKATOREN: 10 })
     const sub = await analyzeKollokationen('Lauf', 'Substantiv')
     expect(sub).toMatchObject({ pos: 'Substantiv', pool: 10, usable: true })
-    expect(sub.kollokatoren[0]).toEqual({ wort: 'k1', logDice: 10 })
+    expect(sub.kollokatoren[0]).toEqual({ wort: 'k1', logDice: 10, frequenz: null })
     expect((await analyzeKollokationen('laufen', 'Verb')).usable).toBe(false)
     expect(fetchKollokatorenAnalyse).toHaveBeenCalledTimes(2)
   })

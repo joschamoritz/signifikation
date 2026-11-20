@@ -147,8 +147,9 @@ function drawFooter(ctx, t, W, y) {
 }
 
 // ── Format A – Rätsel ─────────────────────────────────────────────────────────
-// Frage wie im Spiel: Alle drei Antworten sind Kollokatoren, gesucht ist der stärkste.
-const raetselFrage = (lemma) => `Welches Wort ist am stärksten mit „${lemma || 'LEMMA'}“ verbunden?`
+// Frage wie im Spiel: Alle drei Antworten sind Kollokatoren, gesucht ist der typischste
+// (Rangfolge Häufigkeit × logDice seit 2026-11-20).
+const raetselFrage = (lemma) => `Welches Wort gehört am typischsten zu „${lemma || 'LEMMA'}“?`
 
 function frageZeilen(ctx, W, lemma) {
   ctx.font = `400 28px ${SANS}`
@@ -563,7 +564,7 @@ export function altText(spec) {
   const reveal = !!spec.reveal
   if (spec.format === 'A') {
     const optionen = (d.options || []).map((o, i) => `${'ABC'[i]}) ${o.text}${reveal && o.correct ? ' – richtig' : ''}`).join(', ')
-    return `${reveal ? 'Auflösung: ' : ''}Rätselkarte von Signifikation. Welches Wort ist am stärksten mit „${d.lemma}“ verbunden? ${optionen}.`
+    return `${reveal ? 'Auflösung: ' : ''}Rätselkarte von Signifikation. Welches Wort gehört am typischsten zu „${d.lemma}“? ${optionen}.`
   }
   if (spec.format === 'B') {
     const satz = reveal ? String(d.quoteText).replace(/______/g, d.collocate) : String(d.quoteText).replace(/______/g, '(Lücke)')
@@ -642,9 +643,9 @@ export function hashtagsFor(set) {
 // Lemmata stehen in „…“ wie in der App – Bluesky rendert kein Markdown.
 const CAPTION_TEMPLATES = {
   A: [
-    s => `„${s.lemma}“ – und was kommt danach?\n\nDrei Kandidaten, aber nur einer ist am stärksten verbunden. Welcher?\n\nAuflösung morgen.`,
+    s => `„${s.lemma}“ – und was kommt danach?\n\nDrei Kandidaten, aber nur einer gehört am typischsten dazu. Welcher?\n\nAuflösung morgen.`,
     s => `Manche Verbindungen klingen selbstverständlich – bis man sie hinterfragt.\n\n„${s.lemma}“ + ?\n\nKommentiere deine Antwort, bevor du weiterscrollst.`,
-    s => `Im heutigen Rätsel geht es um „${s.lemma}“.\n\nKannst du den stärksten Kollokator nennen?\n\n${hashtagsFor('quiz')}`,
+    s => `Im heutigen Rätsel geht es um „${s.lemma}“.\n\nKannst du den typischsten Kollokator nennen?\n\n${hashtagsFor('quiz')}`,
   ],
   B: [
     s => `Aus einem echten Text – welches Wort fehlt?\n\n„${s.quote}“\n\nAuflösung morgen.`,

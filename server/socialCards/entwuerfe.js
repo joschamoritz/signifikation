@@ -126,7 +126,7 @@ function erlaubteQuelle(quelle) {
 }
 
 /**
- * Erster brauchbarer Beleg zu den stärksten Kollokatoren. Mit `luecke` muss
+ * Erster brauchbarer Beleg zu den typischsten Kollokatoren. Mit `luecke` muss
  * der Kollokator im Satz hervorgehoben sein, sonst gäbe es keine Lücke.
  * `passt` kann Kandidaten zusätzlich ablehnen (z. B. zu lang für einen Post).
  */
@@ -195,7 +195,7 @@ function archivLink(lemma, abDatum, { loadKalender, getLemmataIndex }) {
 
 function raetselAufloesung(data, antwort, link) {
   const buchstabe = 'ABC'[data.options.findIndex((o) => o.correct)]
-  const satz = `Auflösung: Am stärksten mit „${data.lemma}“ verbunden ist „${antwort}“ (${buchstabe}).`
+  const satz = `Auflösung: Am typischsten zu „${data.lemma}“ gehört „${antwort}“ (${buchstabe}).`
   return link ? `${satz}\n\nMehr Verbindungen: ${link}` : satz
 }
 

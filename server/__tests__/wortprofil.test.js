@@ -124,6 +124,49 @@ beforeAll(() => {
   fuelle('frieden', 'Adjektiv', 20)
   fuelle('liebe', 'Substantiv', 60)     // gesund → darf NICHT auf `lieb` wandern
   fuelle('lieb', 'Adjektiv', 60)
+
+  // ── Datenlage für die neue Kollokationen-Rangfolge (frequency × logDice) ──
+  // „Kaffee“: Jeder Fall steht für einen Filter aus dem Blindvergleich bzw. der
+  // Datenfehler-Bestandsaufnahme (planning/Kollokationen-Umkehr.md).
+  const koll2 = (lemma, pos, rel, dl, dp, f, ld) =>
+    ins.run(lemma, pos, rel, `${lemma}-${pos}-${rel}`, rel, dl, dl, dp, f, ld)
+  const modern = (lemma, pos, freq) => lcf.run(lemma, pos, 'deu_news', freq)
+  koll2('kaffee', 'Substantiv', '~OBJA', 'trinken', 'Verb', 1200, 9.5)
+  koll2('kaffee', 'Substantiv', 'ATTR', 'stark', 'Adjektiv', 900, 9.0)
+  koll2('kaffee', 'Substantiv', '~OBJA', 'kochen', 'Verb', 600, 8.0)
+  koll2('kaffee', 'Substantiv', 'ATTR', 'gekocht', 'Adjektiv', 300, 7.0)   // Partizip → ins Verb
+  koll2('kaffee', 'Substantiv', 'ATTR', 'heiß', 'Adjektiv', 800, 8.5)
+  koll2('kaffee', 'Substantiv', 'KON', 'tee', 'Substantiv', 500, 10.0)
+  koll2('kaffee', 'Substantiv', 'KON', 'preisen', 'Substantiv', 400, 7.0)  // Lemmafehler → „Preis“
+  koll2('kaffee', 'Substantiv', 'ATTR', 'arabica', 'Adjektiv', 20, 11.0)  // selten, logDice-Spitze
+  koll2('kaffee', 'Substantiv', 'ATTR', 'groß', 'Adjektiv', 2000, 4.0)    // passt zu allem
+  koll2('kaffee', 'Substantiv', 'ATTR', 'isolirt', 'Adjektiv', 700, 8.0)  // nur historische Quellen
+  koll2('kaffee', 'Substantiv', 'KON', 'schutzhindernis', 'Substantiv', 650, 8.0) // Patentgericht
+  koll2('kaffee', 'Substantiv', 'KON', 'kaffeebohne', 'Substantiv', 900, 9.0)     // Kompositum mit Basis
+  for (let i = 0; i < 8; i++) {
+    koll2('kaffee', 'Substantiv', 'ATTR', `fuell${i}`, 'Adjektiv', 100 - i, 6)
+    modern(`fuell${i}`, 'Adjektiv', 5000)
+  }
+  for (const [w, p] of [['trinken', 'Verb'], ['stark', 'Adjektiv'], ['kochen', 'Verb'], ['gekocht', 'Adjektiv'],
+    ['heiß', 'Adjektiv'], ['tee', 'Substantiv'], ['preisen', 'Substantiv'], ['groß', 'Adjektiv'], ['kaffeebohne', 'Substantiv']]) {
+    modern(w, p, 50_000)
+  }
+  modern('arabica', 'Adjektiv', 300)
+  lcf.run('isolirt', 'Adjektiv', 'dta_kern', 12_000)
+  lcf.run('schutzhindernis', 'Substantiv', 'bpatg', 9_500)
+  lcf.run('schutzhindernis', 'Substantiv', 'deu_news', 500)
+  // Gegenrichtung: „groß“ hat eine Million Partner, Kaffee ist darunter 0,2 %
+  koll2('groß', 'Adjektiv', '~ATTR', 'kaffee', 'Substantiv', 2000, 4.0)
+  koll2('groß', 'Adjektiv', '~ATTR', 'haus', 'Substantiv', 1_000_000, 9.0)
+  // „einstürzen“: Verben bekommen Subjekte, keine Adverbien
+  koll2('einstürzen', 'Verb', 'SUBJA', 'dach', 'Substantiv', 500, 9.0)
+  koll2('einstürzen', 'Verb', 'ADV', 'plötzlich', 'Adverb', 900, 9.0)
+  modern('dach', 'Substantiv', 80_000)
+  modern('plötzlich', 'Adverb', 80_000)
+  for (let i = 0; i < 10; i++) {
+    koll2('einstürzen', 'Verb', 'SUBJA', `bau${i}`, 'Substantiv', 90 - i, 6)
+    modern(`bau${i}`, 'Substantiv', 5000)
+  }
   db.close()
 })
 
@@ -329,5 +372,69 @@ describe('fetchKollokatorenAnalyse (Wort prüfen › Kollokationen, Spielweg)', 
     const wp = await ladeModul({ hideAux: false })
     const analyse = await wp.fetchKollokatorenAnalyse('Quastenflosser', 'Substantiv')
     expect(analyse).toMatchObject({ pool: 0, gesucht: [], ablenker: [], kollokatoren: [] })
+  })
+})
+
+describe('Kollokationen-Rangfolge (frequency × logDice + Filter, Blindvergleich 2026-11-19)', () => {
+  it('sortiert nach frequency × logDice statt nach logDice', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const analyse = await wp.fetchKollokatorenAnalyse('Kaffee', 'Substantiv')
+    expect(analyse.rangfolge).toBe('neu')
+    // trinken 1200 × 9,5 vor stark 900 × 9 vor kochen (600 + 300 aus „gekocht“) × 8
+    expect(analyse.gesucht.map((k) => k.wort)).toEqual(['trinken', 'stark', 'kochen'])
+  })
+
+  it('wendet die Filter an: selten, historisch, Allerweltswort, Fachsprache, Kompositum', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const woerter = (await wp.fetchKollokatorenAnalyse('Kaffee', 'Substantiv')).kollokatoren.map((k) => k.wort)
+    for (const raus of ['arabica', 'isolirt', 'groß', 'Schutzhindernis', 'Kaffeebohne']) {
+      expect(woerter).not.toContain(raus)
+    }
+  })
+
+  it('korrigiert Lemmafehler und führt das Partizip ins Verb', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const woerter = (await wp.fetchKollokatorenAnalyse('Kaffee', 'Substantiv')).kollokatoren.map((k) => k.wort)
+    expect(woerter).toContain('Preis')
+    expect(woerter).not.toContain('Preisen')
+    expect(woerter).not.toContain('gekocht')
+    expect(woerter).toContain('Tee')
+  })
+
+  it('fetchLemma nimmt dieselbe Rangfolge, Ablenker in Platzreihenfolge', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const analyse = await wp.fetchKollokatorenAnalyse('Kaffee', 'Substantiv')
+    const runde = (await wp.fetchLemma('Kaffee', 'Substantiv')).runden.kollokatoren
+    expect(runde.slice(0, 3).map((o) => o.wort)).toEqual(analyse.gesucht.map((k) => k.wort))
+    expect(runde.map((o) => o.rang)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    const platz = (w) => analyse.kollokatoren.find((k) => k.wort === w).platz
+    const ablenkerPlaetze = runde.slice(3).map((o) => platz(o.wort))
+    expect(ablenkerPlaetze).toEqual([...ablenkerPlaetze].sort((a, b) => a - b))
+    expect(runde[0]).toMatchObject({ wort: 'trinken', frequenz: 1200 })
+  })
+
+  it('gibt Verben Subjekte statt Adverbien', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const woerter = (await wp.fetchKollokatorenAnalyse('einstürzen', 'Verb')).kollokatoren.map((k) => k.wort)
+    expect(woerter[0]).toBe('Dach')
+    expect(woerter).not.toContain('plötzlich')
+  })
+
+  it('fällt bei zu wenig Treffern auf die alte logDice-Sortierung zurück', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    // „Liebe“ hat 60 Kollokatoren, aber keiner ist im Korpus bekannt (lemma_corpus_freq fehlt)
+    expect((await wp.fetchKollokatorenAnalyse('Liebe', 'Substantiv')).rangfolge).toBe('alt')
+  })
+
+  it('lässt sich mit KOLLOKATIONEN_RANGFOLGE=alt abschalten', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    vi.stubEnv('KOLLOKATIONEN_RANGFOLGE', 'alt')
+    try {
+      const analyse = await wp.fetchKollokatorenAnalyse('Kaffee', 'Substantiv')
+      expect(analyse.rangfolge).toBe('alt')
+      expect(analyse.gesucht[0].wort).toBe('arabica') // höchstes logDice
+    } finally {
+      vi.stubEnv('KOLLOKATIONEN_RANGFOLGE', '')
+    }
   })
 })
