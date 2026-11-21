@@ -273,6 +273,7 @@
                 <!-- Live-Zeile: nur die Kurzmeldung des Ergebnisses wird vorgelesen, nicht die ganze Liste -->
                 <p class="adm-visually-hidden" id="entry-koll-live" aria-live="polite"></p>
                 <div id="entry-koll-analysis-output" class="tag-ergebnis"></div>
+                <p class="li-meldung kk-editor-msg" id="entry-koll-kk-msg" role="status" aria-live="polite" tabindex="-1"></p>
               </section>
 
               <!-- Wort-Zwilling -->
@@ -706,6 +707,83 @@
         <section class="tag-abschnitt" aria-labelledby="bonus-liste-titel">
           <h2 class="tag-abschnitt-titel" id="bonus-liste-titel">Geplant</h2>
           <div id="freedays-list"></div>
+        </section>
+      </section>
+
+      <section class="admin-page be-seite in-seite kk-seite" id="page-kollokator-korrekturen" data-title="Kollokator-Korrekturen" data-subtitle="Lemmafehler der Korpus-DB im Spiel „Kollokationen“ ersetzen oder sperren. Gilt sofort für neue Prüfungen und gespeicherte Tage erst nach dem Neubau.">
+        <section class="tag-abschnitt" aria-labelledby="kk-form-titel">
+          <h2 class="tag-abschnitt-titel" id="kk-form-titel"><span id="kk-form-titel-text">Korrektur eintragen</span></h2>
+          <p class="tag-abschnitt-text">Der Grundbestand steht im Code (<code>server/kollokatorKorrektur.js</code>). Einträge hier ergänzen ihn; ein Eintrag für dasselbe Wort übersteuert ihn. Ist der Ersatz das Wort selbst, hebt der Eintrag eine Korrektur aus dem Code auf.</p>
+          <form id="kk-form" novalidate>
+            <div class="tag-feld">
+              <label class="tag-label" for="kk-art">Art</label>
+              <div class="tag-wert">
+                <select class="tag-auswahl" id="kk-art">
+                  <option value="lemma-ersetzen">Lemma ersetzen</option>
+                  <option value="lemma-sperren">Lemma sperren</option>
+                  <option value="paar-ersetzen">Paar ersetzen</option>
+                  <option value="paar-sperren">Paar sperren</option>
+                  <option value="schreibung">Schreibweise</option>
+                  <option value="abkuerzung">Abkürzung</option>
+                  <option value="partizip">starkes Partizip</option>
+                </select>
+              </div>
+            </div>
+            <p class="tag-hinweis in-feld-hinweis" id="kk-art-hinweis">Wirkt bei jeder Basis.</p>
+            <div class="tag-feld" id="kk-feld-wortart">
+              <label class="tag-label" for="kk-wortart">Wortart</label>
+              <div class="tag-wert"><select class="tag-auswahl" id="kk-wortart"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option><option value="Adverb">Adverb</option></select></div>
+            </div>
+            <div class="tag-feld is-hidden" id="kk-feld-basis">
+              <label class="tag-label" for="kk-basis">Basis</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="kk-basis" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. heiraten" aria-describedby="kk-basis-fehler"></div>
+              <p class="tag-feld-fehler" id="kk-basis-fehler" hidden></p>
+            </div>
+            <div class="tag-feld">
+              <label class="tag-label" for="kk-kollokator">Kollokator</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="kk-kollokator" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. preisen" aria-describedby="kk-kollokator-hinweis kk-kollokator-fehler"></div>
+              <p class="tag-feld-fehler" id="kk-kollokator-fehler" hidden></p>
+            </div>
+            <p class="tag-hinweis in-feld-hinweis" id="kk-kollokator-hinweis">So, wie es in der Korpus-DB steht (die Prüfung im Tag-Editor zeigt es in eckigen Klammern).</p>
+            <div class="tag-feld" id="kk-feld-ersatz">
+              <label class="tag-label" for="kk-ersatz">Ersatz</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="kk-ersatz" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Preis" aria-describedby="kk-ersatz-fehler"></div>
+              <p class="tag-feld-fehler" id="kk-ersatz-fehler" hidden></p>
+            </div>
+            <div class="tag-feld">
+              <label class="tag-label" for="kk-notiz">Notiz <span class="tag-label-zusatz">optional</span></label>
+              <div class="tag-wert"><input class="tag-eingabe" type="text" id="kk-notiz" maxlength="300" autocomplete="off" placeholder="z. B. Dativ Plural als Lemma"></div>
+            </div>
+            <p class="tag-hinweis kk-vorschau" id="kk-vorschau" aria-live="polite"></p>
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="kk-start"><span id="kk-start-text">Eintragen</span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link is-hidden" id="kk-abbrechen" data-action="kk-abbrechen">Bearbeiten abbrechen</button>
+            </div>
+            <p class="li-meldung" id="kk-msg" role="status" aria-live="polite" tabindex="-1"></p>
+          </form>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="kk-liste-titel">
+          <h2 class="tag-abschnitt-titel" id="kk-liste-titel">Einträge</h2>
+          <div class="kk-filter">
+            <div class="li-feld">
+              <label class="li-label" for="kk-filter-art">Art</label>
+              <select class="li-auswahl" id="kk-filter-art">
+                <option value="">Alle Arten</option>
+                <option value="lemma">Lemma</option>
+                <option value="paar">Paar</option>
+                <option value="schreibung">Schreibweise</option>
+                <option value="abkuerzung">Abkürzung</option>
+                <option value="partizip">starkes Partizip</option>
+              </select>
+            </div>
+            <div class="li-feld">
+              <label class="li-label" for="kk-suche">Suche</label>
+              <input class="li-suche" type="search" id="kk-suche" autocomplete="off" spellcheck="false" placeholder="Wort oder Notiz">
+            </div>
+            <label class="kk-check"><input type="checkbox" id="kk-grundbestand"> auch Grundbestand aus dem Code</label>
+          </div>
+          <div id="kk-liste"></div>
         </section>
       </section>
 
@@ -1232,6 +1310,7 @@
           <h2 class="adm-overline">Inhalte pflegen</h2>
           <ul class="adm-tools">
             <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokationen, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/kollokator-korrekturen"><span class="adm-tool-main"><span class="adm-tool-title">Kollokator-Korrekturen</span><span class="adm-tool-meta">Lemmafehler der Korpus-DB im Spiel „Kollokationen“ ersetzen oder sperren</span></span><span class="adm-tool-stand" id="wz-stand-kk"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen Spielen mit eigenem Lemma für Konten mit Basiszugang</span></span><span class="adm-tool-stand" id="wz-stand-bonus"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Nachricht an alle Geräte senden, Vorlagen für den täglichen Versand</span></span><span class="adm-tool-stand" id="wz-stand-push"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/social-cards" aria-describedby="wz-stand-social"><span class="adm-tool-main"><span class="adm-tool-title">Social Cards</span><span class="adm-tool-meta">Entwürfe für Bluesky prüfen und freigeben, eigene Karten gestalten</span></span><span class="adm-tool-stand" id="wz-stand-social"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>

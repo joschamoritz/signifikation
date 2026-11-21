@@ -5872,3 +5872,145 @@ html:has(#page-entry.is-active) {
   .au-achse-text { fill: CanvasText; }
   .au-wahl-linie, .au-wahl-fuss { stroke: Highlight; }
 }
+
+/* ── Kollokator-Korrekturen: Platz 1–10 mit Verdachtsmarken (Tag-Editor) ──
+   Linien statt Kästen (DESIGN.md › Admin): Verdächtige Plätze tragen links eine
+   Linie in Warnfarbe, Gründe und Knöpfe stehen eingerückt darunter. */
+.kk-plaetze {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kk-platz {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr) auto auto;
+  column-gap: 8px;
+  align-items: baseline;
+  padding: 3px 0 3px 8px;
+  border-left: 2px solid transparent;
+}
+
+.kk-platz[data-gesucht] .kk-wort { font-weight: 700; }
+.kk-platz.is-verdacht { border-left-color: var(--status-warn); }
+
+.kk-nr {
+  color: var(--muted);
+  font: 500 0.72rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.kk-wort { min-width: 0; overflow-wrap: anywhere; }
+
+.kk-db {
+  color: var(--muted);
+  font: 400 0.78rem/1 var(--font-sans);
+}
+
+.kk-marke {
+  color: var(--status-warn);
+  font: 600 0.7rem/1 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kk-verdacht {
+  grid-column: 2 / -1;
+  margin: 2px 0 6px;
+}
+
+.kk-gruende {
+  margin: 0;
+  color: var(--status-warn);
+  font: 400 0.82rem/1.4 var(--font-sans);
+}
+
+.kk-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  margin-top: 4px;
+  font: 500 0.82rem/1.4 var(--font-sans);
+}
+
+.kk-ersetzen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:is(#page-entry, .in-seite) .kk-ersatz-feld {
+  width: 11em;
+  min-height: 32px;
+  padding: 2px 8px;
+  font-size: 0.9rem;
+}
+
+.kk-mehr { grid-column: 4; justify-self: end; }
+.kk-mehr[open] { grid-column: 2 / -1; justify-self: stretch; margin: 2px 0 6px; }
+.kk-mehr > summary {
+  color: var(--muted);
+  cursor: pointer;
+  font: 500 0.72rem/1.4 var(--font-sans);
+  list-style: none;
+}
+.kk-mehr > summary::-webkit-details-marker { display: none; }
+.kk-mehr > summary:hover { color: var(--text); text-decoration: underline; }
+
+.kk-rueckfall {
+  margin: 4px 0 2px;
+  color: var(--muted);
+  font: 400 0.8rem/1.4 var(--font-sans);
+}
+
+.kk-vergleich { margin-top: 10px; }
+
+.kk-vergleich-liste {
+  margin: 4px 0 6px;
+  padding-left: 1.2em;
+  font: 400 0.9rem/1.45 var(--font-serif);
+}
+
+.kk-editor-msg:empty { display: none; }
+
+/* ── Werkzeuge › Kollokator-Korrekturen: Filter und Liste ── */
+.kk-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: 12px 16px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.kk-check {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font: 400 0.9rem/1.4 var(--font-sans);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.kk-code-titel {
+  margin: 22px 0 6px;
+  color: var(--muted);
+  font: 600 0.8rem/1.3 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kk-code .be-zeile-haupt { font-weight: 400; }
+
+.kk-vorschau:empty { display: none; }
+
+@media (max-width: 480px) {
+  .kk-filter { grid-template-columns: minmax(0, 1fr); }
+  .kk-platz { grid-template-columns: 1.6em minmax(0, 1fr) auto; }
+  .kk-platz > .kk-marke { grid-column: 2 / -1; }
+  .kk-mehr { grid-column: 2 / -1; justify-self: start; }
+  .kk-ersetzen { flex-wrap: wrap; }
+}

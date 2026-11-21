@@ -235,6 +235,7 @@ const ROUTE_TABLE = {
   'werkzeuge': { page: 'werkzeuge', area: 'werkzeuge' },
   'werkzeuge/pruefen': { page: 'analytics', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/bonus-tage': { page: 'freedays', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/kollokator-korrekturen': { page: 'kollokator-korrekturen', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/benachrichtigungen': { page: 'push', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/wort-der-woche': { page: 'spezialwoche', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/system': { page: 'system', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
@@ -560,6 +561,9 @@ function runRouteLoaders(route) {
       protokollLimit = PROTOKOLL_SEITE
       protokollOffen.clear()
       loadAuditLog()
+      break
+    case 'kollokator-korrekturen':
+      void ladeKollokatorKorrekturen()
       break
     case 'freedays':
       // Liste sofort aus dem Speicher, dann frisch nachziehen
@@ -3562,6 +3566,8 @@ async function saveTag() {
       }
     }
     await loadKalender()
+    // Speichern friert die aktuelle Rangfolge ein: Ein Vergleich „gespeichert ≠ aktuell“ wäre jetzt veraltet
+    entryGespeichertKoll = null
     // Nur den Snapshot erneuern, wenn das Formular noch den gespeicherten Tag zeigt –
     // sonst würde ein inzwischen geöffneter anderer Tag fälschlich als „gespeichert“ gelten.
     if (stillOnSavedDay()) {
@@ -3655,6 +3661,11 @@ async function editTag(datum, options = {}) {
   updateModeIndicators()
   clearInlineAnalysisOutputs()
   captureEntryFormSnapshot({ keepDraft: true })
+  entryGespeichertKoll = { datum, woerter: data.woerter, top3: Array.isArray(data.kollokatorenTop3) ? data.kollokatorenTop3 : [] }
+  // Künftiger Tag: gleich prüfen, damit Verdachtsmarken und abweichende Top 3 sofort sichtbar sind
+  if (datum > getTodayIso() && data.woerter.length) {
+    void mitPruefSperre(document.querySelector('[data-action="analyze-entry-kollokation"]'), analyzeEntryKollokation)
+  }
 
   scrollNachOben()
   // Keine Ladebestätigung mehr: Der Stand „Keine Änderungen“ in der Leiste genügt.
@@ -4585,23 +4596,40 @@ async function analyzeEntryKollokation() {
     ? (woerter.length === 3 ? 'Alle drei geeignet.' : woerter.length === 2 ? 'Beide geeignet.' : 'Geeignet.')
     : `${geeignet} von ${woerter.length} geeignet${nichtGeprueft ? ` · ${nichtGeprueft} nicht geprüft` : ''}.`
 
-  const zeilen = woerter.map(({ lemma }, i) => {
+  let verdaechtig = 0
+  const zeilen = woerter.map(({ lemma, pos }, i) => {
     const antwort = antworten[i]
     if (antwort.status === 'rejected') {
       return `<li class="tag-erg-zeile"><span class="tag-erg-wort">${esc(lemma)}</span><span class="tag-erg-urteil" data-tone="error">${esc(`Fehler: ${antwort.reason?.message || 'unbekannt'}`)}</span></li>`
     }
     const data = antwort.value
-    const werte = (Array.isArray(data.kollokatoren) ? data.kollokatoren : []).slice(0, 5)
-      .map((k) => `${esc(k.wort)} <span class="tag-erg-zahl">${zahlDe(k.logDice)}</span>`).join(' · ')
+    verdaechtig += (data.kollokatoren ?? []).slice(0, 10).filter((k) => k.verdacht).length
     const urteil = data.usable
       ? '<span class="tag-erg-urteil" data-tone="ok">geeignet</span>'
       : `<span class="tag-erg-urteil" data-tone="warn">${esc(`nur ${anzahlText(data.pool ?? 0, 'Kollokator', 'Kollokatoren')} (das Spiel braucht ${data.min ?? 10})`)}</span>`
-    return `<li class="tag-erg-zeile"><span class="tag-erg-wort">${esc(lemma)}</span>${werte ? `<span class="tag-erg-werte">${werte}</span>` : ''}${urteil}</li>`
+    const plaetze = kkPlaetzeHtml(data, lemma, pos, i + 1)
+    return `<li class="tag-erg-zeile"><span class="tag-erg-wort">${esc(lemma)}</span>${urteil}${plaetze ? `<div class="tag-erg-werte">${plaetze}</div>` : ''}</li>`
   }).join('')
 
-  schreibeErgebnis(out, ergebnisMeldung(kopf, alle ? 'ok' : 'warn')
+  const hinweis = verdaechtig ? ` ${anzahlText(verdaechtig, 'Kollokator', 'Kollokatoren')} mit Verdacht auf einen Datenfehler.` : ''
+  schreibeErgebnis(out, ergebnisMeldung(kopf + hinweis, alle && !verdaechtig ? 'ok' : 'warn')
+    + kkVergleichHtml(woerter, antworten)
     + `<ul class="tag-erg-liste">${zeilen}</ul>`
-    + '<p class="tag-erg-fuss">Je Wort die fünf typischsten Kollokatoren im eigenen Korpus (Reihenfolge nach Häufigkeit × logDice); Zahl = logDice (Assoziationsmaß). Geeignet ab zehn Kollokatoren: drei gesuchte und sieben Ablenker.</p>')
+    + '<p class="tag-erg-fuss">Je Wort Platz 1–10 im eigenen Korpus (Reihenfolge nach Häufigkeit × logDice, Platz 1–3 sind die gesuchten). Zahlen: logDice (Assoziationsmaß) · Belege des Paars. In eckigen Klammern das Lemma der Korpus-DB, wenn eine Korrektur es ersetzt hat. „Verdacht“ ist ein Hinweis, kein Urteil. Eine Korrektur gilt sofort für neue Prüfungen; gespeicherte Tage ändern sich erst mit „neu bauen“. Geeignet ab zehn Kollokatoren: drei gesuchte und sieben Ablenker.</p>')
+}
+
+// Nach dem Neubau im Tag-Editor: gespeicherte Top 3 nachziehen und neu prüfen
+function kkNachNeubauImEditor(ergebnis) {
+  const g = entryGespeichertKoll
+  if (g) {
+    for (const t of ergebnis.tage ?? []) {
+      for (const e of t.eintraege ?? []) {
+        const j = g.woerter.findIndex((w) => w.toLowerCase() === String(e.lemma).toLowerCase())
+        if (e.status === 'geschrieben' && j >= 0) g.top3[j] = e.neu
+      }
+    }
+  }
+  void analyzeEntryKollokation()
 }
 
 // Vorschau eines der drei Kollokationen-Wörter (Nr. 1–3) als Wörterbuch-Eintrag.
@@ -7711,6 +7739,23 @@ function handleDocumentClick(event) {
   if (action === 'audit-mehr') return void auditMehr()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
   if (action === 'load-free-days') return void loadFreeDays()
+  if (action === 'kk-laden') return void ladeKollokatorKorrekturen()
+  if (action === 'kk-bearbeiten') {
+    const e = kkEintraege.find((x) => x.id === Number(target.dataset.id))
+    return void (e && kkFormularFuellen(e, { bearbeiten: true }))
+  }
+  if (action === 'kk-uebersteuern') {
+    const z = kkGrundbestand?.[Number(target.dataset.index)]
+    return void (z && kkFormularFuellen(z, { bearbeiten: false }))
+  }
+  if (action === 'kk-abbrechen') { kkFormularLeeren(); return void setMeldung('kk-msg', '') }
+  if (action === 'kk-loeschen') return void loescheKollokatorKorrektur(Number(target.dataset.id))
+  if (action === 'kk-vorschlag') return void kkVorschlagAnlegen(target)
+  if (action === 'kk-neubau') {
+    const daten = (target.dataset.daten || '').split(',').filter(Boolean)
+    const meldung = target.dataset.meldung || (target.closest('#page-entry') ? 'entry-koll-kk-msg' : 'kk-msg')
+    return void kollokationenNeubau(daten, meldung, { nachher: meldung === 'entry-koll-kk-msg' ? kkNachNeubauImEditor : undefined })
+  }
   if (action === 'delete-free-day') return void deleteFreeDay(target.dataset.date || '')
   if (action === 'bonus-rueckgaengig') return void bonusRueckgaengig()
   if (action === 'load-spezialwochen') return void ladeWortDerWoche()
@@ -8832,6 +8877,9 @@ function handleDocumentChange(event) {
   if (target.matches('.user-select-checkbox')) return void waehleNutzer(target.dataset.userId || '', target.checked)
   if (target.id === 'user-detail-role') return void aktualisiereRollenKnopf()
   if (target.id === 'freeday-date') return void pruefeBonusDatum()
+  if (target.id === 'kk-art' || target.id === 'kk-wortart') return void kkFormularAktualisieren()
+  if (target.id === 'kk-filter-art') return void renderKollokatorKorrekturen()
+  if (target.id === 'kk-grundbestand') return void ladeKollokatorKorrekturen()
   if (target.id === 'sw-woche') return void pruefeSwWoche()
   if (target.id === 'push-dialog-ok') return void pushDialogHaekchen()
   if (target.dataset.vorlage && target.type === 'checkbox') return void vorlageGeaendert(target)
@@ -8845,6 +8893,11 @@ function handleDocumentInput(event) {
   if (target.id === 'entry-search') return void scheduleEntryTableRender()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void planeProtokollSuche()
+  if (target.id === 'kk-suche') return void renderKollokatorKorrekturen()
+  if (target.closest?.('#kk-form')) {
+    if (target.getAttribute('aria-invalid') === 'true') setzeFeldFehlerStatisch(target.id, '')
+    return void kkFormularAktualisieren()
+  }
   if (target.id === 'push-send-title' || target.id === 'push-send-body') {
     target.removeAttribute('aria-invalid')
     renderPushFormular()
@@ -10373,6 +10426,380 @@ function socialAenderung(ev) {
   void socialZeichne()
 }
 
+// ── Werkzeuge › Kollokator-Korrekturen ─────────────────────────────────────
+// DB-Einträge über dem Grundbestand aus server/kollokatorKorrektur.js. Jede Änderung wirkt
+// sofort auf neue Prüfungen; gespeicherte Tage ändern sich erst mit „neu bauen“.
+
+const KK_ART_LABEL = { lemma: 'Lemma', paar: 'Paar', schreibung: 'Schreibweise', abkuerzung: 'Abkürzung', partizip: 'starkes Partizip' }
+const KK_ART_HINWEIS = {
+  'lemma-ersetzen': 'Wirkt bei jeder Basis: Das falsche Lemma wird durch den Ersatz ersetzt (Einträge mit demselben Wort werden zusammengeführt).',
+  'lemma-sperren': 'Wirkt bei jeder Basis: Das Lemma erscheint nie als Kollokator.',
+  'paar-ersetzen': 'Wirkt nur bei dieser Basis und vor allen Lemma-Regeln.',
+  'paar-sperren': 'Wirkt nur bei dieser Basis: Der Kollokator erscheint dort nicht.',
+  schreibung: 'Feste Anzeige-Schreibweise, die keine Regel trifft (CD-ROM, EC-Karte).',
+  abkuerzung: 'Abkürzung in Großbuchstaben, auch als Teil eines Bindestrich-Worts (US-Präsident).',
+  partizip: 'Partizip mit Ablaut, das in sein Verb zusammengeführt wird, wenn beide in der Liste stehen.',
+}
+
+let kkEintraege = []
+let kkGrundbestand = null
+let kkGeladen = false
+let kkLadeFehler = ''
+let kkLadeToken = 0
+let kkBearbeitetId = null
+let kkSpeichert = false
+
+const kkSperrt = (wahl) => wahl === 'lemma-sperren' || wahl === 'paar-sperren'
+const kkArtAusWahl = (wahl) => wahl.replace(/-(ersetzen|sperren)$/, '')
+const kkWahlAusEintrag = (e) => (e.art === 'lemma' || e.art === 'paar') ? `${e.art}-${e.ersatz == null ? 'sperren' : 'ersetzen'}` : e.art
+
+/** Lesbare Beschreibung einer Korrektur (Liste, Vorschau, Meldungen). */
+function kkBeschreibung(e) {
+  const k = e.kollokator
+  const bleibt = e.ersatz != null && String(e.ersatz).toLowerCase() === String(k).toLowerCase()
+  if (e.art === 'lemma') {
+    if (e.ersatz == null) return `${e.wortart}: „${k}“ gesperrt`
+    return bleibt ? `${e.wortart}: „${k}“ bleibt (hebt die Korrektur aus dem Code auf)` : `${e.wortart}: „${k}“ → „${e.ersatz}“`
+  }
+  if (e.art === 'paar') {
+    if (e.ersatz == null) return `${e.basis} | „${k}“ gesperrt`
+    return bleibt ? `${e.basis} | „${k}“ bleibt` : `${e.basis} | „${k}“ → „${e.ersatz}“`
+  }
+  return `${KK_ART_LABEL[e.art]}: „${k}“ → „${e.ersatz}“`
+}
+
+function kkFormularWerte() {
+  const wahl = document.getElementById('kk-art')?.value || 'lemma-ersetzen'
+  const art = kkArtAusWahl(wahl)
+  return {
+    wahl,
+    art,
+    wortart: document.getElementById('kk-wortart')?.value || 'Substantiv',
+    basis: normalizeText(document.getElementById('kk-basis')?.value || ''),
+    kollokator: normalizeText(document.getElementById('kk-kollokator')?.value || ''),
+    ersatz: kkSperrt(wahl) ? null : normalizeText(document.getElementById('kk-ersatz')?.value || ''),
+    notiz: normalizeText(document.getElementById('kk-notiz')?.value || ''),
+  }
+}
+
+// Felder je Art ein- und ausblenden, Hinweis und Vorschau aktualisieren
+function kkFormularAktualisieren() {
+  const w = kkFormularWerte()
+  document.getElementById('kk-feld-wortart')?.classList.toggle('is-hidden', w.art !== 'lemma')
+  document.getElementById('kk-feld-basis')?.classList.toggle('is-hidden', w.art !== 'paar')
+  document.getElementById('kk-feld-ersatz')?.classList.toggle('is-hidden', kkSperrt(w.wahl))
+  const hinweis = document.getElementById('kk-art-hinweis')
+  if (hinweis) hinweis.textContent = KK_ART_HINWEIS[w.wahl] || ''
+  const vorschau = document.getElementById('kk-vorschau')
+  if (!vorschau) return
+  if (!w.kollokator || (w.art === 'paar' && !w.basis) || (!kkSperrt(w.wahl) && !w.ersatz)) { vorschau.textContent = ''; return }
+  const text = kkBeschreibung({ ...w, kollokator: w.kollokator.toLowerCase(), basis: w.basis.toLowerCase() })
+  const schon = kkEintraege.find((e) => e.id !== kkBearbeitetId && e.art === w.art && e.kollokator === w.kollokator.toLowerCase()
+    && (w.art !== 'lemma' || e.wortart === w.wortart) && (w.art !== 'paar' || e.basis === w.basis.toLowerCase()))
+  vorschau.textContent = `Vorschau: ${text}${w.art === 'paar' ? '' : ', bei jeder Basis'}${schon ? '. Für dieses Wort gibt es schon einen Eintrag; Eintragen ersetzt ihn.' : ''}`
+}
+
+async function ladeKollokatorKorrekturen() {
+  kkFormularAktualisieren()
+  const token = ++kkLadeToken
+  const mitCode = document.getElementById('kk-grundbestand')?.checked
+  if (!kkGeladen) renderKollokatorKorrekturen()
+  try {
+    const data = await holeJson(`/admin/kollokator-korrekturen${mitCode ? '?grundbestand=1' : ''}`)
+    if (token !== kkLadeToken) return
+    kkEintraege = Array.isArray(data.eintraege) ? data.eintraege : []
+    kkGrundbestand = Array.isArray(data.grundbestand) ? data.grundbestand : null
+    kkGeladen = true
+    kkLadeFehler = ''
+  } catch (err) {
+    if (token !== kkLadeToken) return
+    kkLadeFehler = `Die Korrekturen konnten nicht geladen werden (${err.status ? `HTTP ${err.status}` : 'keine Antwort'}).`
+  }
+  setzeStand('wz-stand-kk', kkGeladen ? anzahlText(kkEintraege.length, 'Eintrag', 'Einträge') : '')
+  renderKollokatorKorrekturen()
+}
+
+function kkPasst(e, art, suche) {
+  if (art && e.art !== art) return false
+  if (!suche) return true
+  return [e.kollokator, e.basis, e.ersatz, e.notiz, e.wortart].some((x) => String(x ?? '').toLowerCase().includes(suche))
+}
+
+function kkZeile(e) {
+  const datum = e.geaendertAm ? new Date(e.geaendertAm).toISOString().slice(0, 10) : ''
+  const meta = [e.notiz, [e.admin, datum ? datumKurz(datum) : ''].filter(Boolean).join(', ')].filter(Boolean).join(' · ')
+  return `<li class="in-zeile" data-id="${esc(String(e.id))}">`
+    + `<span class="be-zeile-haupt">${esc(kkBeschreibung(e))}</span>`
+    + `<span class="be-zeile-meta">${esc(meta || KK_ART_LABEL[e.art])}</span>`
+    + '<span class="in-zeile-aktion">'
+    + `<button type="button" class="li-loeschen" data-action="kk-bearbeiten" data-id="${esc(String(e.id))}">bearbeiten<span class="adm-visually-hidden">: ${esc(kkBeschreibung(e))}</span></button>`
+    + `<button type="button" class="li-loeschen" data-action="kk-loeschen" data-id="${esc(String(e.id))}">löschen<span class="adm-visually-hidden">: ${esc(kkBeschreibung(e))}</span></button>`
+    + '</span></li>'
+}
+
+function kkCodeZeile(z, i) {
+  return `<li class="in-zeile kk-code">`
+    + `<span class="be-zeile-haupt">${esc(kkBeschreibung(z))}</span>`
+    + `<span class="be-zeile-meta">${z.uebersteuert ? 'im Code · übersteuert durch einen Eintrag oben' : 'im Code'}</span>`
+    + (z.uebersteuert ? '' : `<span class="in-zeile-aktion"><button type="button" class="li-loeschen" data-action="kk-uebersteuern" data-index="${i}">übersteuern<span class="adm-visually-hidden">: ${esc(kkBeschreibung(z))}</span></button></span>`)
+    + '</li>'
+}
+
+function renderKollokatorKorrekturen() {
+  const el = document.getElementById('kk-liste')
+  if (!el) return
+  if (!kkGeladen) {
+    el.innerHTML = kkLadeFehler
+      ? `<p class="wo-meldung" data-tone="err" role="alert">${esc(kkLadeFehler)} <button type="button" class="adm-link" data-action="kk-laden">Erneut versuchen</button></p>`
+      : '<p class="li-meldung" data-tone="loading">Korrekturen werden geladen …</p>'
+    return
+  }
+  const art = document.getElementById('kk-filter-art')?.value || ''
+  const suche = normalizeText(document.getElementById('kk-suche')?.value || '').toLowerCase()
+  const eigene = kkEintraege.filter((e) => kkPasst(e, art, suche))
+  let html = eigene.length
+    ? `<ol class="be-liste" aria-label="Korrekturen aus dem Admin">${eigene.map(kkZeile).join('')}</ol>`
+    : (kkEintraege.length
+      ? '<p class="li-meldung">Kein Eintrag passt zu Art und Suche.</p>'
+      : '<div class="li-leer"><p class="li-leer-titel">Noch keine Korrektur eingetragen</p><p class="li-leer-text">Es gilt nur der Grundbestand aus dem Code.</p><p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>')
+  if (kkGrundbestand) {
+    const code = kkGrundbestand.map((z, i) => ({ z, i })).filter(({ z }) => kkPasst(z, art, suche))
+    html += `<h3 class="kk-code-titel">Grundbestand aus dem Code (${ganzzahlDe(code.length)})</h3>`
+      + (code.length ? `<ol class="be-liste" aria-label="Grundbestand aus dem Code">${code.map(({ z, i }) => kkCodeZeile(z, i)).join('')}</ol>` : '<p class="li-meldung">Kein Eintrag passt zu Art und Suche.</p>')
+  }
+  el.innerHTML = html
+}
+
+function kkFormularFuellen(e, { bearbeiten }) {
+  document.getElementById('kk-art').value = kkWahlAusEintrag(e)
+  if (e.wortart) document.getElementById('kk-wortart').value = e.wortart
+  document.getElementById('kk-basis').value = e.basis || ''
+  document.getElementById('kk-kollokator').value = e.kollokator || ''
+  document.getElementById('kk-ersatz').value = e.ersatz ?? ''
+  document.getElementById('kk-notiz').value = bearbeiten ? (e.notiz || '') : ''
+  kkBearbeitetId = bearbeiten ? e.id : null
+  document.getElementById('kk-form-titel-text').textContent = bearbeiten ? 'Korrektur bearbeiten' : 'Korrektur eintragen'
+  document.getElementById('kk-start-text').textContent = bearbeiten ? 'Speichern' : 'Eintragen'
+  document.getElementById('kk-abbrechen')?.classList.toggle('is-hidden', !bearbeiten)
+  for (const id of ['kk-basis', 'kk-kollokator', 'kk-ersatz']) setzeFeldFehlerStatisch(id, '')
+  setMeldung('kk-msg', '')
+  kkFormularAktualisieren()
+  document.getElementById('kk-form-titel')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  document.getElementById(bearbeiten || e.art !== 'lemma' ? 'kk-kollokator' : 'kk-ersatz')?.focus({ preventScroll: true })
+}
+
+function kkFormularLeeren() {
+  for (const id of ['kk-basis', 'kk-kollokator', 'kk-ersatz', 'kk-notiz']) {
+    const feld = document.getElementById(id)
+    if (feld) feld.value = ''
+    setzeFeldFehlerStatisch(id, '')
+  }
+  kkBearbeitetId = null
+  document.getElementById('kk-form-titel-text').textContent = 'Korrektur eintragen'
+  document.getElementById('kk-start-text').textContent = 'Eintragen'
+  document.getElementById('kk-abbrechen')?.classList.add('is-hidden')
+  kkFormularAktualisieren()
+}
+
+// Betroffene künftige Tage als Satz, mit Knopf zum Neubau
+function kkBetroffenHtml(betroffen) {
+  if (!Array.isArray(betroffen) || !betroffen.length) return ' Kein gespeicherter künftiger Tag enthält das Wort.'
+  const liste = betroffen.map((t) => `${datumKurz(t.datum)} ${t.woerter.join(', ')}`).join(' · ')
+  return ` Betroffene künftige Tage: ${esc(liste)}. <button type="button" class="adm-link" data-action="kk-neubau" data-daten="${esc(betroffen.map((t) => t.datum).join(','))}">Diese Tage neu bauen</button>`
+}
+
+async function speichereKollokatorKorrektur() {
+  if (kkSpeichert) return
+  const w = kkFormularWerte()
+  for (const id of ['kk-basis', 'kk-kollokator', 'kk-ersatz']) setzeFeldFehlerStatisch(id, '')
+  const fehlt = (id, text) => { setzeFeldFehlerStatisch(id, text); document.getElementById(id)?.focus(); return true }
+  if (w.art === 'paar' && !w.basis && fehlt('kk-basis', 'Bitte die Basis eintragen.')) return
+  if (!w.kollokator && fehlt('kk-kollokator', 'Bitte den Kollokator eintragen.')) return
+  if (!kkSperrt(w.wahl) && !w.ersatz && fehlt('kk-ersatz', 'Bitte den Ersatz eintragen.')) return
+  const body = { art: w.art, kollokator: w.kollokator, ersatz: w.ersatz, notiz: w.notiz }
+  if (w.art === 'lemma') body.wortart = w.wortart
+  if (w.art === 'paar') body.basis = w.basis
+  kkSpeichert = true
+  setzeKnopfBusy('kk-start', 'kk-start-text', true, 'Wird gespeichert …')
+  const bearbeitet = kkBearbeitetId
+  try {
+    const data = await holeJson(bearbeitet ? `/admin/kollokator-korrekturen/${bearbeitet}` : '/admin/kollokator-korrekturen', {
+      method: bearbeitet ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    kkFormularLeeren()
+    const was = bearbeitet ? 'Gespeichert' : (data.ersetzt ? 'Ersetzt' : 'Eingetragen')
+    setMeldung('kk-msg', `${esc(was)}: ${esc(kkBeschreibung(data.eintrag))}.${kkBetroffenHtml(data.betroffen)}`, 'ok', { html: true })
+    void ladeKollokatorKorrekturen()
+  } catch (err) {
+    setMeldung('kk-msg', `Nicht gespeichert: ${err.message}`, 'error', { fokus: true })
+  } finally {
+    kkSpeichert = false
+    setzeKnopfBusy('kk-start', 'kk-start-text', false, kkBearbeitetId ? 'Speichern' : 'Eintragen')
+  }
+}
+
+async function loescheKollokatorKorrektur(id) {
+  const e = kkEintraege.find((x) => x.id === id)
+  if (!e) return
+  const code = (kkGrundbestand ?? []).find((z) => z.art === e.art && z.schluessel === e.schluessel)
+  if (!(await bestaetige({
+    frage: 'Korrektur löschen?',
+    details: [kkBeschreibung(e), code ? `Danach gilt wieder der Grundbestand: ${kkBeschreibung(code)}` : 'Danach gilt das Wort wieder, wie es in der Korpus-DB steht.'],
+    aktion: 'Löschen',
+  }))) return
+  try {
+    const data = await holeJson(`/admin/kollokator-korrekturen/${id}`, { method: 'DELETE' })
+    if (kkBearbeitetId === id) kkFormularLeeren()
+    setMeldung('kk-msg', `Gelöscht: ${esc(kkBeschreibung(e))}.${kkBetroffenHtml(data.betroffen)}`, 'ok', { html: true })
+    void ladeKollokatorKorrekturen()
+  } catch (err) {
+    setMeldung('kk-msg', `Nicht gelöscht: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
+// ── Neubau der Kollokationen-Runde einzelner Tage (Korrekturseite und Tag-Editor) ──
+// Erst die Vorschau (Top 3 alt → neu), dann nach Rückfrage übernehmen. Der Server baut
+// heute, vergangene Tage und schon gespielte Lemmata nicht neu.
+let kkNeubauLaeuft = false
+async function kollokationenNeubau(daten, meldungId, { nachher } = {}) {
+  if (kkNeubauLaeuft || !daten.length) return
+  kkNeubauLaeuft = true
+  const melde = (text, tone, opts) => setMeldung(meldungId, text, tone, opts)
+  try {
+    melde('Neubau wird berechnet …', 'loading')
+    const body = JSON.stringify({ daten })
+    const vorschau = await holeJson('/admin/kollokationen-neubau/vorschau', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+    const eintraege = vorschau.tage.flatMap((t) => t.eintraege.map((e) => ({ ...e, datum: t.datum })))
+    const neu = eintraege.filter((e) => e.status === 'neu')
+    const uebersprungen = eintraege.filter((e) => e.status === 'uebersprungen')
+    const vergangen = vorschau.tage.filter((t) => t.status === 'vergangen').map((t) => datumKurz(t.datum))
+    const zusatz = [
+      ...uebersprungen.map((e) => `${datumKurz(e.datum)} ${e.lemma}: übersprungen (${e.grund})`),
+      ...(vergangen.length ? [`Heute oder vergangen, bleibt: ${vergangen.join(', ')}`] : []),
+    ]
+    if (!neu.length) {
+      melde(`Die Top 3 bleiben gleich, nichts neu zu bauen.${zusatz.length ? ` ${zusatz.join(' · ')}` : ''}`, 'ok', { fokus: true })
+      return
+    }
+    const gesehen = new Set()
+    const details = neu.filter((e) => !gesehen.has(e.id) && gesehen.add(e.id)).map((e) =>
+      `${datumKurz(e.datum)} ${e.lemma}: ${e.alt.join(', ') || '–'} → ${e.neu.join(', ')}${e.auchAm?.length ? ` (auch am ${e.auchAm.map(datumKurz).join(', ')})` : ''}`)
+    melde('')
+    if (!(await bestaetige({
+      frage: `Kollokationen für ${anzahlText(gesehen.size, 'Wort', 'Wörter')} neu bauen?`,
+      text: 'Die Ablenker werden dabei neu gezogen. Vorher und nachher stehen im Änderungsprotokoll.',
+      details: [...details, ...zusatz],
+      aktion: 'Neu bauen',
+      gefahr: false,
+    }))) return
+    melde('Wird neu gebaut …', 'loading')
+    const ergebnis = await holeJson('/admin/kollokationen-neubau/uebernehmen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+    const pruefung = ergebnis.belegPruefung === 'aus' || !ergebnis.belegPruefung ? '' : ' Die Belegprüfung der neuen Paare ist eingeplant.'
+    melde(`Neu gebaut: ${anzahlText(ergebnis.geschrieben, 'Wort', 'Wörter')}.${pruefung}`, 'ok', { fokus: true })
+    nachher?.(ergebnis)
+  } catch (err) {
+    melde(`Neubau fehlgeschlagen: ${err.message}`, 'error', { fokus: true })
+  } finally {
+    kkNeubauLaeuft = false
+  }
+}
+
+// ── Tag-Editor: Verdachtsmarken mit Ein-Klick-Korrektur ───────────────────────
+// Gespeicherte Top 3 des geladenen Tags (Vergleich mit der aktuellen Rangfolge)
+let entryGespeichertKoll = null // { datum, woerter: string[], top3: string[][] }
+
+// Knöpfe „Sperren bei …“, „Überall sperren“, „Ersetzen“ für einen Kollokator (mit oder ohne Verdacht)
+function kkAktionenHtml(k, basis, index) {
+  const v = k.verdacht
+  const grund = v ? v.gruende.map((g) => g.text).join('; ') : 'von Hand'
+  const daten = (art) => `data-art="${art}" data-basis="${esc(basis)}" data-wortart="${esc(k.pos || '')}" data-kollokator="${esc(k.dbLemma || k.wort)}" data-grund="${esc(grund)}"`
+  const feldId = `kk-ersatz-${index}-${k.platz}`
+  const schreibung = v?.schreibung && !v.ersatz
+  return '<div class="kk-aktionen">'
+    + `<button type="button" class="adm-link" data-action="kk-vorschlag" ${daten('paar')}>Sperren bei „${esc(basis)}“</button>`
+    + `<button type="button" class="adm-link" data-action="kk-vorschlag" ${daten('lemma')}>Überall sperren</button>`
+    + `<span class="kk-ersetzen"><label class="adm-visually-hidden" for="${feldId}">Ersatz für ${esc(k.wort)}</label>`
+    + `<input class="tag-eingabe kk-ersatz-feld" type="text" id="${feldId}" maxlength="80" autocomplete="off" spellcheck="false" value="${esc(v?.ersatz ?? v?.schreibung ?? '')}" placeholder="Ersatz">`
+    + `<button type="button" class="adm-link" data-action="kk-vorschlag" data-ersetzen="${schreibung ? 'schreibung' : 'lemma'}" data-feld="${feldId}" ${daten('lemma')}>${schreibung ? 'Schreibweise setzen' : 'Ersetzen'}</button></span>`
+    + '</div>'
+}
+
+function kkVerdachtHtml(k, basis, index) {
+  return '<div class="kk-verdacht">'
+    + `<p class="kk-gruende">${esc(k.verdacht.gruende.map((g) => g.text).join(' · '))}</p>`
+    + kkAktionenHtml(k, basis, index)
+    + '</div>'
+}
+
+/** Platz 1–10 einer Basis mit Verdachtsmarken (Prüfung im Tag-Editor). */
+function kkPlaetzeHtml(data, basis, pos, index) {
+  const plaetze = (Array.isArray(data.kollokatoren) ? data.kollokatoren : []).slice(0, 10)
+  if (!plaetze.length) return ''
+  const rueckfall = data.rangfolge === 'alt'
+    ? '<p class="kk-rueckfall">Rückfall: Für die neue Rangfolge gibt es zu wenige Treffer, sortiert ist nach logDice. Die Korrekturen gelten auch hier.</p>'
+    : ''
+  return rueckfall + `<ol class="kk-plaetze" aria-label="Platz 1 bis 10 für ${esc(basis)}">${plaetze.map((k) => {
+    const db = k.dbLemma && k.dbLemma.toLowerCase() !== String(k.wort).toLowerCase() ? ` <span class="kk-db">[${esc(k.dbLemma)}]</span>` : ''
+    const unten = k.verdacht
+      ? `<span class="kk-marke">Verdacht</span>${kkVerdachtHtml(k, basis, index)}`
+      : `<details class="kk-mehr"><summary>korrigieren<span class="adm-visually-hidden">: ${esc(k.wort)}</span></summary>${kkAktionenHtml(k, basis, index)}</details>`
+    return `<li class="kk-platz${k.verdacht ? ' is-verdacht' : ''}"${k.platz <= 3 ? ' data-gesucht' : ''}>`
+      + `<span class="kk-nr">${k.platz}</span><span class="kk-wort">${esc(k.wort)}${db}</span>`
+      + `<span class="tag-erg-zahl">${zahlDe(k.logDice)} · ${ganzzahlDe(k.frequenz ?? 0)}</span>`
+      + unten
+      + '</li>'
+  }).join('')}</ol>`
+}
+
+/** Hinweis „gespeichert ≠ aktuell“ für einen künftigen, geladenen Tag. */
+function kkVergleichHtml(woerter, antworten) {
+  const g = entryGespeichertKoll
+  const datum = document.getElementById('datum')?.value || ''
+  if (!g || g.datum !== datum || datum <= getTodayIso()) return ''
+  const abweichend = []
+  woerter.forEach(({ lemma }, i) => {
+    const a = antworten[i]
+    const j = g.woerter.findIndex((w) => w.toLowerCase() === lemma.toLowerCase())
+    if (a.status !== 'fulfilled' || !a.value.usable || j < 0) return
+    const alt = g.top3[j] ?? []
+    const neu = (a.value.kollokatoren ?? []).slice(0, 3).map((k) => k.wort)
+    if (alt.join('|') !== neu.join('|')) abweichend.push(`${lemma}: gespeichert ${alt.join(', ') || '–'} · aktuell ${neu.join(', ')}`)
+  })
+  if (!abweichend.length) return ''
+  return `<div class="kk-vergleich"><p class="tag-erg-meldung" data-tone="warn">Die gespeicherten Top 3 weichen von der aktuellen Rangfolge ab.</p>`
+    + `<ul class="kk-vergleich-liste">${abweichend.map((z) => `<li>${esc(z)}</li>`).join('')}</ul>`
+    + `<button type="button" class="adm-link" data-action="kk-neubau" data-daten="${esc(datum)}" data-meldung="entry-koll-kk-msg">Kollokationen neu bauen</button></div>`
+}
+
+async function kkVorschlagAnlegen(btn) {
+  const d = btn.dataset
+  let art = d.art
+  let ersatz = null
+  if (d.feld) {
+    ersatz = normalizeText(document.getElementById(d.feld)?.value || '')
+    if (!ersatz) {
+      document.getElementById(d.feld)?.focus()
+      return void setMeldung('entry-koll-kk-msg', 'Bitte einen Ersatz eintragen.', 'error')
+    }
+    if (d.ersetzen === 'schreibung') art = 'schreibung'
+  }
+  const body = { art, kollokator: d.kollokator, ersatz, notiz: `Tag-Editor: ${d.grund}`.slice(0, 300) }
+  if (art === 'lemma') body.wortart = d.wortart || 'Substantiv'
+  if (art === 'paar') body.basis = d.basis
+  btn.setAttribute('aria-disabled', 'true')
+  try {
+    const data = await holeJson('/admin/kollokator-korrekturen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    kkGeladen = false // Korrekturseite lädt beim nächsten Öffnen frisch
+    await analyzeEntryKollokation()
+    setMeldung('entry-koll-kk-msg', `Korrektur angelegt: ${esc(kkBeschreibung(data.eintrag))}.${kkBetroffenHtml(data.betroffen)}`, 'ok', { html: true, fokus: true })
+  } catch (err) {
+    btn.removeAttribute('aria-disabled')
+    setMeldung('entry-koll-kk-msg', `Nicht angelegt: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
 // ── Werkzeuge › Inhalte: Formulare und Dialoge ────────────
 
 // Absenden (Enter im Feld oder Knopf). Die Formulare sind novalidate: Geprüft wird in den Funktionen, mit eigenen Texten.
@@ -10381,6 +10808,7 @@ document.addEventListener('submit', (event) => {
   if (!(form instanceof HTMLFormElement) || form.method === 'dialog') return
   if (form.classList.contains('in-pruef')) { event.preventDefault(); void pruefe(form.dataset.modus); return }
   if (form.id === 'bonus-form') { event.preventDefault(); addFreeDay(); return }
+  if (form.id === 'kk-form') { event.preventDefault(); void speichereKollokatorKorrektur(); return }
   if (form.id === 'sw-form') { event.preventDefault(); void saveSpezialwoche(); return }
   if (form.id === 'demo-form') { event.preventDefault(); void saveDemoEditor(); return }
   // Social Cards › Selbst gestalten: Enter in einem Feld schickt nichts ab (die Karte zeichnet sich bei jeder Eingabe)
