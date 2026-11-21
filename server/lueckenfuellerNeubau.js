@@ -11,7 +11,7 @@
  */
 import logger from './logger.js'
 import { berlinTag } from './date-utils.js'
-import { getLemmataIndex, invalidateCache, lemmaToRow, loadDailyContentMaps, stmts as storeStmts } from './store.js'
+import { getLemmataIndex, invalidateCache, loadDailyContentMaps, stmts as storeStmts } from './store.js'
 import { loadAllSpezialwochen } from './store-spezialwochen.js'
 import { buildLueckenfuellerImWorker } from './lueckenfuellerImWorker.js'
 
@@ -51,8 +51,8 @@ async function arbeite(ids, stand) {
       const entry = getLemmataIndex().byId.get(id)
       const runden = entry ? await buildLueckenfuellerImWorker(entry.lemma, entry.pos) : null
       if (runden?.length) {
-        // frisch lesen: Während der Worker rechnete, kann der Admin das Lemma gespeichert haben
-        storeStmts.upsertLemma.run(lemmaToRow({ ...getLemmataIndex().byId.get(id), lueckenfueller: runden }))
+        // nur die Runden schreiben: der Rest des Lemmas kann sich inzwischen geändert haben
+        storeStmts.setLueckenfueller.run({ id, lueckenfueller: JSON.stringify(runden) })
         invalidateCache('lemmata.json')
         stand.neu++
       } else {

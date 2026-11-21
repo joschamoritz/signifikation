@@ -561,7 +561,8 @@ export function createAdminCalendarRouter({
       }
 
       // Ein vorhandenes Lemma bleibt vollständig erhalten, nur die Runden ändern sich.
-      stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: best.result }))
+      if (neuAngelegt) stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: best.result }))
+      else stmts.setLueckenfueller.run({ id: entry.id, lueckenfueller: JSON.stringify(best.result) })
       invalidateCache('lemmata.json')
 
       logger.info(`Lückenfüller generiert für „${entry.lemma}“ (${entry.id}): ${best.result.length} Runden${neuAngelegt ? ' — neues Lemma angelegt' : ''}`)

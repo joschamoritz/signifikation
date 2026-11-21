@@ -61,6 +61,10 @@ export const stmts = {
       lueckenfueller=excluded.lueckenfueller
   `),
 
+  // Nur die Lückenfüller-Runden: ein voller Upsert aus dem In-Memory-Index schriebe veraltete
+  // Felder zurück (z. B. Kollokatoren, die ein Skript in einem anderen Prozess neu gebaut hat).
+  setLueckenfueller: db.prepare('UPDATE lemmata SET lueckenfueller = @lueckenfueller WHERE id = @id'),
+
   // kalender
   getAllKalender:    db.prepare('SELECT * FROM kalender'),
   getKalenderByDatum: db.prepare('SELECT * FROM kalender WHERE datum = ?'),
@@ -352,7 +356,9 @@ export function getAuswertungZeilen(days, opts) { return _statsStore.getAuswertu
 /** Leert den Zwischenspeicher der Spiele-Auswertung (Tests; Wiederherstellen und Verdichten leeren ihn selbst). */
 export function invalidateStatsCache() { return _statsStore.invalidateWindowCache() }
 
-const _lemmataIndexStore = createLemmataIndexStore(_loadLemmata, logger)
+// Höchstalter wie der Read-only-Cache: Schreibt ein anderer Prozess (Skripte unter scripts/),
+// sieht der Server das nach spätestens 5 Minuten.
+const _lemmataIndexStore = createLemmataIndexStore(_loadLemmata, logger, { maxAgeMs: READONLY_TTL_MS })
 
 export function getLemmataIndex() {
   return _lemmataIndexStore.get()

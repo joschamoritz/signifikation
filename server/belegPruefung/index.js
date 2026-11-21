@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url'
 import db from '../db.js'
 import logger from '../logger.js'
 import { fetchBelege, belegeStand } from '../belege.js'
-import { cacheDeleteWhere, loadDailyContentMaps, getLemmataIndex, invalidateCache, lemmaToRow, stmts as storeStmts } from '../store.js'
+import { cacheDeleteWhere, loadDailyContentMaps, getLemmataIndex, invalidateCache, stmts as storeStmts } from '../store.js'
 import { berlinTag } from '../date-utils.js'
 import { lueckenfuellerPool, LUECKENFUELLER_PRUEFPAARE } from '../lueckenfueller.js'
 import { buildLueckenfuellerImWorker } from '../lueckenfuellerImWorker.js'
@@ -178,7 +178,7 @@ async function baueLueckenfuellerNeu(lauf) {
     try {
       const runden = await buildLueckenfuellerImWorker(entry.lemma, entry.pos)
       if (!runden?.length) continue
-      storeStmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: runden }))
+      storeStmts.setLueckenfueller.run({ id, lueckenfueller: JSON.stringify(runden) })
       invalidateCache('lemmata.json')
       neuGebaut++
       logger.info(`Belegprüfung: Lückenfüller „${entry.lemma}“ mit geprüften Sätzen neu gebaut (${runden.length} Runden)`)

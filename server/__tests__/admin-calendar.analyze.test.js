@@ -20,7 +20,7 @@ function baueApp(deps) {
     analyzeKollQuerySchema,
     analyzeLueckenfuellerQuerySchema,
     lueckenfuellerGenerateSchema,
-    stmts: { upsertLemma: { run: () => {} } },
+    stmts: { upsertLemma: { run: () => {} }, setLueckenfueller: { run: () => {} } },
     lemmaToRow: (l) => l,
     invalidateCache: () => {},
     MIN_KOLLOKATOREN: MIN,

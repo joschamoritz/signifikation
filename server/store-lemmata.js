@@ -43,13 +43,15 @@ function buildLemmataIndex(list) {
   }
 }
 
-export function createLemmataIndexStore(loadLemmata, logger) {
+export function createLemmataIndexStore(loadLemmata, logger, { maxAgeMs = Infinity, now = Date.now } = {}) {
   let byId = null
   let byLemma = null
+  let gebaut = 0
 
   return {
     get() {
-      if (byId) return { byId, byLemma }
+      if (byId && now() - gebaut < maxAgeMs) return { byId, byLemma }
+      gebaut = now()
       try {
         const list = loadLemmata()
         if (!Array.isArray(list)) throw new Error('lemmata ist kein Array')

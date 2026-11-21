@@ -27,8 +27,7 @@ vi.mock('../store.js', () => ({
   loadDailyContentMaps: () => ({ kalender: KALENDER }),
   getLemmataIndex: () => ({ byId: LEMMATA }),
   invalidateCache: vi.fn(),
-  lemmaToRow: (l) => l,
-  stmts: { upsertLemma: { run: (...a) => upsert(...a) } },
+  stmts: { setLueckenfueller: { run: ({ id, lueckenfueller }) => upsert({ id, lueckenfueller: JSON.parse(lueckenfueller) }) } },
 }))
 vi.mock('../store-spezialwochen.js', () => ({ loadAllSpezialwochen: () => WOCHEN }))
 const bauen = vi.fn()
