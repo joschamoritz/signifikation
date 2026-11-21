@@ -109,7 +109,7 @@ export const ERSETZT = new Map(Object.entries({
   'Verb:zusammengeleben': 'zusammenleben', 'Verb:hereinenbringen': 'hereinbringen',
   'Verb:komponiern': 'komponieren', 'Verb:erschraken': 'erschrecken', 'Verb:ruhn': 'ruhen',
   // Adjektive
-  'Adjektiv:bewußen': 'bewusst',
+  'Adjektiv:bewußen': 'bewusst', 'Adjektiv:bös': 'böse',
 }))
 
 /** Lemmata, die nie als Kollokator erscheinen sollen (Parserreste, Fachjargon ohne Alltagsbezug). */
@@ -139,6 +139,11 @@ export const PAAR = new Map(Object.entries({
   // Verfolgungskontext aus historischen Quellen, im Spiel ohne Einordnung nicht vertretbar
   'verstecken|jude': null, 'beschuldigen|jude': null,
   'filmen|missbrauchen': null,
+  // Neubau-Probelauf 2026-11-21: Parserreste und Zufallstreffer in den Top 3
+  'heiraten|anna': null, // Vorname aus Biografien
+  'artig|nuss': null, // zerlegtes „nussartig“
+  'knien|handschuh': null, 'knien|juda': null, 'knien|staufe': null, 'frieren|schenken': null,
+  'antarktisch|ross': null, 'antarktisch|name': null, // Rossmeer, „antarktischer Name“
 }))
 
 // Abkürzungen, die im Korpus kleingeschrieben vorliegen (DB-Lemmata sind klein).
