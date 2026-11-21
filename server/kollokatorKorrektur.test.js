@@ -25,6 +25,8 @@ describe('korrigiere', () => {
     expect(korrigiere('vornehm', 'herr', 'Substantiv').lemma).toBe('herr')
     expect(korrigiere('heiraten', 'anna', 'Substantiv')).toBeNull()
     expect(korrigiere('Wolf', 'bös', 'Adjektiv').lemma).toBe('böse')
+    expect(korrigiere('blind', 'könig', 'Substantiv')).toBeNull()
+    expect(korrigiere('Krone', 'könig', 'Substantiv').lemma).toBe('könig')
   })
 
   it('sperrt Inhalte, die nicht in ein Schulspiel gehören', () => {

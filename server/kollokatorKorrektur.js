@@ -108,6 +108,7 @@ export const ERSETZT = new Map(Object.entries({
   'Verb:eingeleiten': 'einleiten', 'Verb:niedergedrücken': 'niederdrücken',
   'Verb:zusammengeleben': 'zusammenleben', 'Verb:hereinenbringen': 'hereinbringen',
   'Verb:komponiern': 'komponieren', 'Verb:erschraken': 'erschrecken', 'Verb:ruhn': 'ruhen',
+  'Verb:rüttelen': 'rütteln',
   // Adjektive
   'Adjektiv:bewußen': 'bewusst', 'Adjektiv:bös': 'böse',
 }))
@@ -144,6 +145,9 @@ export const PAAR = new Map(Object.entries({
   'artig|nuss': null, // zerlegtes „nussartig“
   'knien|handschuh': null, 'knien|juda': null, 'knien|staufe': null, 'frieren|schenken': null,
   'antarktisch|ross': null, 'antarktisch|name': null, // Rossmeer, „antarktischer Name“
+  'verständigung|tatsächlich': null, // meist Satzadverb „Tatsächlich …“, als ATTR geparst
+  'blind|könig': null, // Sprichwort „Unter den Blinden ist der Einäugige König“
+  'kreischen|locken': null, // lose Reihung, kaum ein Beleg trägt die Verbindung
 }))
 
 // Abkürzungen, die im Korpus kleingeschrieben vorliegen (DB-Lemmata sind klein).
