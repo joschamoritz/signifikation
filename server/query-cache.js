@@ -78,6 +78,20 @@ export function clearCache() {
   logger.info({ size }, 'Query-Cache gelöscht')
 }
 
+/**
+ * Löscht gezielt Einträge, deren Schlüssel `passt` (z. B. die Kollokationen-
+ * Rangfolge einer Basis nach einer Kollokator-Korrektur).
+ * @param {(key: string) => boolean} passt
+ * @returns {number} Anzahl gelöschter Einträge
+ */
+export function loescheCacheEintraege(passt) {
+  let n = 0
+  for (const key of [...cache.keys()]) {
+    if (passt(key)) { cache.delete(key); n++ }
+  }
+  return n
+}
+
 // ── Periodisches Cleanup (alle 10 Minuten) ──
 // unref(): CLI-Skripte (backup.js etc.), die dieses Modul transitiv laden,
 // sollen nicht am Intervall haengen bleiben.

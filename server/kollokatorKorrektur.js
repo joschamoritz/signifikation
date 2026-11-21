@@ -12,8 +12,10 @@
 //   • Fachsprache aus Gerichts- und Patentkorpora: Schutzhindernis, Anmelderin
 //
 // Dieses Modul ist rein (keine DB): Wer Häufigkeiten braucht (Ortsadjektive,
-// Fachquellen), reicht sie hinein. Die Listen sind von Hand gesichtet; neue
-// Funde liefert `node scripts/kollokatoren-datenfehler.mjs`.
+// Fachquellen), reicht sie hinein. Die Listen hier sind der von Hand gesichtete
+// Grundbestand; neue Funde liefert `node scripts/kollokatoren-datenfehler.mjs`.
+// Korrekturen aus dem Admin (Tabelle kollokator_korrektur) legt
+// server/kollokatorKorrekturStore.js per setzeDbKorrekturen() darüber.
 
 /**
  * Funktionswörter, Mengen- und Ordnungswörter, Hilfs- und Stützverben: passen zu
@@ -178,13 +180,13 @@ const ADJEKTIVE_AUF_ER = new Set([
 export function schreibweise(lemma, pos, { istOrtsadjektiv } = {}) {
   const low = String(lemma).toLowerCase()
   if (EINHEITEN.has(low)) return low
-  if (SONDERSCHREIBUNG.has(low)) return SONDERSCHREIBUNG.get(low)
+  if (wirk.sonder.has(low)) return wirk.sonder.get(low)
   const teile = low.split('-')
-  if (teile.length > 1 || ABKUERZUNGEN.has(low)) {
+  if (teile.length > 1 || wirk.abk.has(low)) {
     // Abkürzungen und Einzelbuchstaben groß (US-, U-Bahn, D-Mark); bei Substantiven
     // jeder Teil groß (IP-Adresse), bei Adjektiven der Rest klein (deutsch-französisch, US-amerikanisch)
     return teile.map((t) => {
-      if (ABKUERZUNGEN.has(t)) return ABKUERZUNGEN.get(t)
+      if (wirk.abk.has(t)) return wirk.abk.get(t)
       if (t.length === 1) return t.toUpperCase()
       return pos === 'Substantiv' ? t.charAt(0).toUpperCase() + t.slice(1) : t
     }).join('-')
@@ -230,6 +232,90 @@ const STARKE_PARTIZIPIEN = new Map(Object.entries({
   verloren: 'verlieren', gefroren: 'frieren', gelogen: 'lügen', betrogen: 'betrügen',
 }))
 
+// ── Überlagerung aus der Datenbank (Admin › Kollokator-Korrekturen) ──────────
+// Der Grundbestand oben bleibt unverändert; `wirk` sind die wirksamen Listen aus
+// Grundbestand + DB-Einträgen. Ein DB-Eintrag mit demselben Schlüssel gewinnt, ein
+// Ersatz gleich dem Wort selbst hebt eine Code-Korrektur auf.
+
+/** Arten einer Korrektur (Spalte `art` in kollokator_korrektur). */
+export const KORREKTUR_ARTEN = ['lemma', 'paar', 'schreibung', 'abkuerzung', 'partizip']
+export const KORREKTUR_WORTARTEN = ['Substantiv', 'Verb', 'Adjektiv', 'Adverb']
+
+/**
+ * Schlüssel einer Korrektur in der Form der Listen oben.
+ * @param {string} art
+ * @param {{ wortart?: string, basis?: string, kollokator: string }} teile
+ */
+export function schluesselFuer(art, { wortart, basis, kollokator }) {
+  const k = String(kollokator).trim().toLowerCase()
+  if (art === 'lemma') return `${wortart}:${k}`
+  if (art === 'paar') return `${String(basis).trim().toLowerCase()}|${k}`
+  return k
+}
+
+/** Gegenstück zu schluesselFuer: { wortart, basis, kollokator } aus dem Schlüssel. */
+export function zerlegeSchluessel(art, schluessel) {
+  const s = String(schluessel)
+  if (art === 'lemma') {
+    const i = s.indexOf(':')
+    return { wortart: s.slice(0, i), basis: null, kollokator: s.slice(i + 1) }
+  }
+  if (art === 'paar') {
+    const i = s.indexOf('|')
+    return { wortart: null, basis: s.slice(0, i), kollokator: s.slice(i + 1) }
+  }
+  return { wortart: null, basis: null, kollokator: s }
+}
+
+function baueWirksam(zeilen) {
+  const w = {
+    ersetzt: new Map(ERSETZT), gesperrt: new Set(GESPERRT), paar: new Map(PAAR),
+    abk: new Map(ABKUERZUNGEN), sonder: new Map(SONDERSCHREIBUNG), partizip: new Map(STARKE_PARTIZIPIEN),
+  }
+  for (const { art, schluessel, ersatz } of zeilen) {
+    const { kollokator } = zerlegeSchluessel(art, schluessel)
+    const selbst = ersatz != null && String(ersatz).toLowerCase() === kollokator
+    if (art === 'lemma') {
+      w.ersetzt.delete(schluessel)
+      w.gesperrt.delete(schluessel)
+      if (ersatz == null) w.gesperrt.add(schluessel)
+      else if (!selbst) w.ersetzt.set(schluessel, ersatz)
+    } else if (art === 'paar') {
+      // auch „selbst“: Das Paar bleibt bei dieser Basis, wie es ist (vor allen Lemma-Regeln)
+      w.paar.set(schluessel, ersatz ?? null)
+    } else {
+      const ziel = { schreibung: w.sonder, abkuerzung: w.abk, partizip: w.partizip }[art]
+      if (!ziel) continue
+      if (ersatz == null || ersatz === schluessel) ziel.delete(schluessel)
+      else ziel.set(schluessel, art === 'partizip' ? String(ersatz).toLowerCase() : ersatz)
+    }
+  }
+  return w
+}
+
+let wirk = baueWirksam([])
+
+/**
+ * Legt die Korrekturen aus der Datenbank über den Grundbestand (ersetzt eine
+ * frühere Überlagerung vollständig).
+ * @param {Array<{ art: string, schluessel: string, ersatz: string|null }>} zeilen
+ */
+export function setzeDbKorrekturen(zeilen) {
+  wirk = baueWirksam(Array.isArray(zeilen) ? zeilen : [])
+}
+
+/** Grundbestand aus dem Code als Zeilen wie in kollokator_korrektur (für die Admin-Liste). */
+export function grundbestand() {
+  const zeilen = []
+  for (const [schluessel, ersatz] of ERSETZT) zeilen.push({ art: 'lemma', schluessel, ersatz })
+  for (const schluessel of GESPERRT) zeilen.push({ art: 'lemma', schluessel, ersatz: null })
+  for (const [schluessel, ersatz] of PAAR) zeilen.push({ art: 'paar', schluessel, ersatz })
+  for (const [schluessel, ersatz] of SONDERSCHREIBUNG) zeilen.push({ art: 'schreibung', schluessel, ersatz })
+  for (const [schluessel, ersatz] of ABKUERZUNGEN) zeilen.push({ art: 'abkuerzung', schluessel, ersatz })
+  for (const [schluessel, ersatz] of STARKE_PARTIZIPIEN) zeilen.push({ art: 'partizip', schluessel, ersatz })
+  return zeilen
+}
+
 /**
  * Korrigiert einen Kollokator für eine Basis.
  * @returns {{ lemma: string, pos: string } | null} null = sperren
@@ -238,13 +324,13 @@ export function korrigiere(basis, lemma, pos) {
   const b = String(basis).toLowerCase()
   const low = String(lemma).toLowerCase()
   const paar = `${b}|${low}`
-  if (PAAR.has(paar)) {
-    const ziel = PAAR.get(paar)
+  if (wirk.paar.has(paar)) {
+    const ziel = wirk.paar.get(paar)
     return ziel === null ? null : { lemma: ziel, pos }
   }
   const key = `${pos}:${low}`
-  if (GESPERRT.has(key)) return null
-  if (ERSETZT.has(key)) return { lemma: ERSETZT.get(key), pos }
+  if (wirk.gesperrt.has(key)) return null
+  if (wirk.ersetzt.has(key)) return { lemma: wirk.ersetzt.get(key), pos }
   return { lemma, pos }
 }
 
@@ -286,7 +372,7 @@ export function fuehreZusammen(eintraege) {
   const verben = [...nachWort.values()].filter((e) => e.pos === 'Verb')
   const formZuVerb = new Map()
   for (const v of verben) for (const f of partizipFormen(v.lemma)) if (!formZuVerb.has(f)) formZuVerb.set(f, v)
-  for (const [form, inf] of STARKE_PARTIZIPIEN) {
+  for (const [form, inf] of wirk.partizip) {
     const v = verben.find((x) => x.lemma.toLowerCase() === inf)
     if (v && !formZuVerb.has(form)) formZuVerb.set(form, v)
   }
@@ -303,4 +389,33 @@ export function fuehreZusammen(eintraege) {
     if (partizip) verschmelze(partizip, e, k)
   }
   return [...nachWort.values()]
+}
+
+/**
+ * Korrekturschicht für den logDice-Rückfall der Rangfolge (Einträge im Format von
+ * queryRelation: lemma, pos, frequency, logDice als String). Sperrt und ersetzt wie
+ * korrigiere(), führt Dubletten und Partizipien zusammen, setzt die Schreibweise und
+ * sortiert wieder nach logDice. `dbLemma` = Lemma der Korpus-DB (klein).
+ * @param {Array<{ lemma: string, pos: string, frequency?: number, logDice: string|number }>} items
+ * @param {string} basis
+ * @param {{ istOrtsadjektiv?: (lemma: string) => boolean }} [opts]
+ */
+export function korrigiereRueckfall(items, basis, opts = {}) {
+  const basisLow = String(basis).toLowerCase()
+  const roh = []
+  for (const item of items) {
+    const db = String(item.lemma).toLowerCase()
+    const kor = korrigiere(basisLow, db, item.pos)
+    if (!kor) continue
+    roh.push({ lemma: kor.lemma, pos: item.pos, f: item.frequency ?? 0, d: parseFloat(item.logDice), db, item })
+  }
+  return fuehreZusammen(roh)
+    .sort((a, b) => b.d - a.d)
+    .map((e) => ({
+      ...e.item,
+      lemma: schreibweise(e.lemma, e.pos, opts),
+      frequency: e.f,
+      logDice: String(e.d.toFixed(4)),
+      dbLemma: e.db,
+    }))
 }

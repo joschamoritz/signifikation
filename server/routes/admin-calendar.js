@@ -1,5 +1,6 @@
 import express from 'express'
 import { ergaenzeLueckenfueller, ermittleLueckenfuellerId, findeLueckenfuellerLemma } from '../lueckenfuellerAutoGen.js'
+import { top3 } from '../kollokationenNeubau.js'
 
 // Entwürfe, die gerade übernommen werden. Zwischen Statusprüfung und
 // entscheideEntwurf liegt ein await (speichereTag); ein zweiter POST in diesem
@@ -724,6 +725,8 @@ export function createAdminCalendarRouter({
       notizen: lemmata.map((l) => l.notiz || ''),
       links: lemmata.map((l) => l.link || ''),
       definitionen: lemmata.map((l) => l.definition || ''),
+      // Gespeicherte Top 3 der Kollokationen-Runde (Tag-Editor vergleicht mit der aktuellen Rangfolge)
+      kollokatorenTop3: lemmata.map((l) => top3(l.runden?.kollokatoren)),
       zwilling_paar: wz ? [wz.wortA, wz.wortB] : [],
       zwilling_pos: wz?.pos || 'Substantiv',
       zwilling_notiz: wz?.notiz || '',

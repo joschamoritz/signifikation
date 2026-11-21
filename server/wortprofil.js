@@ -32,8 +32,9 @@ import logger from './logger.js'
 import { getCachedQuery } from './query-cache.js'
 import { pruefeVollstaendigkeit, fasseSummenZusammen, baueProfil } from './register.js'
 import {
-  FUNKTIONSWOERTER, quellenProfil, istFachsprache, korrigiere, fuehreZusammen, schreibweise,
+  FUNKTIONSWOERTER, quellenProfil, istFachsprache, korrigiere, fuehreZusammen, schreibweise, korrigiereRueckfall,
 } from './kollokatorKorrektur.js'
+import { pruefeVerdacht, VERDACHT } from './kollokatorVerdacht.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -835,6 +836,9 @@ export function kollokatorRangfolge(lemma, pos = 'Substantiv') {
         logDice:   String(e.d.toFixed(4)),
         pos:       e.pos,
         relation:  e.relation,
+        // Lemma, wie es in der Korpus-DB steht (Schlüssel der Kollokator-Korrekturen,
+        // Grundlage der Verdachtsmarken im Tag-Editor). Das Spiel liest es nicht.
+        dbLemma:   e.db,
       })
     }
     return out
@@ -854,24 +858,33 @@ function kollokationenPool(lemma, pos, allItems) {
     logger.warn({ err, lemma, pos }, 'kollokatorRangfolge fehlgeschlagen, alte Sortierung')
   }
   if (neu.length >= MIN_KOLLOKATOREN) return { pool: neu, rangfolge: 'neu' }
-  return { pool: mixedPool(allItems), rangfolge: 'alt' }
+  return { pool: mixedPool(allItems, lemma), rangfolge: 'alt' }
 }
 
 /**
  * Alte Sortierung der Kollokationen-Runde (Rückfall der neuen Rangfolge): alle
  * Relationen zusammenführen, nach logDice deduplizieren und absteigend sortieren.
+ *
+ * Mit `basis` läuft auch dieser Weg durch die Korrekturschicht (Grundbestand und
+ * Kollokator-Korrekturen aus dem Admin): sperren, ersetzen, Dubletten und Partizipien
+ * zusammenführen (vermeintliche + vermeintlich), Schreibweise. Seltene Wörter landen
+ * gerade hier (< MIN_KOLLOKATOREN Treffer in der neuen Rangfolge).
  */
-function mixedPool(allItems) {
-  // Deduplizieren nach lemma (lowercase), höchstes logDice gewinnt
-  const seen = new Map()
-  for (const item of allItems) {
-    const key = item.lemma.toLowerCase()
-    const existing = seen.get(key)
-    if (!existing || parseFloat(item.logDice) > parseFloat(existing.logDice)) {
-      seen.set(key, item)
+export function mixedPool(allItems, basis) {
+  if (basis == null) {
+    // Deduplizieren nach lemma (lowercase), höchstes logDice gewinnt
+    const seen = new Map()
+    for (const item of allItems) {
+      const key = item.lemma.toLowerCase()
+      const existing = seen.get(key)
+      if (!existing || parseFloat(item.logDice) > parseFloat(existing.logDice)) {
+        seen.set(key, item)
+      }
     }
+    return [...seen.values()].sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
   }
-  return [...seen.values()].sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+  // Ortsadjektiv-Schreibung braucht lemma_corpus_freq (nur v2)
+  return korrigiereRueckfall(allItems, basis, schema() === 'v2' ? { istOrtsadjektiv } : {})
 }
 
 // ── Öffentliche API (identisch mit dwds.js) ──────────────────────────────────
@@ -963,7 +976,29 @@ export async function fetchKollokatorenAnalyse(lemma, pos = 'Substantiv') {
     pool: pool.length,
     gesucht: auswahl.slice(0, 3).map(eintrag),
     ablenker: auswahl.slice(3).sort((a, b) => a.platz - b.platz).map(eintrag),
-    kollokatoren: pool.slice(0, 25).map((item, i) => eintrag({ item, platz: i + 1 })),
+    kollokatoren: pool.slice(0, 25).map((item, i) => {
+      const e = eintrag({ item, platz: i + 1 })
+      // Für Kollokator-Korrekturen: Lemma wie in der Korpus-DB, Wortart, Verdachtsmarken (Platz 1–10)
+      e.dbLemma = item.dbLemma ?? item.lemma
+      e.pos = item.pos ?? null
+      if (i < VERDACHT.plaetze) e.verdacht = verdachtFuer(lemma, pos, e, rangfolge)
+      return e
+    }),
+  }
+}
+
+/** Verdachtsmarken eines Kollokators (null = unverdächtig oder v1-Schema). */
+function verdachtFuer(basis, basisPos, e, rangfolge) {
+  if (schema() !== 'v2' || !e.pos) return null
+  try {
+    return pruefeVerdacht(
+      { basis, basisPos, eintrag: { wort: e.wort, dbLemma: e.dbLemma, pos: e.pos, frequenz: e.frequenz } },
+      { posFreq: (l, p) => stmts().rangPosFreq.get(l, p)?.f ?? 0, quellen: quellenVon },
+      { wenigeBelege: rangfolge !== 'alt' },
+    )
+  } catch (err) {
+    logger.warn({ err, basis, wort: e.wort }, 'Verdachtsprüfung fehlgeschlagen')
+    return null
   }
 }
 

@@ -28,6 +28,8 @@ import { backupRestoreVorschaltung } from './middleware/backupRestoreVorschaltun
 import { initializeIndices } from './store.js'
 import { errorHandler, AppError } from './error-handling.js'
 import { waermeRegisterAuf } from './wortprofil.js'
+// Kollokator-Korrekturen aus der DB über den Grundbestand legen (lädt beim Import)
+import './kollokatorKorrekturStore.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'

@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import { schreibweise, partizipFormen, korrigiere, istFachsprache, fuehreZusammen } from './kollokatorKorrektur.js'
+import { describe, it, expect, afterEach } from 'vitest'
+import {
+  schreibweise, partizipFormen, korrigiere, istFachsprache, fuehreZusammen,
+  setzeDbKorrekturen, grundbestand, schluesselFuer, zerlegeSchluessel, korrigiereRueckfall,
+} from './kollokatorKorrektur.js'
 
 describe('korrigiere', () => {
   it('ersetzt gebeugte Formen durch das Lemma', () => {
@@ -135,5 +138,116 @@ describe('fuehreZusammen', () => {
   it('lässt ein Partizip stehen, wenn das Verb fehlt', () => {
     const out = fuehreZusammen([{ lemma: 'vereinbart', pos: 'Adjektiv', f: 233, d: 8 }])
     expect(out.map((e) => e.lemma)).toEqual(['vereinbart'])
+  })
+})
+
+describe('Überlagerung aus der Datenbank (setzeDbKorrekturen)', () => {
+  afterEach(() => setzeDbKorrekturen([]))
+
+  it('ersetzt und sperrt Lemmata zusätzlich zum Grundbestand', () => {
+    setzeDbKorrekturen([
+      { art: 'lemma', schluessel: 'Substantiv:wassermühlen', ersatz: 'Wassermühle' },
+      { art: 'lemma', schluessel: 'Verb:quaken', ersatz: null },
+    ])
+    expect(korrigiere('Bach', 'wassermühlen', 'Substantiv')).toEqual({ lemma: 'Wassermühle', pos: 'Substantiv' })
+    expect(korrigiere('Frosch', 'quaken', 'Verb')).toBeNull()
+    // Grundbestand gilt weiter
+    expect(korrigiere('verleihen', 'preisen', 'Substantiv')).toEqual({ lemma: 'Preis', pos: 'Substantiv' })
+  })
+
+  it('übersteuert einen Code-Eintrag; Ersatz = das Wort selbst hebt ihn auf', () => {
+    setzeDbKorrekturen([
+      { art: 'lemma', schluessel: 'Substantiv:preisen', ersatz: 'Preise' },
+      { art: 'lemma', schluessel: 'Substantiv:titeln', ersatz: 'Titeln' },
+      { art: 'lemma', schluessel: 'Verb:vergewaltigen', ersatz: 'vergewaltigen' },
+    ])
+    expect(korrigiere('x', 'preisen', 'Substantiv').lemma).toBe('Preise')
+    expect(korrigiere('x', 'titeln', 'Substantiv').lemma).toBe('titeln')
+    expect(korrigiere('x', 'vergewaltigen', 'Verb')).toEqual({ lemma: 'vergewaltigen', pos: 'Verb' })
+  })
+
+  it('sperrt ein Lemma, das der Code ersetzt (Ersatz null)', () => {
+    setzeDbKorrekturen([{ art: 'lemma', schluessel: 'Adjektiv:bös', ersatz: null }])
+    expect(korrigiere('Wolf', 'bös', 'Adjektiv')).toBeNull()
+  })
+
+  it('Paare: sperren, ersetzen, Code-Sperre aufheben', () => {
+    setzeDbKorrekturen([
+      { art: 'paar', schluessel: 'see|ross', ersatz: null },
+      { art: 'paar', schluessel: 'lesen|blättern', ersatz: 'Blätter' },
+      { art: 'paar', schluessel: 'heiraten|anna', ersatz: 'anna' },
+    ])
+    expect(korrigiere('See', 'ross', 'Substantiv')).toBeNull()
+    expect(korrigiere('Pferd', 'ross', 'Substantiv')).toEqual({ lemma: 'ross', pos: 'Substantiv' })
+    // Paar vor Lemma: der Code ersetzt „blättern“ sonst überall durch „Blatt“
+    expect(korrigiere('lesen', 'blättern', 'Substantiv').lemma).toBe('Blätter')
+    expect(korrigiere('heiraten', 'anna', 'Substantiv')).toEqual({ lemma: 'anna', pos: 'Substantiv' })
+  })
+
+  it('Schreibweise und Abkürzung (auch im Bindestrich-Wort)', () => {
+    setzeDbKorrekturen([
+      { art: 'schreibung', schluessel: 'e-mail', ersatz: 'E-Mail' },
+      { art: 'abkuerzung', schluessel: 'ard', ersatz: 'ARD' },
+      { art: 'abkuerzung', schluessel: 'tv', ersatz: 'tv' }, // hebt die Code-Abkürzung auf
+    ])
+    expect(schreibweise('e-mail', 'Substantiv')).toBe('E-Mail')
+    expect(schreibweise('ard', 'Substantiv')).toBe('ARD')
+    expect(schreibweise('ard-moderator', 'Substantiv')).toBe('ARD-Moderator')
+    expect(schreibweise('tv', 'Substantiv')).toBe('Tv')
+  })
+
+  it('starkes Partizip führt ins Verb', () => {
+    const liste = [
+      { lemma: 'schwimmen', pos: 'Verb', f: 100, d: 8 },
+      { lemma: 'geschwommen', pos: 'Adjektiv', f: 50, d: 9 },
+    ]
+    expect(fuehreZusammen(liste)).toHaveLength(2)
+    setzeDbKorrekturen([{ art: 'partizip', schluessel: 'geschwommen', ersatz: 'Schwimmen' }])
+    expect(fuehreZusammen(liste)).toEqual([{ lemma: 'schwimmen', pos: 'Verb', f: 150, d: 9 }])
+  })
+
+  it('eine neue Überlagerung ersetzt die alte vollständig', () => {
+    setzeDbKorrekturen([{ art: 'lemma', schluessel: 'Verb:quaken', ersatz: null }])
+    setzeDbKorrekturen([])
+    expect(korrigiere('Frosch', 'quaken', 'Verb')).toEqual({ lemma: 'quaken', pos: 'Verb' })
+  })
+
+  it('Grundbestand und Schlüssel', () => {
+    const g = grundbestand()
+    expect(g).toContainEqual({ art: 'lemma', schluessel: 'Substantiv:preisen', ersatz: 'Preis' })
+    expect(g).toContainEqual({ art: 'lemma', schluessel: 'Verb:vergewaltigen', ersatz: null })
+    expect(g).toContainEqual({ art: 'paar', schluessel: 'heiraten|anna', ersatz: null })
+    expect(g).toContainEqual({ art: 'abkuerzung', schluessel: 'us', ersatz: 'US' })
+    expect(schluesselFuer('lemma', { wortart: 'Substantiv', kollokator: ' Preisen ' })).toBe('Substantiv:preisen')
+    expect(schluesselFuer('paar', { basis: 'Heiraten', kollokator: 'Anna' })).toBe('heiraten|anna')
+    expect(schluesselFuer('abkuerzung', { kollokator: 'ARD' })).toBe('ard')
+    expect(zerlegeSchluessel('paar', 'heiraten|anna')).toEqual({ wortart: null, basis: 'heiraten', kollokator: 'anna' })
+    expect(zerlegeSchluessel('lemma', 'Verb:quaken')).toEqual({ wortart: 'Verb', basis: null, kollokator: 'quaken' })
+  })
+})
+
+describe('korrigiereRueckfall (logDice-Rückfall seltener Basen)', () => {
+  afterEach(() => setzeDbKorrekturen([]))
+  const item = (lemma, pos, frequency, logDice) => ({ lemma, pos, frequency, logDice: String(logDice), relation: 'KON' })
+
+  it('ersetzt, sperrt, führt zusammen und sortiert nach logDice', () => {
+    setzeDbKorrekturen([{ art: 'lemma', schluessel: 'Adjektiv:vermeintliche', ersatz: 'vermeintlich' }])
+    const pool = korrigiereRueckfall([
+      item('vermeintliche', 'Adjektiv', 5, 9.1),
+      item('ergattern', 'Verb', 48, 8.0),
+      item('vermeintlich', 'Adjektiv', 79, 7.5),
+      item('Nachnam', 'Substantiv', 9, 7.0),
+      item('zusammengeleben', 'Verb', 3, 6.0),
+      item('jch', 'Substantiv', 4, 5.0),
+    ], 'Schnäppchen')
+    expect(pool.map((e) => e.lemma)).toEqual(['vermeintlich', 'ergattern', 'Nachname', 'zusammenleben'])
+    expect(pool[0]).toMatchObject({ frequency: 84, logDice: '9.1000', dbLemma: 'vermeintliche', relation: 'KON' })
+    expect(pool[2].dbLemma).toBe('nachnam')
+  })
+
+  it('Paar-Sperre aus dem Admin greift auch hier', () => {
+    setzeDbKorrekturen([{ art: 'paar', schluessel: 'radium|diametrum', ersatz: null }])
+    const pool = korrigiereRueckfall([item('Polonium', 'Substantiv', 19, 9), item('Diametrum', 'Substantiv', 6, 8)], 'Radium')
+    expect(pool.map((e) => e.lemma)).toEqual(['Polonium'])
   })
 })

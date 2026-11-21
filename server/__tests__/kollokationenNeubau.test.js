@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { planeNeubau, top3, mitNeuenKollokatoren } from '../kollokationenNeubau.js'
+import { planeNeubau, top3, mitNeuenKollokatoren, betroffeneTage } from '../kollokationenNeubau.js'
 
 const lemma = (id, lemmaName = id) => ({ id, lemma: lemmaName, pos: 'Substantiv', runden: { kollokatoren: [], nomen: [1] }, notiz: 'n' })
 const byId = new Map(['haus', 'baum', 'wort', 'kaffee', 'tee'].map((id) => [id, lemma(id, id[0].toUpperCase() + id.slice(1))]))
@@ -65,5 +65,38 @@ describe('top3', () => {
   it('liefert die Wörter mit Rang 1–3 in Rangfolge', () => {
     expect(top3([{ wort: 'c', rang: 3 }, { wort: 'x', rang: 7 }, { wort: 'a', rang: 1 }, { wort: 'b', rang: 2 }])).toEqual(['a', 'b', 'c'])
     expect(top3(null)).toEqual([])
+  })
+})
+
+describe('betroffeneTage', () => {
+  const mit = (id, lemmaName, woerter) => ({ id, lemma: lemmaName, pos: 'Substantiv', runden: { kollokatoren: woerter.map((wort, i) => ({ wort, rang: i + 1 })) } })
+  const index = new Map([
+    ['verleihen', mit('verleihen', 'verleihen', ['Preisen', 'Orden', 'Titel'])],
+    ['nobel', mit('nobel', 'Nobel', ['Preisen', 'Stiftung'])],
+    ['heiraten', mit('heiraten', 'heiraten', ['Frau', 'Anna'])],
+    ['web', mit('web', 'Web', ['IP-Adresse', 'Seite'])],
+  ])
+  const kalender = {
+    '2026-11-20': { ids: ['verleihen'] },
+    '2026-11-24': { ids: ['verleihen', 'web'] },
+    '2026-12-02': ['nobel', 'heiraten'],
+  }
+  const heute = '2026-11-22'
+
+  it('findet künftige Tage mit dem Wort in den gespeicherten Optionen', () => {
+    expect(betroffeneTage({ art: 'lemma', kollokator: 'preisen' }, { kalender, byId: index, heute })).toEqual([
+      { datum: '2026-11-24', woerter: ['verleihen'] },
+      { datum: '2026-12-02', woerter: ['Nobel'] },
+    ])
+  })
+
+  it('Paar: jeder künftige Tag mit der Basis', () => {
+    expect(betroffeneTage({ art: 'paar', basis: 'heiraten', kollokator: 'mann' }, { kalender, byId: index, heute }))
+      .toEqual([{ datum: '2026-12-02', woerter: ['heiraten'] }])
+  })
+
+  it('Abkürzung auch im Bindestrich-Wort', () => {
+    expect(betroffeneTage({ art: 'abkuerzung', kollokator: 'ip' }, { kalender, byId: index, heute }))
+      .toEqual([{ datum: '2026-11-24', woerter: ['Web'] }])
   })
 })

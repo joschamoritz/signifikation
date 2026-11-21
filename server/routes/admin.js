@@ -11,7 +11,7 @@ import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, 
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, adminBildLimiter, loginLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminEntwurfIdParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSocialCardsEigenSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
+import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminEntwurfIdParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSocialCardsEigenSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema, adminKollokatorKorrekturBodySchema, adminKollokatorKorrekturParamsSchema, adminKollokatorKorrekturQuerySchema, adminKollokationenNeubauSchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
 import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus, ladePost as ladeSocialPost, ladePostsFuer as ladeSocialPostsFuer } from '../socialCards/store.js'
@@ -29,6 +29,8 @@ import { createAdminCalendarRouter, leereLueckenfuellerCache } from './admin-cal
 import { createAdminSocialCardsRouter } from './admin-social-cards.js'
 import { createAdminCoreRouter } from './admin-core.js'
 import freeDaysRouter from './admin-free-days.js'
+import { createAdminKollokatorKorrekturenRouter } from './admin-kollokator-korrekturen.js'
+import * as kollokatorKorrekturen from '../kollokatorKorrekturStore.js'
 import adminPushRouter from './admin-push.js'
 import { createAdminSpezialwocheRouter } from './admin-spezialwoche.js'
 import { createAdminClassroomRouter } from './admin-classroom.js'
@@ -276,6 +278,31 @@ router.use(createAdminSocialCardsRouter({
 }))
 
 router.use(freeDaysRouter)
+router.use(createAdminKollokatorKorrekturenRouter({
+  adminLimiter,
+  requireAuth,
+  validate,
+  schemas: {
+    body: adminKollokatorKorrekturBodySchema,
+    params: adminKollokatorKorrekturParamsSchema,
+    query: adminKollokatorKorrekturQuerySchema,
+    neubau: adminKollokationenNeubauSchema,
+  },
+  korrekturen: kollokatorKorrekturen,
+  fetchLemma,
+  MIN_KOLLOKATOREN,
+  getLemmataIndex,
+  loadKalender,
+  loadAllSpezialwochen,
+  setzeKollokatoren: (zeile) => stmts.setKollokatoren.run(zeile),
+  invalidateCache,
+  planeBelegPruefung: planePruefungFuerTage,
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+  adminError,
+  logger,
+}))
 router.use(adminPushRouter)
 
 router.use(createAdminSpezialwocheRouter({

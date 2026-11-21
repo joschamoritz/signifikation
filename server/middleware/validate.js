@@ -333,6 +333,46 @@ export const adminFreeDayParamsSchema = z.object({
   date: DATUM_ISO,
 })
 
+// ── Kollokator-Korrekturen (kollokator_korrektur) ───────────────
+
+// | und : trennen in den Schlüsseln Basis/Kollokator bzw. Wortart/Lemma
+const KORREKTUR_WORT = z.string().trim()
+  .min(1, 'Bitte ein Wort eintragen.')
+  .max(80, 'Höchstens 80 Zeichen.')
+  .refine((w) => !/[|:]/.test(w), 'Die Zeichen | und : sind nicht erlaubt.')
+
+/** POST /admin/kollokator-korrekturen, PUT /admin/kollokator-korrekturen/:id (body) */
+export const adminKollokatorKorrekturBodySchema = z.object({
+  art: z.enum(['lemma', 'paar', 'schreibung', 'abkuerzung', 'partizip']),
+  wortart: z.enum(['Substantiv', 'Verb', 'Adjektiv', 'Adverb']).optional(),
+  basis: KORREKTUR_WORT.optional(),
+  kollokator: KORREKTUR_WORT,
+  // null = sperren (nur bei lemma und paar)
+  ersatz: KORREKTUR_WORT.nullable().optional().default(null),
+  notiz: z.string().trim().max(300, 'Höchstens 300 Zeichen.').optional().default(''),
+}).superRefine((v, ctx) => {
+  if (v.art === 'lemma' && !v.wortart) ctx.addIssue({ code: 'custom', path: ['wortart'], message: 'Bitte die Wortart wählen.' })
+  if (v.art === 'paar' && !v.basis) ctx.addIssue({ code: 'custom', path: ['basis'], message: 'Bitte die Basis eintragen.' })
+  if (v.art !== 'lemma' && v.art !== 'paar' && v.ersatz == null) {
+    ctx.addIssue({ code: 'custom', path: ['ersatz'], message: 'Bitte einen Ersatz eintragen.' })
+  }
+})
+
+/** PUT/DELETE /admin/kollokator-korrekturen/:id (params) */
+export const adminKollokatorKorrekturParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+})
+
+/** GET /admin/kollokator-korrekturen (query) – grundbestand=1: auch die Einträge aus dem Code */
+export const adminKollokatorKorrekturQuerySchema = z.object({
+  grundbestand: z.enum(['0', '1']).optional().default('0'),
+})
+
+/** POST /admin/kollokationen-neubau/vorschau und /uebernehmen (body) */
+export const adminKollokationenNeubauSchema = z.object({
+  daten: z.array(DATUM_ISO).min(1, 'Bitte mindestens einen Tag angeben.').max(31, 'Höchstens 31 Tage auf einmal.'),
+})
+
 // ── Push-Benachrichtigungen Schemas ─────────────────────────────
 
 const PUSH_TITLE = z.string().trim().min(1, 'Titel erforderlich').max(120, 'Titel max. 120 Zeichen')

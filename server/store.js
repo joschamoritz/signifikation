@@ -64,6 +64,9 @@ export const stmts = {
   // Nur die Lückenfüller-Runden: ein voller Upsert aus dem In-Memory-Index schriebe veraltete
   // Felder zurück (z. B. Kollokatoren, die ein Skript in einem anderen Prozess neu gebaut hat).
   setLueckenfueller: db.prepare('UPDATE lemmata SET lueckenfueller = @lueckenfueller WHERE id = @id'),
+  // Nur die Kollokationen-Runde (Neubau nach einer Kollokator-Korrektur), aus demselben Grund
+  // kein voller Upsert. @kollokatoren ist JSON-Text.
+  setKollokatoren: db.prepare(`UPDATE lemmata SET runden = json_set(COALESCE(runden, '{}'), '$.kollokatoren', json(@kollokatoren)) WHERE id = @id`),
 
   // kalender
   getAllKalender:    db.prepare('SELECT * FROM kalender'),

@@ -72,3 +72,35 @@ export const top3 = (koll) => (Array.isArray(koll) ? koll : [])
 export function mitNeuenKollokatoren(lemma, kollokatoren) {
   return { ...lemma, runden: { ...(lemma.runden ?? {}), kollokatoren } }
 }
+
+/**
+ * Künftige Tage, die eine Kollokator-Korrektur vermutlich ändert: bei einem Paar jeder
+ * Tag mit dieser Basis, sonst jeder Tag, dessen gespeicherte Kollokationen-Optionen das
+ * Wort enthalten (auch als Teil eines Bindestrich-Worts). Eine Korrektur, die ein Wort
+ * erst in die Liste bringt (aufgehobene Sperre), findet diese Suche nicht; dafür zeigt
+ * der Tag-Editor beim Laden den Vergleich gespeichert ↔ aktuell.
+ *
+ * @param {{ art: string, basis?: string|null, kollokator: string }} korrektur
+ * @param {object} p
+ * @param {Record<string, { ids: string[] } | string[]>} p.kalender
+ * @param {Map<string, object>} p.byId
+ * @param {string} p.heute ISO; nur Tage danach
+ * @returns {Array<{ datum: string, woerter: string[] }>} woerter = betroffene Basen des Tages
+ */
+export function betroffeneTage(korrektur, { kalender, byId, heute }) {
+  const k = String(korrektur.kollokator).toLowerCase()
+  const basis = korrektur.basis ? String(korrektur.basis).toLowerCase() : null
+  const trifft = (lemma) => {
+    if (korrektur.art === 'paar') return String(lemma.lemma ?? '').toLowerCase() === basis
+    const woerter = (lemma.runden?.kollokatoren ?? []).map((o) => String(o?.wort ?? '').toLowerCase())
+    return woerter.some((w) => w === k || w.split('-').includes(k))
+  }
+  const tage = []
+  for (const [datum, eintrag] of Object.entries(kalender ?? {})) {
+    if (datum <= heute) continue
+    const ids = Array.isArray(eintrag) ? eintrag : (eintrag?.ids ?? [])
+    const woerter = ids.map((id) => byId.get(id)).filter((l) => l && trifft(l)).map((l) => l.lemma)
+    if (woerter.length) tage.push({ datum, woerter })
+  }
+  return tage.sort((a, b) => a.datum.localeCompare(b.datum))
+}

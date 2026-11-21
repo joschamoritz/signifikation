@@ -27,6 +27,8 @@ import { DATA, stmts, lemmaToRow, invalidateCache, loadDailyContentMaps, getLemm
 import { loadAllSpezialwochen } from '../server/store-spezialwochen.js'
 import { berlinTag, plusTage } from '../server/date-utils.js'
 import { fetchLemma, MIN_KOLLOKATOREN } from '../server/wortprofil.js'
+// Kollokator-Korrekturen aus dem Admin (DB) gelten auch hier, nicht nur der Grundbestand
+import '../server/kollokatorKorrekturStore.js'
 import { planeNeubau, top3, mitNeuenKollokatoren } from '../server/kollokationenNeubau.js'
 
 const { values } = parseArgs({
