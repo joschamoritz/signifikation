@@ -11,6 +11,8 @@ const FREQ = {
   'schwatzten|Verb': 100, 'schwatzen|Verb': 9000,
   'vermeintliche|Adjektiv': 500, 'vermeintlich|Adjektiv': 80000,
   'hereinenbringen|Verb': 50, 'hereinbringen|Verb': 9000,
+  'link|Substantiv': 18457, 'linke|Substantiv': 164871,
+  'erschrecken|Adjektiv': 400, 'erschreckend|Adjektiv': 30000,
 }
 const posFreq = (l, p) => FREQ[`${l}|${p}`] ?? 0
 const MODERN = { summe: 100000, modern: 0.9, topQuelle: 'deu_news', topAnteil: 0.4 }
@@ -102,6 +104,13 @@ describe('pruefeVerdacht', () => {
     expect(codes(verm)).toEqual(['adjektivform'])
     expect(verm.ersatz).toBe('vermeintlich')
     expect(codes(pruefe({ wort: 'hereinenbringen', dbLemma: 'hereinenbringen', pos: 'Verb' }))).toEqual(['verbform'])
+  })
+
+  it('häufige Wörter gelten nicht als abgeschnitten (Link ↔ Linke); Infinitiv statt Partizip I', () => {
+    expect(pruefe({ wort: 'Link', dbLemma: 'link', pos: 'Substantiv' }, 'klicken', 'Verb')).toBeNull()
+    const v = pruefe({ wort: 'erschrecken', dbLemma: 'erschrecken', pos: 'Adjektiv' }, 'unfassbar', 'Adjektiv')
+    expect(codes(v)).toEqual(['adjektivform'])
+    expect(v.ersatz).toBe('erschreckend')
   })
 
   it('im logDice-Rückfall kein Hinweis auf wenige Belege', () => {

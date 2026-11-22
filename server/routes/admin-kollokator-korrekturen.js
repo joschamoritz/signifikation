@@ -24,6 +24,8 @@ export function createAdminKollokatorKorrekturenRouter({
   schemas,
   korrekturen,
   fetchLemma,
+  // optional: Abgleich der gespeicherten Ablenker mit Platz 1–25 (veraltete Optionen)
+  fetchKollokatorenAnalyse = null,
   MIN_KOLLOKATOREN,
   getLemmataIndex,
   loadKalender,
@@ -111,6 +113,20 @@ export function createAdminKollokatorKorrekturenRouter({
     }
   })
 
+  /** Gespeicherte Optionen, die in der aktuellen Liste (Platz 1–25) nicht mehr vorkommen. */
+  async function veralteteOptionen(lemma, pos, alt) {
+    if (!fetchKollokatorenAnalyse || !Array.isArray(alt) || !alt.length) return []
+    try {
+      const { kollokatoren } = await fetchKollokatorenAnalyse(lemma, pos)
+      const aktuell = new Set((kollokatoren ?? []).map((k) => String(k.wort).toLowerCase()))
+      if (!aktuell.size) return []
+      return alt.map((o) => String(o?.wort ?? '')).filter((w) => w && !aktuell.has(w.toLowerCase()))
+    } catch (err) {
+      logger.warn({ err, lemma }, 'Neubau: Abgleich der Ablenker fehlgeschlagen')
+      return []
+    }
+  }
+
   /**
    * Rechnet die Kollokationen-Runde der Lemmata dieser Tage neu.
    * @returns {Promise<Array<{ datum: string, status?: string, eintraege: Array<object> }>>}
@@ -150,7 +166,11 @@ export function createAdminKollokatorKorrekturenRouter({
             continue
           }
           const gleich = top3(alt).join('|') === top3(neu).join('|')
-          eintraege.push({ id, lemma: lemma.lemma, status: gleich ? 'gleich' : 'neu', alt: top3(alt), neu: top3(neu), auchAm, _optionen: neu, _alt: alt })
+          // Gleiche Top 3, aber ein gespeicherter Ablenker steht nicht mehr in Platz 1–25
+          // (korrigiert oder gesperrt, z. B. die Dublette „Sofortmassnahm“): auch neu bauen
+          const veraltet = gleich ? await veralteteOptionen(lemma.lemma, pos, alt) : []
+          const status = !gleich || veraltet.length ? 'neu' : 'gleich'
+          eintraege.push({ id, lemma: lemma.lemma, status, alt: top3(alt), neu: top3(neu), ...(veraltet.length ? { veraltet } : {}), auchAm, _optionen: neu, _alt: alt })
         } catch (err) {
           logger.warn({ err, lemma: lemma.lemma }, 'Neubau: fetchLemma fehlgeschlagen')
           eintraege.push({ id, lemma: lemma.lemma, status: 'uebersprungen', grund: 'Fehler bei der Abfrage', auchAm })

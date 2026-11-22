@@ -17,6 +17,8 @@ export const VERDACHT = {
   pluralMinSingular: 2000,
   /** … und mehr als so viel mal häufiger als die Form selbst */
   pluralFaktor: 2,
+  /** Abgeschnittenes Substantiv nur unterhalb dieser Häufigkeit der Form selbst */
+  abgeschnittenMax: 2000,
   /** geprüfte Plätze (Top 3 und die starken Ablenker) */
   plaetze: 10,
 }
@@ -128,8 +130,9 @@ export function pruefeVerdacht({ basis, basisPos, eintrag }, { posFreq, quellen 
     }
   }
 
-  // Abgeschnittenes Substantiv (Nachnam → Nachname, Alarmglock → Alarmglocke)
-  if (eintrag.pos === 'Substantiv' && !korrigiert && !ersatz) {
+  // Abgeschnittenes Substantiv (Nachnam → Nachname, Alarmglock → Alarmglocke). Nur bei
+  // seltenen Formen: Ein häufiges Wort ist ein eigenes Wort (Link ↔ Linke, Bank ↔ Banken)
+  if (eintrag.pos === 'Substantiv' && !korrigiert && !ersatz && posFreq(dbLow, 'Substantiv') < VERDACHT.abgeschnittenMax) {
     const voll = deutlichHaeufiger(dbLow, [`${dbLow}e`, `${dbLow}en`], 'Substantiv', posFreq)
     if (voll) {
       gruende.push({ code: 'abgeschnitten', text: `abgeschnittene Form? „${gross(voll.s)}“ ist als Substantiv häufiger (${zahl(voll.f)} zu ${zahl(voll.eigen)})` })
@@ -160,6 +163,13 @@ export function pruefeVerdacht({ basis, basisPos, eintrag }, { posFreq, quellen 
     if (stamm) {
       gruende.push({ code: 'adjektivform', text: `gebeugte Form? „${stamm.s}“ ist als Adjektiv häufiger` })
       ersatz = stamm.s
+    } else if (/en$/.test(dbLow)) {
+      // Infinitiv als Adjektiv getaggt statt Partizip I (erschrecken → erschreckend)
+      const partizip = deutlichHaeufiger(dbLow, [`${dbLow}d`], 'Adjektiv', posFreq)
+      if (partizip) {
+        gruende.push({ code: 'adjektivform', text: `Infinitiv als Adjektiv? „${partizip.s}“ ist als Adjektiv häufiger` })
+        ersatz = partizip.s
+      }
     }
   }
 

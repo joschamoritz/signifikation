@@ -52,6 +52,8 @@ describe('Admin › Kollokator-Korrekturen und Neubau', () => {
       },
       korrekturen,
       fetchLemma: async (lemma) => ({ runden: { kollokatoren: frischeOptionen[lemma] ?? [] } }),
+      // Platz 1–25 = die frischen Optionen (Abgleich veralteter Ablenker)
+      fetchKollokatorenAnalyse: async (lemma) => ({ kollokatoren: (frischeOptionen[lemma] ?? []).map((o) => ({ wort: o.wort })) }),
       MIN_KOLLOKATOREN: 10,
       getLemmataIndex: () => ({ byId }),
       loadKalender: () => kalender,
@@ -203,5 +205,15 @@ describe('Admin › Kollokator-Korrekturen und Neubau', () => {
     expect(belegTage).toEqual(['2026-11-24', '2026-12-02'])
     const audit = auditZeilen('lemma_kollokatoren')
     expect(audit.map((z) => [z.action, z.resource_id])).toEqual([['UPDATE', 'verleihen']])
+  })
+
+  it('Neubau auch bei gleichen Top 3, wenn ein gespeicherter Ablenker nicht mehr in der Liste steht', async () => {
+    kalender = { '2026-12-03': { ids: ['retten'] } }
+    byId.set('retten', { id: 'retten', lemma: 'lebensrettend', pos: 'Adjektiv', runden: { kollokatoren: zehn(['Sofortmaßnahme', 'lebenserhaltend', 'Transplantation']).map((o, i) => (i === 3 ? { ...o, wort: 'Sofortmassnahm' } : o)) } })
+    frischeOptionen.lebensrettend = zehn(['Sofortmaßnahme', 'lebenserhaltend', 'Transplantation'])
+    const r = await call('POST', '/admin/kollokationen-neubau/vorschau', { daten: ['2026-12-03'] })
+    expect(r.body.tage[0].eintraege[0]).toMatchObject({ status: 'neu', veraltet: ['Sofortmassnahm'], alt: ['Sofortmaßnahme', 'lebenserhaltend', 'Transplantation'] })
+    const ohne = await call('POST', '/admin/kollokationen-neubau/vorschau', { daten: ['2026-12-24'] })
+    expect(ohne.body.tage[0].eintraege.find((e) => e.id === 'alt')?.veraltet).toBeUndefined()
   })
 })

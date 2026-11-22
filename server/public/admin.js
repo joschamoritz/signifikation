@@ -10685,7 +10685,8 @@ async function kollokationenNeubau(daten, meldungId, { nachher } = {}) {
     }
     const gesehen = new Set()
     const details = neu.filter((e) => !gesehen.has(e.id) && gesehen.add(e.id)).map((e) =>
-      `${datumKurz(e.datum)} ${e.lemma}: ${e.alt.join(', ') || '–'} → ${e.neu.join(', ')}${e.auchAm?.length ? ` (auch am ${e.auchAm.map(datumKurz).join(', ')})` : ''}`)
+      `${datumKurz(e.datum)} ${e.lemma}: ${e.alt.join(', ') === e.neu.join(', ') ? `Top 3 bleiben (${e.neu.join(', ')})` : `${e.alt.join(', ') || '–'} → ${e.neu.join(', ')}`}`
+      + `${e.veraltet?.length ? `, Ablenker entfällt: ${e.veraltet.join(', ')}` : ''}${e.auchAm?.length ? ` (auch am ${e.auchAm.map(datumKurz).join(', ')})` : ''}`)
     melde('')
     if (!(await bestaetige({
       frage: `Kollokationen für ${anzahlText(gesehen.size, 'Wort', 'Wörter')} neu bauen?`,

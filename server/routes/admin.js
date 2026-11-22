@@ -290,6 +290,7 @@ router.use(createAdminKollokatorKorrekturenRouter({
   },
   korrekturen: kollokatorKorrekturen,
   fetchLemma,
+  fetchKollokatorenAnalyse,
   MIN_KOLLOKATOREN,
   getLemmataIndex,
   loadKalender,
